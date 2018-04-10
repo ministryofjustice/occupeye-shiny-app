@@ -68,7 +68,6 @@ add_is_used <- function(df, perc_util=0.15, count_used_30 = 2) {
 
 add_util_category <- function(df) {
   
-  level_order <- c("Effective utilisation", "Under utilised", "Unused")
   level_order <- c("Unused", "Under utilised", "Effective utilisation")
   df %>%
     mutate(util_cat = case_when(in_use == FALSE  ~ "Unused",

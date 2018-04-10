@@ -13,7 +13,7 @@ prop_daily_usage_chart <- function(df_sum) {
     scale_x_date(breaks = pretty_breaks(30)) +
     theme(legend.position="right") +
     theme(plot.title = element_text(hjust = 0.5)) +
-    scale_fill_manual(values=c("coral2","thistle3","powderblue")) +
+    scale_fill_manual(values=c("Effective utilisation"="coral2","Under utilised"="thistle3","Unused"="powderblue")) +
     theme(axis.text.x = element_text(angle = 90, hjust = 1, size=10))
   
 }
