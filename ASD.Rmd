@@ -1,0 +1,23 @@
+---
+title: "Desk usage in Analytical Services"
+author: "Robin Linacre"
+date:  "`r format(Sys.time(), '%d %B, %Y')`"
+output: word_document
+
+params:
+  start_date: "2018-03-01"
+  end_date: "2018-04-01"
+  report_date: "March 2018"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("ASD_create_charts.R")
+```
+
+
+## Desk utilisation in ASD for `r params$report_date`
+
+
+The following chart shows desk utilisation in ASD for March
+![](rendered_charts/underutilised.png)

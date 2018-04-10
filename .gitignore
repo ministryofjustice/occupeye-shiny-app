@@ -1,0 +1,10 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+Data/
+*.csv
+*.xlsx
+*.docx
+*.png
+chart_specs/temp_delete_data
