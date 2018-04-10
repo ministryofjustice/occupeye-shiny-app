@@ -12,12 +12,14 @@ params:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-source("ASD_create_charts.R")
+source("ASD_get_df_sum.R")
+source("charting_functions.R")
 ```
 
 
 ## Desk utilisation in ASD for `r params$report_date`
 
-
 The following chart shows desk utilisation in ASD for March
-![](rendered_charts/underutilised.png)
+```{r utilisation_plot, echo=FALSE, dpi = 150, fig.width=8.9, fig.height=5}
+prop_daily_usage_chart(df_sum)
+```

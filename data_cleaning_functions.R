@@ -67,12 +67,15 @@ add_is_used <- function(df, perc_util=0.15, count_used_30 = 2) {
 }
 
 add_util_category <- function(df) {
-
+  
+  level_order <- c("Effective utilisation", "Under utilised", "Unused")
+  level_order <- c("Unused", "Under utilised", "Effective utilisation")
   df %>%
     mutate(util_cat = case_when(in_use == FALSE  ~ "Unused",
                           in_use == TRUE & utilisation < 0.5  ~ "Under utilised",
                           in_use == TRUE & utilisation >= 0.5  ~ "Effective utilisation"
-                          ))
+                          ))  %>% # Convert in_use to a factor with levels in a specific order - this controls the order in which it appears in ggplot 
+    mutate(util_cat = factor(util_cat, levels = level_order))
 
 }
 

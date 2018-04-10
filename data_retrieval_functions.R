@@ -1,4 +1,4 @@
-# s3tools::get_credentials()
+s3tools::get_credentials()
 
 library(glue)
 library(odbc)
