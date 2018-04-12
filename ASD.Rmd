@@ -1,6 +1,6 @@
 ---
 title: "Desk usage in Analytical Services"
-author: "Robin Linacre"
+author: "Thomas Hirsch"
 date:  "`r format(Sys.time(), '%d %B, %Y')`"
 output: word_document
 
@@ -12,8 +12,9 @@ params:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-source("ASD_get_df_sum.R")
+source("data_cleaning_functions.R")
 source("charting_functions.R")
+source("report_configuration.R")
 ```
 
 
@@ -21,5 +22,19 @@ source("charting_functions.R")
 
 The following chart shows desk utilisation in ASD for March
 ```{r utilisation_plot, echo=FALSE, dpi = 150, fig.width=8.9, fig.height=5}
-prop_daily_usage_chart(df_sum)
+df_sum <- get_df_sum(df,start_time,end_time)
+print(prop_daily_usage_chart(df_sum))
+
+## To be reworked (out of scope for this update)
+# team_list <- distinct(df,category_3)
+# 
+# for(team in team_list) {
+#   cat('\n')
+#   cat('Desk utlisation for ',team,'\n')
+#   team_data <- filter(df,category_3 == team)
+#   df_sum <- get_df_sum(team_data,start_time,end_time)
+#   print(prop_daily_usage_chart(df_sum))
+#   cat('\n')
+# }
+
 ```
