@@ -49,6 +49,33 @@ prop_weekday_usage_chart <- function(df_sum) {
   
 }
 
+
+prop_desk_usage_chart <- function(df_sum) {
+  
+  prop_usage_type <- prop.table(table(df_sum$devicetype,df_sum$util_cat),1)
+  
+  prop_usage_type <- as.data.frame(prop_usage_type) %>%
+    rename(desk_type=Var1,util_cat=Var2,prop=Freq)
+  
+
+  
+  ggplot(prop_usage_type,
+         aes(x=desk_type,y=prop,fill=util_cat)) +
+    geom_bar(stat="identity", position='fill') +
+    ggtitle("Desk Utilisation By desk type") +
+    labs(y="Desk Utilisation",fill="") +
+    labs(x=NULL,fill="") +
+    scale_y_continuous(labels = scales::percent) +
+    theme(legend.position="right") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    scale_fill_manual(values=c("Effective utilisation"="coral2","Under utilised"="thistle3","Unused"="powderblue")) +
+    theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=10))
+  
+  
+  
+}
+
+
 allocation_strategy_table <- function(df_sum) {
   
   current_allocation <- n_distinct(df_sum$surveydeviceid)

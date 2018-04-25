@@ -98,13 +98,13 @@ clean_and_mutate_raw_data <- function(df) {
 get_summarised_data <- function(df) {
   
   df %>%
-    group_by(date = date(obs_datetime), surveydeviceid) %>%
+    group_by(date = date(obs_datetime), surveydeviceid, devicetype) %>%
     summarise(utilisation = mean(sensor_value, rm.na=TRUE),
               longest_in_use = max(sensor_acc,0)*10,
               longest_empty = min(sensor_acc,0)*-10,
-              count_used_30 = sum(sensor_acc == 3),
-              count_na = sum(is.na(sensor_value))) %>%  # The sum of the number of occasions sensor_acc contains the value 3
-    ungroup(date, surveydeviceid) %>%
+              count_used_30 = sum(sensor_acc == 3), # The sum of the number of occasions sensor_acc contains the value 3
+              count_na = sum(is.na(sensor_value))) %>%  
+    ungroup(date, surveydeviceid, devicetype) %>%
     add_is_used() %>%
     add_util_category
 
