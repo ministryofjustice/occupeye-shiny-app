@@ -2,7 +2,6 @@ library(ggplot2)
 library(scales)
 library(dplyr)
 
-
 prop_daily_usage_chart <- function(df_sum) {
   
   prop_usage <- df_sum %>%
@@ -12,7 +11,7 @@ prop_daily_usage_chart <- function(df_sum) {
   ggplot(prop_usage,
     aes(x=date,y=prop,fill=util_cat)) +
     geom_bar(stat="identity", position='fill') +
-    ggtitle("Desk Utilisation By Day") +
+    ggtitle("Desk Utilisation By Date") +
     labs(y="Desk Utilisation",fill="") +
     labs(x=NULL,fill="") +
     scale_y_continuous(labels = scales::percent) +
@@ -24,6 +23,31 @@ prop_daily_usage_chart <- function(df_sum) {
   
 }
 
+prop_weekday_usage_chart <- function(df_sum) {
+  
+  prop_usage_day <- prop.table(table(weekdays(df_sum$date),df_sum$util_cat),1)
+  
+  prop_usage_day <- as.data.frame(prop_usage_day) %>%
+    rename(day=Var1,util_cat=Var2,prop=Freq)
+  
+  weekday<-c("Monday","Tuesday","Wednesday","Thursday","Friday")
+  
+  ggplot(prop_usage_day,
+    aes(x=day,y=prop,fill=util_cat)) +
+    geom_bar(stat="identity", position='fill') +
+    ggtitle("Desk Utilisation By Day") +
+    labs(y="Desk Utilisation",fill="") +
+    labs(x=NULL,fill="") +
+    scale_y_continuous(labels = scales::percent) +
+    scale_x_discrete(limits = weekday) +
+    theme(legend.position="right") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    scale_fill_manual(values=c("Effective utilisation"="coral2","Under utilised"="thistle3","Unused"="powderblue")) +
+    theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=10))
+  
+  
+  
+}
 
 allocation_strategy_table <- function(df_sum) {
   
@@ -64,5 +88,4 @@ allocation_strategy_table <- function(df_sum) {
   
   
 }
-
 
