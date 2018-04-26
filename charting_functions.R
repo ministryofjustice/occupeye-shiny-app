@@ -2,11 +2,39 @@ library(ggplot2)
 library(scales)
 library(dplyr)
 
+
+get_prop_usage <- function(df_sum) {
+
+  df_sum %>%
+    count(date,util_cat) %>%
+    group_by(date) %>%
+    mutate(prop = n/sum(n)) %>%
+    ungroup(date)
+}
+
+get_prop_usage_day <- function(df_sum) {
+
+  df_sum %>%
+    mutate(day = weekdays(date)) %>%
+    count(day,util_cat) %>%
+    group_by(day) %>%
+    mutate(prop = n/sum(n)) %>%
+    ungroup(day)
+  
+}
+
+get_prop_usage_type <- function(df_sum) {
+  
+  df_sum %>%
+    count(devicetype,util_cat) %>%
+    group_by(devicetype) %>%
+    mutate(prop = n/sum(n)) %>%
+    ungroup(devicetype)
+}
+
 prop_daily_usage_chart <- function(df_sum) {
   
-  prop_usage <- df_sum %>%
-    count(date,util_cat) %>%
-    mutate(prop = n/n_distinct(df_sum$surveydeviceid))
+  prop_usage <- get_prop_usage(df_sum)
   
   ggplot(prop_usage,
     aes(x=date,y=prop,fill=util_cat)) +
@@ -25,10 +53,7 @@ prop_daily_usage_chart <- function(df_sum) {
 
 prop_weekday_usage_chart <- function(df_sum) {
   
-  prop_usage_day <- prop.table(table(weekdays(df_sum$date),df_sum$util_cat),1)
-  
-  prop_usage_day <- as.data.frame(prop_usage_day) %>%
-    rename(day=Var1,util_cat=Var2,prop=Freq)
+  prop_usage_day <- get_prop_usage_day(df_sum)
   
   weekday<-c("Monday","Tuesday","Wednesday","Thursday","Friday")
   
@@ -46,19 +71,14 @@ prop_weekday_usage_chart <- function(df_sum) {
     theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=10))
   
   
-  
 }
 
 
 prop_desk_usage_chart <- function(df_sum) {
   
-  prop_usage_type <- prop.table(table(df_sum$devicetype,df_sum$util_cat),1)
-  
-  prop_usage_type <- as.data.frame(prop_usage_type) %>%
-    rename(desk_type=Var1,util_cat=Var2,prop=Freq)
+  prop_usage_type <- get_prop_usage_type(df_sum)
   
 
-  
   ggplot(prop_usage_type,
          aes(x=desk_type,y=prop,fill=util_cat)) +
     geom_bar(stat="identity", position='fill') +
@@ -70,6 +90,32 @@ prop_desk_usage_chart <- function(df_sum) {
     theme(plot.title = element_text(hjust = 0.5)) +
     scale_fill_manual(values=c("Effective utilisation"="coral2","Under utilised"="thistle3","Unused"="powderblue")) +
     theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=10))
+  
+  
+}
+
+smoothing_chart <- function(df_sum, smoothing_factor) {
+  
+
+  smoothing <- get_prop_usage_day(df_sum) %>%
+    filter(util_cat == "Unused") %>%
+    mutate(current_utilisation = 1- prop) %>%
+    mutate(full_smoothing = mean(current_utilisation)) %>%
+    mutate(partial_smoothing = (full_smoothing * smoothing_factor) + (prop * (1-smoothing_factor))) %>%
+    select(-util_cat,-n)
+  
+  weekday<-c("Monday","Tuesday","Wednesday","Thursday","Friday")
+  
+  ggplot(smoothing,
+         aes(x=day,y=value,fill=variable,group=position)) + 
+    geom_bar(stat="identity",position="dodge") + 
+    ggtitle("Required Desk Allocation - Smoothing Assumptions") + 
+    scale_x_discrete(limits = weekdays) + 
+    theme(legend.position="top") + 
+    theme(plot.title = element_text(hjust = 0.5)) + 
+    expand_limits(y=0)+scale_y_continuous(expand = c(0, 0),labels = percent) +
+    coord_cartesian(ylim=c(0,1))+labs(y="Desk Utilisation",fill="") + 
+    scale_fill_brewer(palette="Accent")
   
   
   
