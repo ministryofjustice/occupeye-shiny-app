@@ -1,7 +1,7 @@
 library(ggplot2)
 library(scales)
 library(dplyr)
-
+library(reshape2)
 
 get_prop_usage <- function(df_sum) {
 
@@ -95,19 +95,24 @@ prop_desk_usage_chart <- function(df_sum) {
 }
 
 smoothing_chart <- function(df_sum, smoothing_factor) {
+
+  weekdays <-c("Monday","Tuesday","Wednesday","Thursday","Friday")
   
+  cat_order <- c("Full Smoothing","Current Utilisation","Partial Smoothing")
 
   smoothing <- get_prop_usage_day(df_sum) %>%
     filter(util_cat == "Unused") %>%
     mutate(current_utilisation = 1- prop) %>%
     mutate(full_smoothing = mean(current_utilisation)) %>%
-    mutate(partial_smoothing = (full_smoothing * smoothing_factor) + (prop * (1-smoothing_factor))) %>%
-    select(-util_cat,-n)
+    mutate(partial_smoothing = (full_smoothing * smoothing_factor) + (current_utilisation * (1-smoothing_factor))) %>%
+    select(day,"Full Smoothing" = full_smoothing,"Current Utilisation" = current_utilisation, "Partial Smoothing" = partial_smoothing) %>%
+    melt("day") %>%
+    mutate(variable = factor(variable,cat_order))
   
-  weekday<-c("Monday","Tuesday","Wednesday","Thursday","Friday")
+
   
   ggplot(smoothing,
-         aes(x=day,y=value,fill=variable,group=position)) + 
+         aes(x=day,y=value,fill=variable)) + 
     geom_bar(stat="identity",position="dodge") + 
     ggtitle("Required Desk Allocation - Smoothing Assumptions") + 
     scale_x_discrete(limits = weekdays) + 
