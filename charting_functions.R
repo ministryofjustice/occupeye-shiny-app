@@ -80,7 +80,7 @@ prop_desk_usage_chart <- function(df_sum) {
   
 
   ggplot(prop_usage_type,
-         aes(x=desk_type,y=prop,fill=util_cat)) +
+         aes(x=devicetype,y=prop,fill=util_cat)) +
     geom_bar(stat="identity", position='fill') +
     ggtitle("Desk Utilisation By desk type") +
     labs(y="Desk Utilisation",fill="") +
