@@ -2,7 +2,7 @@ s3tools::get_credentials()
 
 library(glue)
 library(odbc)
-# con <- dbConnect(odbc::odbc(), "Athena")
+con <- dbConnect(odbc::odbc(), "Athena")
 
 get_sensor_data_sql <- function(survey_id, start_date, end_date_exclusive, category_1=NULL, category_2=NULL, category_3=NULL) {
 

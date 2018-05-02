@@ -23,7 +23,12 @@ source("report_configuration.R")
 The following chart shows desk utilisation in ASD for March
 ```{r utilisation_plot, echo=FALSE, dpi = 150, fig.width=8.9, fig.height=5}
 df_sum <- get_df_sum(df,start_time,end_time)
+print(allocation_strategy_table(df_sum))
 print(prop_daily_usage_chart(df_sum))
+print(prop_weekday_usage_chart(df_sum))
+print(prop_desk_usage_chart(df_sum))
+print(smoothing_chart(df_sum,0.5))
+
 
 ## To be reworked (out of scope for this update)
 # team_list <- distinct(df,category_3)
