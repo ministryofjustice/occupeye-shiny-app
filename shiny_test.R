@@ -10,16 +10,40 @@ source("data_cleaning_functions.R")
 source("data_retrieval_functions.R")
 
 #Temporary data import
-#df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-fact/OccupEye/occupeye_automation/sensor_df_20180412_full.csv")
+df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-fact/OccupEye/occupeye_automation/sensor_df_20180412_full.csv")
 
 time_list <- unique(strftime(df$obs_datetime,format="%H:%M"))
 date_list <- unique(date(df$obs_datetime))
 device_types <- unique(df$devicetype)
-
+cat1 <- unique(df$category_1)
+cat2 <- unique(df$category_2)
+cat3 <- unique(df$category_3)
 
 ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
+      
+      pickerInput(inputId = "category_1",
+                  label = "Select Group",
+                  choices = cat1,
+                  options = list(`actions-box` = TRUE),
+                  multiple = TRUE,
+                  selected = cat1),
+      
+      pickerInput(inputId = "category_2",
+                  label = "Select Department(s)",
+                  choices = cat2,
+                  options = list(`actions-box` = TRUE),
+                  multiple = TRUE,
+                  selected = cat2),
+      
+      pickerInput(inputId = "category_3",
+                  label = "Select team(s)",
+                  choices = cat3,
+                  options = list(`actions-box` = TRUE),
+                  multiple = TRUE,
+                  selected = cat3),
+      
       dateRangeInput(inputId = "date_range",
                      label = "Select sample date range",
                      start = min(date_list),
