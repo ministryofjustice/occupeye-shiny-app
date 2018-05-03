@@ -73,13 +73,16 @@ ui <- fluidPage(
                    min = 0,
                    max = 1,
                    value=0.5,
-                   step=0.1)
+                   step=0.1),
+      
+      actionButton("goButton","Go!")
+      
       ),
     mainPanel(
       tabsetPanel(
         tabPanel("Recommendation Table",tableOutput(outputId = "recom_table")),
         tabPanel("Smoothing",plotlyOutput(outputId = "smoothChart")),
-        tabPanel("daily usage",plotOutput(outputId = "dailyChart")), #for some reason this chart doesn't work with plotly so just using regular plotting
+        tabPanel("daily usage",plotlyOutput(outputId = "dailyChart")),
         tabPanel("usage by weekday",plotlyOutput(outputId = "weekdayChart")),
         tabPanel("usage by desk type",plotlyOutput(outputId = "deskChart"))
       )
@@ -93,28 +96,36 @@ server <- function(input,output) {
   filtered <- reactive({
     filtered <- get_df_sum(df,input$start_time,input$end_time) %>%
       filter(date >= input$date_range[1] & date <= input$date_range[2],
-             devicetype %in% input$desk_type)
+             devicetype %in% input$desk_type,
+             category_1 %in% input$category_1,
+             category_2 %in% input$category_2,
+             category_3 %in% input$category_3)
   })
 
   output$recom_table <- renderTable({
-    allocation_strategy_table(filtered())
+    input$goButton
+    isolate(allocation_strategy_table(filtered()))
   })
   
-  #for some reason the daily chart doesn't work with plotly so just using regular plotting
-  output$dailyChart <- renderPlot({
-    prop_daily_usage_chart(filtered())
+
+  output$dailyChart <- renderPlotly({
+    input$goButton
+    isolate(prop_daily_usage_chart(filtered()))
   })
   
   output$weekdayChart <- renderPlotly({
-    prop_weekday_usage_chart(filtered())
+    input$goButton
+    isolate(prop_weekday_usage_chart(filtered()))
   })
   
   output$deskChart <- renderPlotly({
-    prop_desk_usage_chart(filtered())
+    input$goButton
+    isolate(prop_desk_usage_chart(filtered()))
   })
   
   output$smoothChart <- renderPlotly({
-    smoothing_chart(filtered(),input$smoothing_factor)
+    input$goButton
+    isolate(smoothing_chart(filtered(),input$smoothing_factor))
   })
   
 
