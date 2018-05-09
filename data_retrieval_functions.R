@@ -37,7 +37,12 @@ get_sensor_data_sql <- function(survey_id, start_date, end_date_exclusive, categ
   glue(sql)
 
 }
-
+get_sensors_list <- function(survey_id) {
+  
+  sensors_sql <- glue("select * from occupeye_db.sensors where survey_id={survey_id}")
+  sensors <- dbGetQuery(con, sensors_sql)
+  
+}
 
 get_sensor_df <- function(survey_id, start_date, end_date_exclusive, category_1=NULL, category_2=NULL, category_3=NULL) {
   
@@ -45,11 +50,33 @@ get_sensor_df <- function(survey_id, start_date, end_date_exclusive, category_1=
   
   obs <- dbGetQuery(con, sql)
   
-  sensors_sql <- glue("select * from occupeye_db.sensors where survey_id={survey_id}")
-  sensors <- dbGetQuery(con, sensors_sql)
+  sensors <- get_sensors_list(survey_id)
   
   dplyr::left_join(obs, sensors, by="surveydeviceid")
   
 }
 
+get_surveys_list <- function() {
+  
+  
+  surveys_sql <- "select * from occupeye_db.surveys"
+  
+  surveys <- dbGetQuery(con,surveys_sql)
+}
 
+
+
+get_survey_id <- function(surveys_list,survey_name) {
+
+  filter(surveys_list,name==survey_name)$survey_id
+  
+}
+
+get_cat_list <- function(sensors) {
+  
+  sensors %>%
+    select(category_1,category_2,category_3) %>%
+    unique
+  
+  
+}
