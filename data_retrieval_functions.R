@@ -74,9 +74,10 @@ get_survey_id <- function(surveys_list,survey_name) {
 
 get_cat_list <- function(sensors) {
   
-  sensors %>%
+  category_list <- sensors %>%
     select(category_1,category_2,category_3) %>%
-    unique
+    unique %>%
+    mutate_all(funs(ifelse(.=="","N/A",.)))
   
   
 }

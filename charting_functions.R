@@ -32,6 +32,36 @@ get_prop_usage_type <- function(df_sum) {
     ungroup(devicetype)
 }
 
+get_prop_usage_team <- function(df_sum) {
+  df_sum %>%
+    count(category_1,category_2,category_3,util_cat) %>%
+    group_by(category_1,category_2,category_3) %>%
+    mutate(prop = n/sum(n)) %>%
+    ungroup(category_1,category_2,category_3)
+  
+  
+}
+
+prop_team_usage_chart <- function(df_sum) {
+  
+  prop_usage_team <- get_prop_usage_team(df_sum)
+  
+  ggplot(prop_usage_team,
+         aes(x=category_3,y=prop,fill=util_cat)) +
+    geom_bar(stat="identity", position='fill') +
+    ggtitle("Desk Utilisation By Date") +
+    labs(y="Desk Utilisation",fill="") +
+    labs(x=NULL,fill="") +
+    scale_y_continuous(labels = scales::percent) +
+    theme(legend.position="right") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    scale_fill_manual(values=c("Effective utilisation"="coral2","Under utilised"="thistle3","Unused"="powderblue")) +
+    theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=10))
+  
+  
+}
+
+
 prop_daily_usage_chart <- function(df_sum) {
   
   prop_usage <- get_prop_usage(df_sum)
@@ -164,6 +194,14 @@ allocation_strategy_table <- function(df_sum) {
                     "desks in scope" = desks_in_scope,
                     "percent current allocation" = percent_current_allocation)
   
+  
+}
+
+desks_by_desk_type <- function(df_sum) {
+  df_sum %>%
+    group_by(devicetype) %>%
+    summarise(sensors = n_distinct(surveydeviceid)) %>%
+    rename("Desk Type" = devicetype)
   
 }
 

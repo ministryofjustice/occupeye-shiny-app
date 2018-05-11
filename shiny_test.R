@@ -4,6 +4,7 @@ library(dplyr)
 library(shinyWidgets)
 library(plotly)
 library(shinyTree)
+library(rpivotTable)
 
 source("charting_functions.R")
 source("data_cleaning_functions.R")
@@ -16,54 +17,22 @@ time_list <- unique(strftime(df$obs_datetime,format="%H:%M"))
 date_list <- unique(date(df$obs_datetime))
 surveys_list <- get_surveys_list()
 device_types <- unique(df$devicetype)
-category_lists = get_cat_list(get_sensors_list(330))
-cat1 <- unique(category_lists$category_1)
-cat2 <- unique(category_lists$category_2)
-cat3 <- unique(category_lists$category_3)
 
 
 
 ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
+      
+      actionButton("download_button","Download the data"),
+      actionButton("goButton","Go!"),
 
        
       selectInput(inputId = "survey_name",
                  label = "Select OccupEye survey",
-                 choices = surveys_list$name),
+                 choices = surveys_list$name,
+                 selected = "102 Petty France"),
       
-      
-      selectInput(inputId = "start_time",
-                 label = "Start time:",
-                 choices = time_list,
-                 selected = "09:00"),
-      
-      selectInput(inputId = "end_time",
-                 label = "End time:",
-                 choices = time_list,
-                 selected = "17:00"),
-      
-
-      pickerInput(inputId = "category_1",
-                  label = "Select Group",
-                  choices = cat1,
-                  options = list(`actions-box` = TRUE,`selected-text-format` = "count > 3"),
-                  multiple = TRUE,
-                  selected = cat1),
-      
-      pickerInput(inputId = "category_2",
-                  label = "Select Department(s)",
-                  choices = cat2,
-                  options = list(`actions-box` = TRUE,`selected-text-format` = "count > 3"),
-                  multiple = TRUE,
-                  selected = cat2),
-      
-      pickerInput(inputId = "category_3",
-                  label = "Select team(s)",
-                  choices = cat3,
-                  options = list(`actions-box` = TRUE,`selected-text-format` = "count > 3"),
-                  multiple = TRUE,
-                  selected = cat3),
       
       dateRangeInput(inputId = "date_range",
                      label = "Select sample date range",
@@ -79,7 +48,15 @@ ui <- fluidPage(
                   multiple = TRUE,
                   selected = device_types),
       
+      selectInput(inputId = "start_time",
+                  label = "Start time:",
+                  choices = time_list,
+                  selected = "09:00"),
       
+      selectInput(inputId = "end_time",
+                  label = "End time:",
+                  choices = time_list,
+                  selected = "17:00"),
       
       numericInput(inputId = "smoothing_factor",
                    label = "Smoothing Factor",
@@ -87,21 +64,22 @@ ui <- fluidPage(
                    max = 1,
                    value=0.5,
                    step=0.1),
-      actionButton("download_button","Download the data"),
-      actionButton("goButton","Go!")
+      
+      
+      shinyTree("tree",checkbox = TRUE,search=TRUE)
+      
     
       ),
     
       mainPanel(
         tabsetPanel(
-          tabPanel("Tree",shinyTree("tree",checkbox = TRUE),
-                   verbatimTextOutput("selTxt")),
-          tabPanel("df_sum",tableOutput(outputId = "df_sum")),
+          tabPanel("Pivot table",rpivotTableOutput("myPivot")),
           tabPanel("Recommendation Table",tableOutput(outputId = "recom_table")),
           tabPanel("Smoothing",plotlyOutput(outputId = "smoothChart")),
           tabPanel("daily usage",plotlyOutput(outputId = "dailyChart")),
           tabPanel("usage by weekday",plotlyOutput(outputId = "weekdayChart")),
-          tabPanel("usage by desk type",plotlyOutput(outputId = "deskChart"))
+          tabPanel("usage by desk type",plotlyOutput(outputId = "deskChart")),
+          tabPanel("df_sum",tableOutput(outputId = "df_sum"))
       )
       
     )
@@ -121,18 +99,54 @@ server <- function(input,output) {
   #     get_df_sum(input$start_time,input$end_time))
   # })
   
+
+  
+  
   
   filtered <- reactive({
-    filtered <- df_sum %>%
-      filter(date >= input$date_range[1] & date <= input$date_range[2],
-             devicetype %in% input$desk_type,
-             category_1 %in% input$category_1,
-             category_2 %in% input$category_2,
-             category_3 %in% input$category_3)
+    
+    # only update this when you hit go
+    input$goButton
+    
+    
+    isolate({
+    
+      #loop through the layers of the tree to get the selected names at each level
+      tree <- input$tree
+      l1Names <- NULL
+      l2Names <- NULL
+      l3Names <- NULL
+      if (is.null(tree)){
+        "None"
+      } else{
+        selected <-get_selected(tree,"slice")
+        
+        
+        for(x in selected) {
+          l1Names <- c(l1Names,names(x))
+          for(y in x) {
+            l2Names <- c(l2Names,names(y))
+            for (z in y) {
+              l3Names <- c(l3Names,names(z))
+            }
+          }
+        }
+      }
+      
+      
+      # apply the filters
+      filtered <- df_sum %>%
+        filter(date >= input$date_range[1] & date <= input$date_range[2],
+               devicetype %in% input$desk_type,
+               category_1 %in% l1Names,
+               category_2 %in% l2Names,
+               category_3 %in% l3Names)
+    
+    })
   })
   
-  output$df_sum <- renderTable({
-    df_sum
+  output$df_sum <- renderDataTable({
+    filtered()
   })
 
   output$recom_table <- renderTable({
@@ -161,24 +175,25 @@ server <- function(input,output) {
     isolate(smoothing_chart(filtered(),input$smoothing_factor))
   })
   
+  
   output$tree <- renderTree({
-    cat1split <- with(category_lists,split(category_lists,category_1))
     
+    category_list <- get_cat_list(get_sensors_list(get_survey_id(surveys_list,input$survey_name)))
+    
+    # split the data.frame of categories into a nested list of lists
+    cat1split <- with(category_list,split(category_list,category_1))
     cat2split <- lapply(cat1split, function(x) split(x, x$category_2))
-    
     cat3split <- lapply(cat2split,lapply,function(x) split(x,x$category_3))
     
-    final <- lapply(cat3split,lapply,lapply,function(x) x = names(x))
+    # replace the category-3 level with the names, 
+    # so that the original data frame headings aren't added as an extra layer.
+    final <- lapply(cat3split,lapply,lapply,function(x) x <- names(x))
+    
     
   })
-  
-  output$selTxt <- renderText({
-    tree <- input$tree
-    if (is.null(tree)){
-      "None"
-    } else{
-      unlist(get_selected(tree))
-    }
+
+  output$myPivot <- renderRpivotTable({
+    rpivotTable(data = filtered())
   })
 
   
