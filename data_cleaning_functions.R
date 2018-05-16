@@ -62,7 +62,7 @@ add_is_used <- function(df, perc_util=0.15, count_used_30 = 2) {
   f1 <- df$utilisation > perc_util
   f2 <- df$count_used_30 >= count_used_30
   df %>%
-    mutate(in_use = ifelse(f1 & f2, TRUE, FALSE))
+    mutate(in_use = f1 | f2)
 
 }
 
