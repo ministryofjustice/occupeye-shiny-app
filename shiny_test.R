@@ -1,10 +1,10 @@
-library(shiny)
-library(ggplot2)
-library(dplyr)
-library(shinyWidgets)
-library(plotly)
-library(shinyTree)
-library(rpivotTable)
+library(shiny)          # For the shiny!
+library(ggplot2)        # For plotting
+library(dplyr)          # For pipes
+library(shinyWidgets)   # For pickerInput
+library(plotly)         # Makes ggplot interactive
+library(shinyTree)      # for the category tree
+library(rpivotTable)    # Pivot tables
 
 source("charting_functions.R")
 source("data_cleaning_functions.R")
@@ -12,11 +12,12 @@ source("data_retrieval_functions.R")
 
 #Temporary data import
 #df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-fact/OccupEye/occupeye_automation/sensor_df_20180412_full.csv")
-
+df_sum <- get_df_sum(df,"09:00","17:00")
 time_list <- unique(strftime(df$obs_datetime,format="%H:%M"))
 date_list <- unique(date(df$obs_datetime))
 surveys_list <- get_surveys_list()
 device_types <- unique(df$devicetype)
+floors <- unique(df$floor)
 
 
 
@@ -31,7 +32,7 @@ ui <- fluidPage(
       selectInput(inputId = "survey_name",
                  label = "Select OccupEye survey",
                  choices = surveys_list$name,
-                 selected = "102 Petty France"),
+                 selected = "102 Petty France v1.0"),
       
       
       dateRangeInput(inputId = "date_range",
@@ -41,12 +42,6 @@ ui <- fluidPage(
                      min = min(date_list),
                      max = max(date_list)),
       
-      pickerInput(inputId = "desk_type",
-                  label = "Pick desk type(s)",
-                  choices = device_types,
-                  options = list(`actions-box` = TRUE),
-                  multiple = TRUE,
-                  selected = device_types),
       
       selectInput(inputId = "start_time",
                   label = "Start time:",
@@ -57,6 +52,20 @@ ui <- fluidPage(
                   label = "End time:",
                   choices = time_list,
                   selected = "17:00"),
+      
+      pickerInput(inputId = "desk_type",
+                  label = "Pick desk type(s)",
+                  choices = device_types,
+                  options = list(`actions-box` = TRUE),
+                  multiple = TRUE,
+                  selected = device_types),
+      
+      pickerInput(inputId = "floors",
+                  label = "Pick floor(s)",
+                  choices = floors,
+                  options = list(`actions-box` = TRUE),
+                  multiple = TRUE,
+                  selected = floors),
       
       numericInput(inputId = "smoothing_factor",
                    label = "Smoothing Factor",
@@ -74,12 +83,14 @@ ui <- fluidPage(
       mainPanel(
         tabsetPanel(
           tabPanel("Pivot table",rpivotTableOutput("myPivot")),
-          tabPanel("Recommendation Table",tableOutput(outputId = "recom_table")),
+          tabPanel("Summary tables",tableOutput(outputId = "recom_table"),
+                   tableOutput(outputId = "desk_count")),
           tabPanel("Smoothing",plotlyOutput(outputId = "smoothChart")),
           tabPanel("daily usage",plotlyOutput(outputId = "dailyChart")),
           tabPanel("usage by weekday",plotlyOutput(outputId = "weekdayChart")),
           tabPanel("usage by desk type",plotlyOutput(outputId = "deskChart")),
-          tabPanel("df_sum",tableOutput(outputId = "df_sum"))
+          tabPanel("usage by floor",plotlyOutput(outputId = "floorChart")),
+          tabPanel("df_sum",dataTableOutput(outputId = "df_sum"))
       )
       
     )
@@ -138,6 +149,7 @@ server <- function(input,output) {
       filtered <- df_sum %>%
         filter(date >= input$date_range[1] & date <= input$date_range[2],
                devicetype %in% input$desk_type,
+               floor %in% input$floors,
                category_1 %in% l1Names,
                category_2 %in% l2Names,
                category_3 %in% l3Names)
@@ -152,6 +164,11 @@ server <- function(input,output) {
   output$recom_table <- renderTable({
     input$goButton
     isolate(allocation_strategy_table(filtered()))
+  })
+  
+  output$desk_count <- renderTable({
+    input$goButton
+    isolate(desks_by_desk_type(filtered()))
   })
   
 
@@ -175,6 +192,10 @@ server <- function(input,output) {
     isolate(smoothing_chart(filtered(),input$smoothing_factor))
   })
   
+  output$floorChart <- renderPlotly({
+    input$goButton
+    isolate(prop_floor_usage_chart(filtered()))
+  })
   
   output$tree <- renderTree({
     
