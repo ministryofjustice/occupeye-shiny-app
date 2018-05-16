@@ -42,6 +42,34 @@ get_prop_usage_team <- function(df_sum) {
   
 }
 
+get_prop_usage_floor <- function(df_sum) {
+  
+  df_sum %>%
+    count(floor,util_cat) %>%
+    group_by(floor) %>%
+    mutate(prop = n/sum(n)) %>%
+    ungroup(floor)
+}
+
+prop_floor_usage_chart <- function(df_sum) {
+  
+  prop_usage_floor <- get_prop_usage_floor(df_sum)
+  
+  ggplot(prop_usage_floor,
+         aes(x=factor(floor),y=prop,fill=util_cat)) +
+    geom_bar(stat="identity", position='fill') +
+    ggtitle("Desk Utilisation By Floor") +
+    labs(y="Desk Utilisation",fill="") +
+    labs(x=NULL,fill="") +
+    scale_y_continuous(labels = scales::percent) +
+    theme(legend.position="right") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    scale_fill_manual(values=c("Effective utilisation"="coral2","Under utilised"="thistle3","Unused"="powderblue")) +
+    theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=10))
+  
+  
+}
+
 prop_team_usage_chart <- function(df_sum) {
   
   prop_usage_team <- get_prop_usage_team(df_sum)
@@ -49,7 +77,7 @@ prop_team_usage_chart <- function(df_sum) {
   ggplot(prop_usage_team,
          aes(x=category_3,y=prop,fill=util_cat)) +
     geom_bar(stat="identity", position='fill') +
-    ggtitle("Desk Utilisation By Date") +
+    ggtitle("Desk Utilisation By Team") +
     labs(y="Desk Utilisation",fill="") +
     labs(x=NULL,fill="") +
     scale_y_continuous(labels = scales::percent) +
@@ -205,3 +233,16 @@ desks_by_desk_type <- function(df_sum) {
   
 }
 
+desks_by_team <- function(df_sum) {
+  df_sum %>%
+    group_by(category_3) %>%
+    summarise(sensors = n_distinct(surveydeviceid)) %>%
+    rename("Team" = category_3)
+}
+
+desks_by_desk_type_and_team <- function(df_sum) {
+  df_sum %>%
+    group_by(category_3,devicetype) %>%
+    summarise(sensors = n_distinct(surveydeviceid)) %>%
+    rename("Desk Type" = devicetype,"team"=category_3)
+}
