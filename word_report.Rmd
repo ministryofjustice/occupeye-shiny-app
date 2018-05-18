@@ -1,0 +1,45 @@
+---
+title: "Desk usage in Analytical Services"
+author: "Thomas Hirsch"
+date:  "`r format(Sys.time(), '%d %B, %Y')`"
+output: word_document
+
+params:
+  start_date: "2018-03-01"
+  end_date: "2018-04-01"
+  report_date: "March 2018"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# source("data_cleaning_functions.R")
+# source("charting_functions.R")
+# source("report_configuration.R")
+```
+
+
+## Desk utilisation in ASD for `r params$report_date`
+
+```{r summary, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
+df_sum <- filtered()
+
+knitr::kable(allocation_strategy_table(df_sum))
+print(prop_daily_usage_chart(df_sum))
+print(prop_weekday_usage_chart(df_sum))
+print(prop_desk_usage_chart(df_sum))
+print(smoothing_chart(df_sum,0.5))
+```
+
+```{r team_slides, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
+# To be reworked (out of scope for this update)
+team_list <- unique(df_sum$category_3)
+if(length(team_list) > 1) {
+  for(team in team_list) {
+    if(team != "N/A") {
+      cat('Desk utilisation for ',team,'\n\n')
+      print(prop_daily_usage_chart(df_sum %>% filter(category_3 == team)))
+    }
+  }
+}
+
+```

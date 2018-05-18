@@ -1,6 +1,7 @@
 library(shiny)          # For the shiny!
 library(ggplot2)        # For plotting
 library(dplyr)          # For pipes
+library(htmlwidgets)    # rpivottool depends on it
 library(shinyWidgets)   # For pickerInput
 library(plotly)         # Makes ggplot interactive
 library(shinyTree)      # for the category tree
@@ -11,7 +12,7 @@ source("data_cleaning_functions.R")
 source("data_retrieval_functions.R")
 
 #Temporary data import
-#df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-fact/OccupEye/occupeye_automation/sensor_df_20180412_full.csv")
+df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-fact/OccupEye/occupeye_automation/sensor_df_20180412_full.csv")
 df_sum <- get_df_sum(df,"09:00","17:00")
 time_list <- unique(strftime(df$obs_datetime,format="%H:%M"))
 date_list <- unique(date(df$obs_datetime))
@@ -24,67 +25,78 @@ floors <- unique(df$floor)
 ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
+      tabsetPanel(
+        tabPanel("Report config",
       
-      actionButton("download_button","Download the data"),
-      actionButton("goButton","Go!"),
-
-       
-      selectInput(inputId = "survey_name",
-                 label = "Select OccupEye survey",
-                 choices = surveys_list$name,
-                 selected = "102 Petty France v1.0"),
-      
-      
-      dateRangeInput(inputId = "date_range",
-                     label = "Select sample date range",
-                     start = min(date_list),
-                     end = max(date_list),
-                     min = min(date_list),
-                     max = max(date_list)),
-      
-      
-      selectInput(inputId = "start_time",
-                  label = "Start time:",
-                  choices = time_list,
-                  selected = "09:00"),
-      
-      selectInput(inputId = "end_time",
-                  label = "End time:",
-                  choices = time_list,
-                  selected = "17:00"),
-      
-      pickerInput(inputId = "desk_type",
-                  label = "Pick desk type(s)",
-                  choices = device_types,
-                  options = list(`actions-box` = TRUE),
-                  multiple = TRUE,
-                  selected = device_types),
-      
-      pickerInput(inputId = "floors",
-                  label = "Pick floor(s)",
-                  choices = floors,
-                  options = list(`actions-box` = TRUE),
-                  multiple = TRUE,
-                  selected = floors),
-      
-      numericInput(inputId = "smoothing_factor",
-                   label = "Smoothing Factor",
-                   min = 0,
-                   max = 1,
-                   value=0.5,
-                   step=0.1),
-      
-      
-      shinyTree("tree",checkbox = TRUE,search=TRUE)
-      
+          
+          actionButton("goButton","Go!"),
     
+           
+          selectInput(inputId = "survey_name",
+                     label = "Select OccupEye survey",
+                     choices = surveys_list$name,
+                     selected = "102 Petty France v1.0"),
+          
+          
+          dateRangeInput(inputId = "date_range",
+                         label = "Select sample date range",
+                         start = min(date_list),
+                         end = max(date_list),
+                         min = min(date_list),
+                         max = max(date_list)),
+          
+          
+          selectInput(inputId = "start_time",
+                      label = "Start time:",
+                      choices = time_list,
+                      selected = "09:00"),
+          
+          selectInput(inputId = "end_time",
+                      label = "End time:",
+                      choices = time_list,
+                      selected = "17:00"),
+          
+          pickerInput(inputId = "desk_type",
+                      label = "Pick desk type(s)",
+                      choices = device_types,
+                      options = list(`actions-box` = TRUE),
+                      multiple = TRUE,
+                      selected = device_types),
+          
+          pickerInput(inputId = "floors",
+                      label = "Pick floor(s)",
+                      choices = floors,
+                      options = list(`actions-box` = TRUE),
+                      multiple = TRUE,
+                      selected = floors),
+          
+          numericInput(inputId = "smoothing_factor",
+                       label = "Smoothing Factor",
+                       min = 0,
+                       max = 1,
+                       value=0.5,
+                       step=0.1),
+          
+          
+          shinyTree("tree",checkbox = TRUE,search=TRUE)
+        ),
+        
+        tabPanel("Download Report",
+          radioButtons('format', 'Document format', c('HTML', 'Word'),
+                       inline = TRUE),
+          downloadButton("download_button","Generate report")
+        )
+        
+        )
       ),
     
       mainPanel(
         tabsetPanel(
           tabPanel("Pivot table",rpivotTableOutput("myPivot")),
           tabPanel("Summary tables",tableOutput(outputId = "recom_table"),
-                   tableOutput(outputId = "desk_count")),
+                   tableOutput(outputId = "team_count"),
+                   tableOutput(outputId = "desk_count"),
+                   tableOutput(outputId = "team_desk_count")),
           tabPanel("Smoothing",plotlyOutput(outputId = "smoothChart")),
           tabPanel("daily usage",plotlyOutput(outputId = "dailyChart")),
           tabPanel("usage by weekday",plotlyOutput(outputId = "weekdayChart")),
@@ -171,6 +183,16 @@ server <- function(input,output) {
     isolate(desks_by_desk_type(filtered()))
   })
   
+  output$team_count <- renderTable({
+    input$goButton
+    isolate(desks_by_team(filtered()))
+  })
+  
+  output$team_desk_count <- renderTable({
+    input$goButton
+    isolate(desks_by_desk_type_and_team(filtered()))
+  })
+  
 
   output$dailyChart <- renderPlotly({
     input$goButton
@@ -216,7 +238,34 @@ server <- function(input,output) {
   output$myPivot <- renderRpivotTable({
     rpivotTable(data = filtered())
   })
-
+  
+  output$download_button <- downloadHandler(
+    filename = function() {
+      paste('my-report', sep = '.', switch(
+        input$format, PDF = 'pdf', HTML = 'html', Word = 'docx'
+      ))
+    },
+    
+    content = function(file) {
+      
+      out_report <- switch(
+        input$format, PDF = 'pdf', HTML = 'slidy_report.Rmd', Word = 'word_report.Rmd'
+      )
+      
+      src <- normalizePath(out_report)
+      
+      # temporarily switch to the temp dir, in case you do not have write
+      # permission to the current working directory
+      owd <- setwd(tempdir())
+      on.exit(setwd(owd))
+      file.copy(src, out_report, overwrite = TRUE)
+      
+      out <- rmarkdown::render(out_report)
+      file.rename(out, file)
+    }
+    
+    
+  )
   
 }  
 
