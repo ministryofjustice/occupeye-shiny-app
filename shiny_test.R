@@ -309,6 +309,11 @@ server <- function(input,output,session) {
     
   )
   
+  # change to TRUE when deployed
+  
+  # refreshes connection when grey screened
+  
+  session$allowReconnect("force")
 
   
 }  
