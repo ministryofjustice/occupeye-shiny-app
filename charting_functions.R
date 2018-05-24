@@ -1,7 +1,12 @@
+
+# Library declarations ----------------------------------------------------
+
 library(ggplot2)
 library(scales)
 library(dplyr)
 library(reshape2)
+
+
 
 get_prop_usage <- function(df_sum) {
 
@@ -11,6 +16,26 @@ get_prop_usage <- function(df_sum) {
     mutate(prop = n/sum(n)) %>%
     ungroup(date)
 }
+
+prop_daily_usage_chart <- function(df_sum) {
+  
+  prop_usage <- get_prop_usage(df_sum)
+  
+  ggplot(prop_usage,
+         aes(x=date,y=prop,fill=util_cat)) +
+    geom_bar(stat="identity", position='fill') +
+    ggtitle("Desk Utilisation By Date") +
+    labs(y="Desk Utilisation",fill="") +
+    labs(x=NULL,fill="") +
+    scale_y_continuous(labels = scales::percent) +
+    scale_x_date(breaks = pretty_breaks(30)) +
+    theme(legend.position="right") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    scale_fill_manual(values=c("Effective utilisation"="coral2","Under utilised"="thistle3","Unused"="powderblue")) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, size=10))
+  
+}
+
 
 get_prop_usage_day <- function(df_sum) {
 
@@ -23,6 +48,29 @@ get_prop_usage_day <- function(df_sum) {
   
 }
 
+prop_weekday_usage_chart <- function(df_sum) {
+  
+  prop_usage_day <- get_prop_usage_day(df_sum)
+  
+  weekday<-c("Monday","Tuesday","Wednesday","Thursday","Friday")
+  
+  ggplot(prop_usage_day,
+         aes(x=day,y=prop,fill=util_cat)) +
+    geom_bar(stat="identity", position='fill') +
+    ggtitle("Desk Utilisation By Day") +
+    labs(y="Desk Utilisation",fill="") +
+    labs(x=NULL,fill="") +
+    scale_y_continuous(labels = scales::percent) +
+    scale_x_discrete(limits = weekday) +
+    theme(legend.position="right") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    scale_fill_manual(values=c("Effective utilisation"="coral2","Under utilised"="thistle3","Unused"="powderblue")) +
+    theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=10))
+  
+  
+}
+
+
 get_prop_usage_type <- function(df_sum) {
   
   df_sum %>%
@@ -32,6 +80,25 @@ get_prop_usage_type <- function(df_sum) {
     ungroup(devicetype)
 }
 
+prop_desk_usage_chart <- function(df_sum) {
+  
+  prop_usage_type <- get_prop_usage_type(df_sum)
+  
+  
+  ggplot(prop_usage_type,
+         aes(x=devicetype,y=prop,fill=util_cat)) +
+    geom_bar(stat="identity", position='fill') +
+    ggtitle("Desk Utilisation By desk type") +
+    labs(y="Desk Utilisation",fill="") +
+    labs(x=NULL,fill="") +
+    scale_y_continuous(labels = scales::percent) +
+    theme(legend.position="right") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    scale_fill_manual(values=c("Effective utilisation"="coral2","Under utilised"="thistle3","Unused"="powderblue")) +
+    theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=10))
+  
+}
+
 get_prop_usage_team <- function(df_sum) {
   df_sum %>%
     count(category_1,category_2,category_3,util_cat) %>%
@@ -39,8 +106,25 @@ get_prop_usage_team <- function(df_sum) {
     mutate(prop = n/sum(n)) %>%
     ungroup(category_1,category_2,category_3)
   
-  
 }
+
+prop_team_usage_chart <- function(df_sum) {
+  
+  prop_usage_team <- get_prop_usage_team(df_sum)
+  
+  ggplot(prop_usage_team,
+         aes(x=category_3,y=prop,fill=util_cat)) +
+    geom_bar(stat="identity", position='fill') +
+    ggtitle("Desk Utilisation By Team") +
+    labs(y="Desk Utilisation",fill="") +
+    labs(x=NULL,fill="") +
+    scale_y_continuous(labels = scales::percent) +
+    theme(legend.position="right") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    scale_fill_manual(values=c("Effective utilisation"="coral2","Under utilised"="thistle3","Unused"="powderblue")) +
+    theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=10))
+}
+
 
 get_prop_usage_floor <- function(df_sum) {
   
@@ -70,87 +154,6 @@ prop_floor_usage_chart <- function(df_sum) {
   
 }
 
-prop_team_usage_chart <- function(df_sum) {
-  
-  prop_usage_team <- get_prop_usage_team(df_sum)
-  
-  ggplot(prop_usage_team,
-         aes(x=category_3,y=prop,fill=util_cat)) +
-    geom_bar(stat="identity", position='fill') +
-    ggtitle("Desk Utilisation By Team") +
-    labs(y="Desk Utilisation",fill="") +
-    labs(x=NULL,fill="") +
-    scale_y_continuous(labels = scales::percent) +
-    theme(legend.position="right") +
-    theme(plot.title = element_text(hjust = 0.5)) +
-    scale_fill_manual(values=c("Effective utilisation"="coral2","Under utilised"="thistle3","Unused"="powderblue")) +
-    theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=10))
-  
-  
-}
-
-
-prop_daily_usage_chart <- function(df_sum) {
-  
-  prop_usage <- get_prop_usage(df_sum)
-  
-  ggplot(prop_usage,
-    aes(x=date,y=prop,fill=util_cat)) +
-    geom_bar(stat="identity", position='fill') +
-    ggtitle("Desk Utilisation By Date") +
-    labs(y="Desk Utilisation",fill="") +
-    labs(x=NULL,fill="") +
-    scale_y_continuous(labels = scales::percent) +
-    scale_x_date(breaks = pretty_breaks(30)) +
-    theme(legend.position="right") +
-    theme(plot.title = element_text(hjust = 0.5)) +
-    scale_fill_manual(values=c("Effective utilisation"="coral2","Under utilised"="thistle3","Unused"="powderblue")) +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1, size=10))
-  
-}
-
-prop_weekday_usage_chart <- function(df_sum) {
-  
-  prop_usage_day <- get_prop_usage_day(df_sum)
-  
-  weekday<-c("Monday","Tuesday","Wednesday","Thursday","Friday")
-  
-  ggplot(prop_usage_day,
-    aes(x=day,y=prop,fill=util_cat)) +
-    geom_bar(stat="identity", position='fill') +
-    ggtitle("Desk Utilisation By Day") +
-    labs(y="Desk Utilisation",fill="") +
-    labs(x=NULL,fill="") +
-    scale_y_continuous(labels = scales::percent) +
-    scale_x_discrete(limits = weekday) +
-    theme(legend.position="right") +
-    theme(plot.title = element_text(hjust = 0.5)) +
-    scale_fill_manual(values=c("Effective utilisation"="coral2","Under utilised"="thistle3","Unused"="powderblue")) +
-    theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=10))
-  
-  
-}
-
-
-prop_desk_usage_chart <- function(df_sum) {
-  
-  prop_usage_type <- get_prop_usage_type(df_sum)
-  
-
-  ggplot(prop_usage_type,
-         aes(x=devicetype,y=prop,fill=util_cat)) +
-    geom_bar(stat="identity", position='fill') +
-    ggtitle("Desk Utilisation By desk type") +
-    labs(y="Desk Utilisation",fill="") +
-    labs(x=NULL,fill="") +
-    scale_y_continuous(labels = scales::percent) +
-    theme(legend.position="right") +
-    theme(plot.title = element_text(hjust = 0.5)) +
-    scale_fill_manual(values=c("Effective utilisation"="coral2","Under utilised"="thistle3","Unused"="powderblue")) +
-    theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=10))
-  
-  
-}
 
 smoothing_chart <- function(df_sum, smoothing_factor) {
 
@@ -166,7 +169,6 @@ smoothing_chart <- function(df_sum, smoothing_factor) {
     select(day,"Full Smoothing" = full_smoothing,"Current Utilisation" = current_utilisation, "Partial Smoothing" = partial_smoothing) %>%
     melt("day") %>%
     mutate(variable = factor(variable,cat_order))
-  
 
   
   ggplot(smoothing,
@@ -179,8 +181,6 @@ smoothing_chart <- function(df_sum, smoothing_factor) {
     expand_limits(y=0)+scale_y_continuous(expand = c(0, 0),labels = percent) +
     coord_cartesian(ylim=c(0,1))+labs(y="Desk Utilisation",fill="") + 
     scale_fill_brewer(palette="Accent")
-  
-  
   
 }
 
