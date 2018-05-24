@@ -1,3 +1,6 @@
+
+# Library declarations ----------------------------------------------------
+
 library(shiny)          # For the shiny!
 library(ggplot2)        # For plotting
 library(dplyr)          # For pipes
@@ -7,11 +10,21 @@ library(plotly)         # Makes ggplot interactive
 library(shinyTree)      # for the category tree
 library(rpivotTable)    # Pivot tables
 
+
+# import other source code ------------------------------------------------
+
+
 source("charting_functions.R")
 source("data_cleaning_functions.R")
 source("data_retrieval_functions.R")
 
-#Temporary data import
+
+
+
+# Temporary initialise functions ------------------------------------------
+# Downloads a sample dataset from S3, and uses it to initialise the UI fields.
+# These will need to be removed/revised once the Athena connection is fixed.
+
 df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-fact/OccupEye/occupeye_automation/sensor_df_20180412_full.csv")
 df_sum <- get_df_sum(df,"09:00","17:00")
 time_list <- unique(strftime(df$obs_datetime,format="%H:%M"))
@@ -22,11 +35,16 @@ floors <- unique(df$floor)
 
 
 
+# UI function -------------------------------------------------------------
+# Constructs the UI
+
 ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       tabsetPanel(
         tabPanel("Report config",
+                 
+          helpText("Hit the go button below to update the filter"),
       
           
           actionButton("goButton","Go!"),
@@ -77,7 +95,7 @@ ui <- fluidPage(
                        value=0.5,
                        step=0.1),
           
-          
+          helpText("Select Department(s) and team(s)"),
           shinyTree("tree",checkbox = TRUE,search=TRUE)
         ),
         
@@ -109,7 +127,18 @@ ui <- fluidPage(
   )
 )
 
-server <- function(input,output) {
+
+# Server function ---------------------------------------------------------
+# This function defines the server function. Should be separated into a separate file
+server <- function(input,output,session) {
+  
+
+# Raw data download -------------------------------------------------------
+
+  
+  # This section (or something like it) is here as a placeholder while waiting for the Athena fix.
+  # Once that occurs, this will need to be uncommented and the filtered() function below
+  # will need to hook to this function rather than a local version of df_sum
   
   # df_sum <- reactive({
   #   input$download_button
@@ -123,18 +152,19 @@ server <- function(input,output) {
   # })
   
 
+
+# Data filter -------------------------------------------------------------
   
-  
-  
+  # Filter the data based on the input filters. This forms the input for the plots and tables
   filtered <- reactive({
     
     # only update this when you hit go
     input$goButton
     
-    
+    # Isolate the actual calculation bit so it only updates when you want it to (i.e. when you hit go)
     isolate({
     
-      #loop through the layers of the tree to get the selected names at each level
+      #loop through the layers of the team selection tree to get the selected names at each level
       tree <- input$tree
       l1Names <- NULL
       l2Names <- NULL
@@ -156,7 +186,6 @@ server <- function(input,output) {
         }
       }
       
-      
       # apply the filters
       filtered <- df_sum %>%
         filter(date >= input$date_range[1] & date <= input$date_range[2],
@@ -169,8 +198,32 @@ server <- function(input,output) {
     })
   })
   
-  output$df_sum <- renderDataTable({
-    filtered()
+  
+
+# Team selection tree -----------------------------------------------------
+# Creates the UI for selecting the teams
+  
+  output$tree <- renderTree({
+    
+    category_list <- get_cat_list(get_sensors_list(get_survey_id(surveys_list,input$survey_name)))
+    
+    # split the data.frame of categories into a nested list of lists
+    cat1split <- with(category_list,split(category_list,category_1))
+    cat2split <- lapply(cat1split, function(x) split(x, x$category_2))
+    cat3split <- lapply(cat2split,lapply,function(x) split(x,x$category_3))
+    
+    # replace the category-3 level with the names, 
+    # so that the original data frame headings aren't added as an extra layer.
+    final <- lapply(cat3split,lapply,lapply,function(x) x <- names(x))
+    
+  })
+
+# Plots and table outputs -------------------------------------------------
+
+# These functions generate the charts and tables in the report
+  
+  output$myPivot <- renderRpivotTable({
+    rpivotTable(data = filtered())
   })
 
   output$recom_table <- renderTable({
@@ -193,6 +246,11 @@ server <- function(input,output) {
     isolate(desks_by_desk_type_and_team(filtered()))
   })
   
+  
+  output$smoothChart <- renderPlotly({
+    input$goButton
+    isolate(smoothing_chart(filtered(),input$smoothing_factor))
+  })
 
   output$dailyChart <- renderPlotly({
     input$goButton
@@ -209,36 +267,20 @@ server <- function(input,output) {
     isolate(prop_desk_usage_chart(filtered()))
   })
   
-  output$smoothChart <- renderPlotly({
-    input$goButton
-    isolate(smoothing_chart(filtered(),input$smoothing_factor))
-  })
-  
   output$floorChart <- renderPlotly({
     input$goButton
     isolate(prop_floor_usage_chart(filtered()))
   })
   
-  output$tree <- renderTree({
-    
-    category_list <- get_cat_list(get_sensors_list(get_survey_id(surveys_list,input$survey_name)))
-    
-    # split the data.frame of categories into a nested list of lists
-    cat1split <- with(category_list,split(category_list,category_1))
-    cat2split <- lapply(cat1split, function(x) split(x, x$category_2))
-    cat3split <- lapply(cat2split,lapply,function(x) split(x,x$category_3))
-    
-    # replace the category-3 level with the names, 
-    # so that the original data frame headings aren't added as an extra layer.
-    final <- lapply(cat3split,lapply,lapply,function(x) x <- names(x))
-    
-    
+  
+  output$df_sum <- renderDataTable({
+    filtered()
   })
 
-  output$myPivot <- renderRpivotTable({
-    rpivotTable(data = filtered())
-  })
-  
+
+# Download handler --------------------------------------------------------
+
+# Functions for handling the report download  
   output$download_button <- downloadHandler(
     filename = function() {
       paste('my-report', sep = '.', switch(
@@ -266,6 +308,8 @@ server <- function(input,output) {
     
     
   )
+  
+
   
 }  
 
