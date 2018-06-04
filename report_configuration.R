@@ -13,7 +13,7 @@ department <- "Analytical services"
 
 start.time <- Sys.time()
 
-#df <-  get_sensor_df(330, start_date, end_date_exclusive,category_2 = department)
+#df2 <-  get_sensor_df(330, start_date, end_date_exclusive,category_2 = department)
 
 end.time <- Sys.time()
 
@@ -28,4 +28,23 @@ my_data <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-fact/OccupEye
 df <- my_data %>%
       filter(as.Date(obs_datetime)>= start_date,
              as.Date(obs_datetime) < end_date_exclusive,
-             category_3 == "Analytical Services")
+             sensor_value %in% c(1,0))
+
+
+
+
+# department_list <- unique(sensors$category_2)
+# 
+# for(department in department_list) {
+#   start.time <- Sys.time()
+#   my_data <- get_sensor_df(330,"2017-10-22","2018-05-14",category_2 = department)
+#   department <- gsub("[[:punct:]]", " ",department)
+#   s3tools::write_df_to_csv_in_s3(my_data,paste0("alpha-fact/OccupEye/occupeye_automation/",department,".csv"))
+#  
+#   end.time <- Sys.time()
+#   
+#   
+#   
+#   print(paste0("uploaded ",department," ",end.time - start.time))
+#    
+# }
