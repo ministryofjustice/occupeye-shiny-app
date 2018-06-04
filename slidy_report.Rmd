@@ -2,13 +2,11 @@
 title: "Desk usage in Analytical Services"
 author: "Thomas Hirsch"
 date:  "`r format(Sys.time(), '%d %B, %Y')`"
-output: 
-  slidy_presentation:
-    keep_md: true
+output: slidy_presentation
 
 params:
-  start_date: "2018-03-01"
-  end_date: "2018-04-01"
+  start_date: input$date_range[1]
+  end_date: input$date_range[2]
   report_date: "March 2018"
 ---
 
@@ -17,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-## Desk utilisation in ASD for `r params$report_date`
+## Desk utilisation for `r params$report_date`
 
 ```{r summary, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
 df_sum <- filtered()

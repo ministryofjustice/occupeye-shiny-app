@@ -37,6 +37,7 @@ get_sensor_data_sql <- function(survey_id, start_date, end_date_exclusive, categ
   glue(sql)
 
 }
+
 get_sensors_list <- function(survey_id) {
   
   sensors_sql <- glue("select * from occupeye_db.sensors where survey_id={survey_id}")
@@ -73,11 +74,11 @@ get_survey_id <- function(surveys_list,survey_name) {
 }
 
 get_cat_list <- function(sensors) {
-  
+  # input is the output of get_sensors_list
   category_list <- sensors %>%
     select(category_1,category_2,category_3) %>%
     unique %>%
-    mutate_all(funs(ifelse(.=="","N/A",.)))
+    mutate_all(funs(ifelse(.=="","N/A",.))) # replaces empty string with "N/A" so that ShinyTree works properly
   
   
 }
