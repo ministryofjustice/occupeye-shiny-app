@@ -359,7 +359,7 @@ Package: promises
 Source: CRAN
 Version: 1.0.1
 Hash: 6dfc334ebb6374630084e676c96a9d71
-Requires: R6, Rcpp, later, magrittr, rlang
+Requires: R6, Rcpp, magrittr, rlang, later
 
 Package: purrr
 Source: CRAN
@@ -433,8 +433,8 @@ Package: shiny
 Source: CRAN
 Version: 1.0.5
 Hash: 4d47532a807122bfd6bc3818310f9d2e
-Requires: R6, digest, htmltools, httpuv, jsonlite, mime, sourcetools,
-    xtable
+Requires: R6, digest, jsonlite, mime, sourcetools, xtable, htmltools,
+    httpuv
 
 Package: shinyTree
 Source: CRAN
@@ -478,8 +478,7 @@ Requires: Rcpp, rlang
 
 Package: tidyr
 Source: CRAN
-Version: 0.7.2
-Hash: bc4f27e4d0098707667c36f57acbf243
+Version: 0.8.1
 Requires: Rcpp, dplyr, glue, magrittr, purrr, rlang, stringi, tibble,
     tidyselect
 
