@@ -9,3 +9,4 @@ Data/
 *.docx
 *.png
 chart_specs/temp_delete_data
+packrat/lib*/
