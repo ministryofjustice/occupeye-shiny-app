@@ -26,13 +26,13 @@ source("data_retrieval_functions.R")
 # These will need to be removed/revised once the Athena connection is fixed.
 
 df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-fact/OccupEye/occupeye_automation/sensor_df_20180412_full.csv")
-df_sum <- get_df_sum(df,"09:00","17:00")
+#df_sum <- get_df_sum(df,"09:00","17:00")
 time_list <- unique(strftime(df$obs_datetime,format="%H:%M"))
 date_list <- unique(date(df$obs_datetime))
-surveys_list <- get_surveys_list()
+surveys_list <- s3tools::read_using(FUN=readr::read_csv,s3_path = "alpha-fact/OccupEye/occupeye_automation/surveys.csv")
 device_types <- unique(df$devicetype)
 floors <- unique(df$floor)
-
+report_list <- s3tools::list_files_in_buckets("alpha-fact") %>% filter(grepl("336",path))
 
 
 # UI function -------------------------------------------------------------
@@ -42,6 +42,19 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       tabsetPanel(
+        tabPanel("Choose report to download",
+          selectInput(inputId = "raw_csv",
+                      label = "Select report to download",
+                      choices = report_list$filename),
+          
+          actionButton("loadCSV","Load report")
+          
+        ),
+        
+        
+        
+        
+        
         tabPanel("Report config",
                  
           helpText("Hit the go button below to update the filter"),
@@ -97,13 +110,13 @@ ui <- fluidPage(
           
           helpText("Select Department(s) and team(s)"),
           shinyTree("tree",checkbox = TRUE,search=TRUE)
-        ),
-        
-        tabPanel("Download Report",
-          radioButtons('format', 'Document format', c('HTML', 'Word'),
-                       inline = TRUE),
-          downloadButton("download_button","Generate report")
-        )
+          ),
+          
+          tabPanel("Download Report",
+            radioButtons('format', 'Document format', c('HTML', 'Word'),
+                         inline = TRUE),
+            downloadButton("download_button","Generate report")
+          )
         
         )
       ),
@@ -112,9 +125,9 @@ ui <- fluidPage(
         tabsetPanel(
           tabPanel("Pivot table",rpivotTableOutput("myPivot")),
           tabPanel("Summary tables",tableOutput(outputId = "recom_table"),
-                   tableOutput(outputId = "team_count"),
-                   tableOutput(outputId = "desk_count"),
-                   tableOutput(outputId = "team_desk_count")),
+                   column(4,tableOutput(outputId = "team_count")),
+                   column(4,tableOutput(outputId = "desk_count")),
+                   column(4,tableOutput(outputId = "team_desk_count"))),
           tabPanel("Smoothing",plotlyOutput(outputId = "smoothChart")),
           tabPanel("daily usage",plotlyOutput(outputId = "dailyChart")),
           tabPanel("usage by weekday",plotlyOutput(outputId = "weekdayChart")),
@@ -140,16 +153,15 @@ server <- function(input,output,session) {
   # Once that occurs, this will need to be uncommented and the filtered() function below
   # will need to hook to this function rather than a local version of df_sum
   
-  # df_sum <- reactive({
-  #   input$download_button
-  #   isolate(get_sensor_df(get_survey_id(surveys_list,input$survey_name),
-  #                         input$date_range[1],
-  #                         input$date_range[2],
-  #                         input$category_1,
-  #                         input$category_2,
-  #                         input$category_3) %>%
-  #     get_df_sum(input$start_time,input$end_time))
-  # })
+  df_sum <- reactive({
+    input$loadCSV
+    isolate({
+      csv_Path <- report_list %>% filter(filename == input$raw_csv)
+      s3tools::read_using(FUN=readr::read_csv, s3_path=csv_Path$path)
+      
+    })
+      
+  })
   
 
 
@@ -187,7 +199,7 @@ server <- function(input,output,session) {
       }
       
       # apply the filters
-      filtered <- df_sum %>%
+      filtered <- df_sum() %>%
         filter(date >= input$date_range[1] & date <= input$date_range[2],
                devicetype %in% input$desk_type,
                floor %in% input$floors,

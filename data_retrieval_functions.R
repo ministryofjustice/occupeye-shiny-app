@@ -38,6 +38,12 @@ get_sensor_data_sql <- function(survey_id, start_date, end_date_exclusive, categ
 
 }
 
+get_all_sensors <- function() {
+  sensors_sql <- glue("select * from occupeye_db.sensors")
+  sensors <- dbGetQuery(con, sensors_sql)
+  
+}
+
 get_sensors_list <- function(survey_id) {
   
   sensors_sql <- glue("select * from occupeye_db.sensors where survey_id={survey_id}")
