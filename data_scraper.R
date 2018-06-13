@@ -30,7 +30,7 @@ scrape_team_csvs <- function(survey_id) {
     
     if(!already_exists) {
       my_data <- get_sensor_df(survey_id,"2017-10-22",today(),category_2 = department)
-      s3tools::write_df_to_csv_in_s3(my_data,out_path)
+      s3tools::write_df_to_csv_in_s3(my_data,out_path, row.names = FALSE)
       end.time <- Sys.time()
       
       print(paste0("uploaded ",department))
