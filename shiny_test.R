@@ -26,7 +26,7 @@ source("data_retrieval_functions.R")
 # These will need to be removed/revised once the Athena connection is fixed.
 
 df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-fact/OccupEye/occupeye_automation/sensor_df_20180412_full.csv")
-#df_sum <- get_df_sum(df,"09:00","17:00")
+df_sum <- get_df_sum(df,"09:00","17:00")
 time_list <- unique(strftime(df$obs_datetime,format="%H:%M"))
 date_list <- unique(date(df$obs_datetime))
 surveys_list <- s3tools::read_using(FUN=readr::read_csv,s3_path = "alpha-fact/OccupEye/occupeye_automation/surveys.csv")
@@ -53,8 +53,6 @@ ui <- fluidPage(
         
         
         
-        
-        
         tabPanel("Report config",
                  
           helpText("Hit the go button below to update the filter"),
@@ -66,7 +64,7 @@ ui <- fluidPage(
           selectInput(inputId = "survey_name",
                      label = "Select OccupEye survey",
                      choices = surveys_list$name,
-                     selected = "102 Petty France v1.0"),
+                     selected = "102 Petty France v1.1"),
           
           
           dateRangeInput(inputId = "date_range",
@@ -157,15 +155,29 @@ server <- function(input,output,session) {
     input$loadCSV
     isolate({
       csv_Path <- report_list %>% filter(filename == input$raw_csv)
-      s3tools::read_using(FUN=readr::read_csv, s3_path=csv_Path$path)
-      
+      df <- s3tools::read_using(FUN=readr::read_csv, s3_path=csv_Path$path)
+      get_df_sum(df,input$start_time,input$end_time)
+
     })
-      
+
   })
   
+  
+  observeEvent(input$loadCSV, {
+    updatePickerInput(session, inputId = "floors",
+                      choices = unique(df_sum()$floor),
+                      selected = unique(df_sum()$floor))
+    updatePickerInput(session, inputId = "desk_type",
+                      choices = unique(df_sum()$devicetype),
+                      selected =unique(df_sum()$devicetype))
+    updateDateRangeInput(session, inputId = "date_range",
+                         min = min(unique(df_sum()$obs_datetime)),
+                         max = max(unique(df_sum()$obs_datetime)))
+  })
 
 
 # Data filter -------------------------------------------------------------
+  
   
   # Filter the data based on the input filters. This forms the input for the plots and tables
   filtered <- reactive({
@@ -199,7 +211,7 @@ server <- function(input,output,session) {
       }
       
       # apply the filters
-      filtered <- df_sum() %>%
+       filtered <- df_sum() %>%
         filter(date >= input$date_range[1] & date <= input$date_range[2],
                devicetype %in% input$desk_type,
                floor %in% input$floors,
@@ -233,54 +245,45 @@ server <- function(input,output,session) {
 # Plots and table outputs -------------------------------------------------
 
 # These functions generate the charts and tables in the report
-  
+  observeEvent(input$goButton, {
   output$myPivot <- renderRpivotTable({
     rpivotTable(data = filtered())
   })
 
   output$recom_table <- renderTable({
-    input$goButton
     isolate(allocation_strategy_table(filtered()))
   })
   
   output$desk_count <- renderTable({
-    input$goButton
     isolate(desks_by_desk_type(filtered()))
   })
   
   output$team_count <- renderTable({
-    input$goButton
     isolate(desks_by_team(filtered()))
   })
   
   output$team_desk_count <- renderTable({
-    input$goButton
     isolate(desks_by_desk_type_and_team(filtered()))
   })
   
   
   output$smoothChart <- renderPlotly({
-    input$goButton
     isolate(smoothing_chart(filtered(),input$smoothing_factor))
   })
 
   output$dailyChart <- renderPlotly({
-    input$goButton
     isolate(prop_daily_usage_chart(filtered()))
   })
   
   output$weekdayChart <- renderPlotly({
-    input$goButton
     isolate(prop_weekday_usage_chart(filtered()))
   })
   
   output$deskChart <- renderPlotly({
-    input$goButton
     isolate(prop_desk_usage_chart(filtered()))
   })
   
   output$floorChart <- renderPlotly({
-    input$goButton
     isolate(prop_floor_usage_chart(filtered()))
   })
   
@@ -289,7 +292,7 @@ server <- function(input,output,session) {
     filtered()
   })
 
-
+})
 # Download handler --------------------------------------------------------
 
 # Functions for handling the report download  
