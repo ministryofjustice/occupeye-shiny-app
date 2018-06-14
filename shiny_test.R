@@ -47,9 +47,21 @@ ui <- fluidPage(
                       label = "Select report to download",
                       choices = report_list$filename),
           
+          selectInput(inputId = "start_time",
+                      label = "Start time:",
+                      choices = time_list,
+                      selected = "09:00"),
+          
+          selectInput(inputId = "end_time",
+                      label = "End time:",
+                      choices = time_list,
+                      selected = "17:00"),
+          
           actionButton("loadCSV","Load report")
           
         ),
+        
+        
         
         
         
@@ -75,15 +87,7 @@ ui <- fluidPage(
                          max = max(date_list)),
           
           
-          selectInput(inputId = "start_time",
-                      label = "Start time:",
-                      choices = time_list,
-                      selected = "09:00"),
-          
-          selectInput(inputId = "end_time",
-                      label = "End time:",
-                      choices = time_list,
-                      selected = "17:00"),
+
           
           pickerInput(inputId = "desk_type",
                       label = "Pick desk type(s)",
@@ -131,7 +135,7 @@ ui <- fluidPage(
           tabPanel("usage by weekday",plotlyOutput(outputId = "weekdayChart")),
           tabPanel("usage by desk type",plotlyOutput(outputId = "deskChart")),
           tabPanel("usage by floor",plotlyOutput(outputId = "floorChart")),
-          tabPanel("df_sum",dataTableOutput(outputId = "df_sum"))
+          tabPanel("raw data",dataTableOutput(outputId = "df_sum"))
       )
       
     )
@@ -153,11 +157,13 @@ server <- function(input,output,session) {
   
   df_sum <- reactive({
     input$loadCSV
-    isolate({
-      csv_Path <- report_list %>% filter(filename == input$raw_csv)
-      df <- s3tools::read_using(FUN=readr::read_csv, s3_path=csv_Path$path)
-      get_df_sum(df,input$start_time,input$end_time)
-
+    withProgress(message = paste0("Loading report ",input$raw_csv), {
+      isolate({
+        csv_Path <- report_list %>% filter(filename == input$raw_csv)
+        df <- s3tools::read_using(FUN=readr::read_csv, s3_path=csv_Path$path)
+        get_df_sum(df,input$start_time,input$end_time)
+  
+      })
     })
 
   })
@@ -171,8 +177,8 @@ server <- function(input,output,session) {
                       choices = unique(df_sum()$devicetype),
                       selected =unique(df_sum()$devicetype))
     updateDateRangeInput(session, inputId = "date_range",
-                         min = min(unique(df_sum()$obs_datetime)),
-                         max = max(unique(df_sum()$obs_datetime)))
+                         min = min(unique(df_sum()$date)),
+                         max = max(unique(df_sum()$date)))
   })
 
 
