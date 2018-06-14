@@ -29,10 +29,10 @@ df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-fact/OccupEye/occu
 df_sum <- get_df_sum(df,"09:00","17:00")
 time_list <- unique(strftime(df$obs_datetime,format="%H:%M"))
 date_list <- unique(date(df$obs_datetime))
-surveys_list <- get_surveys_list()
+surveys_list <- s3tools::read_using(FUN=readr::read_csv,s3_path = "alpha-fact/OccupEye/occupeye_automation/surveys.csv")
 device_types <- unique(df$devicetype)
 floors <- unique(df$floor)
-
+report_list <- s3tools::list_files_in_buckets("alpha-fact") %>% filter(grepl("336",path))
 
 
 # UI function -------------------------------------------------------------
@@ -42,6 +42,29 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       tabsetPanel(
+        tabPanel("Choose report to download",
+          selectInput(inputId = "raw_csv",
+                      label = "Select report to download",
+                      choices = report_list$filename),
+          
+          selectInput(inputId = "start_time",
+                      label = "Start time:",
+                      choices = time_list,
+                      selected = "09:00"),
+          
+          selectInput(inputId = "end_time",
+                      label = "End time:",
+                      choices = time_list,
+                      selected = "17:00"),
+          
+          actionButton("loadCSV","Load report")
+          
+        ),
+        
+        
+        
+        
+        
         tabPanel("Report config",
                  
           helpText("Hit the go button below to update the filter"),
@@ -53,7 +76,7 @@ ui <- fluidPage(
           selectInput(inputId = "survey_name",
                      label = "Select OccupEye survey",
                      choices = surveys_list$name,
-                     selected = "102 Petty France v1.0"),
+                     selected = "102 Petty France v1.1"),
           
           
           dateRangeInput(inputId = "date_range",
@@ -64,15 +87,7 @@ ui <- fluidPage(
                          max = max(date_list)),
           
           
-          selectInput(inputId = "start_time",
-                      label = "Start time:",
-                      choices = time_list,
-                      selected = "09:00"),
-          
-          selectInput(inputId = "end_time",
-                      label = "End time:",
-                      choices = time_list,
-                      selected = "17:00"),
+
           
           pickerInput(inputId = "desk_type",
                       label = "Pick desk type(s)",
@@ -97,13 +112,13 @@ ui <- fluidPage(
           
           helpText("Select Department(s) and team(s)"),
           shinyTree("tree",checkbox = TRUE,search=TRUE)
-        ),
-        
-        tabPanel("Download Report",
-          radioButtons('format', 'Document format', c('HTML', 'Word'),
-                       inline = TRUE),
-          downloadButton("download_button","Generate report")
-        )
+          ),
+          
+          tabPanel("Download Report",
+            radioButtons('format', 'Document format', c('HTML', 'Word'),
+                         inline = TRUE),
+            downloadButton("download_button","Generate report")
+          )
         
         )
       ),
@@ -112,15 +127,15 @@ ui <- fluidPage(
         tabsetPanel(
           tabPanel("Pivot table",rpivotTableOutput("myPivot")),
           tabPanel("Summary tables",tableOutput(outputId = "recom_table"),
-                   tableOutput(outputId = "team_count"),
-                   tableOutput(outputId = "desk_count"),
-                   tableOutput(outputId = "team_desk_count")),
+                   column(4,tableOutput(outputId = "team_count")),
+                   column(4,tableOutput(outputId = "desk_count")),
+                   column(4,tableOutput(outputId = "team_desk_count"))),
           tabPanel("Smoothing",plotlyOutput(outputId = "smoothChart")),
           tabPanel("daily usage",plotlyOutput(outputId = "dailyChart")),
           tabPanel("usage by weekday",plotlyOutput(outputId = "weekdayChart")),
           tabPanel("usage by desk type",plotlyOutput(outputId = "deskChart")),
           tabPanel("usage by floor",plotlyOutput(outputId = "floorChart")),
-          tabPanel("df_sum",dataTableOutput(outputId = "df_sum"))
+          tabPanel("raw data",dataTableOutput(outputId = "df_sum"))
       )
       
     )
@@ -140,20 +155,35 @@ server <- function(input,output,session) {
   # Once that occurs, this will need to be uncommented and the filtered() function below
   # will need to hook to this function rather than a local version of df_sum
   
-  # df_sum <- reactive({
-  #   input$download_button
-  #   isolate(get_sensor_df(get_survey_id(surveys_list,input$survey_name),
-  #                         input$date_range[1],
-  #                         input$date_range[2],
-  #                         input$category_1,
-  #                         input$category_2,
-  #                         input$category_3) %>%
-  #     get_df_sum(input$start_time,input$end_time))
-  # })
+  df_sum <- reactive({
+    input$loadCSV
+    withProgress(message = paste0("Loading report ",input$raw_csv), {
+      isolate({
+        csv_Path <- report_list %>% filter(filename == input$raw_csv)
+        df <- s3tools::read_using(FUN=readr::read_csv, s3_path=csv_Path$path)
+        get_df_sum(df,input$start_time,input$end_time)
   
+      })
+    })
+
+  })
+  
+  
+  observeEvent(input$loadCSV, {
+    updatePickerInput(session, inputId = "floors",
+                      choices = unique(df_sum()$floor),
+                      selected = unique(df_sum()$floor))
+    updatePickerInput(session, inputId = "desk_type",
+                      choices = unique(df_sum()$devicetype),
+                      selected =unique(df_sum()$devicetype))
+    updateDateRangeInput(session, inputId = "date_range",
+                         min = min(unique(df_sum()$date)),
+                         max = max(unique(df_sum()$date)))
+  })
 
 
 # Data filter -------------------------------------------------------------
+  
   
   # Filter the data based on the input filters. This forms the input for the plots and tables
   filtered <- reactive({
@@ -187,7 +217,7 @@ server <- function(input,output,session) {
       }
       
       # apply the filters
-      filtered <- df_sum %>%
+       filtered <- df_sum() %>%
         filter(date >= input$date_range[1] & date <= input$date_range[2],
                devicetype %in% input$desk_type,
                floor %in% input$floors,
@@ -221,54 +251,45 @@ server <- function(input,output,session) {
 # Plots and table outputs -------------------------------------------------
 
 # These functions generate the charts and tables in the report
-  
+  observeEvent(input$goButton, {
   output$myPivot <- renderRpivotTable({
     rpivotTable(data = filtered())
   })
 
   output$recom_table <- renderTable({
-    input$goButton
     isolate(allocation_strategy_table(filtered()))
   })
   
   output$desk_count <- renderTable({
-    input$goButton
     isolate(desks_by_desk_type(filtered()))
   })
   
   output$team_count <- renderTable({
-    input$goButton
     isolate(desks_by_team(filtered()))
   })
   
   output$team_desk_count <- renderTable({
-    input$goButton
     isolate(desks_by_desk_type_and_team(filtered()))
   })
   
   
   output$smoothChart <- renderPlotly({
-    input$goButton
     isolate(smoothing_chart(filtered(),input$smoothing_factor))
   })
 
   output$dailyChart <- renderPlotly({
-    input$goButton
     isolate(prop_daily_usage_chart(filtered()))
   })
   
   output$weekdayChart <- renderPlotly({
-    input$goButton
     isolate(prop_weekday_usage_chart(filtered()))
   })
   
   output$deskChart <- renderPlotly({
-    input$goButton
     isolate(prop_desk_usage_chart(filtered()))
   })
   
   output$floorChart <- renderPlotly({
-    input$goButton
     isolate(prop_floor_usage_chart(filtered()))
   })
   
@@ -277,7 +298,7 @@ server <- function(input,output,session) {
     filtered()
   })
 
-
+})
 # Download handler --------------------------------------------------------
 
 # Functions for handling the report download  
