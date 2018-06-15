@@ -16,7 +16,9 @@ library(rpivotTable)    # Pivot tables
 
 source("charting_functions.R")
 source("data_cleaning_functions.R")
-source("data_retrieval_functions.R")
+
+# Temporarily excluding Athena queries
+#source("data_retrieval_functions.R")
 
 
 
@@ -25,15 +27,16 @@ source("data_retrieval_functions.R")
 # Downloads a sample dataset from S3, and uses it to initialise the UI fields.
 # These will need to be removed/revised once the Athena connection is fixed.
 
-df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-fact/OccupEye/occupeye_automation/sensor_df_20180412_full.csv")
-df_sum <- get_df_sum(df,"09:00","17:00")
-time_list <- unique(strftime(df$obs_datetime,format="%H:%M"))
-date_list <- unique(date(df$obs_datetime))
-surveys_list <- s3tools::read_using(FUN=readr::read_csv,s3_path = "alpha-fact/OccupEye/occupeye_automation/surveys.csv")
-device_types <- unique(df$devicetype)
-floors <- unique(df$floor)
-report_list <- s3tools::list_files_in_buckets("alpha-fact") %>% filter(grepl("336",path))
+temp_df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-fact/OccupEye/occupeye_automation/surveys/336/HMPPS/Wales.csv")
+temp_df_sum <- get_df_sum(temp_df,"09:00","17:00")
+time_list <- unique(strftime(temp_df$obs_datetime,format="%H:%M"))
+date_list <- unique(date(temp_df$obs_datetime))
+device_types <- unique(temp_df$devicetype)
+floors <- unique(temp_df$floor)
 
+
+report_list <- s3tools::list_files_in_buckets("alpha-fact") %>% filter(grepl("336",path)) %>% arrange(filename)
+surveys_list <- s3tools::read_using(FUN=readr::read_csv,s3_path = "alpha-fact/OccupEye/occupeye_automation/surveys.csv")
 
 # UI function -------------------------------------------------------------
 # Constructs the UI
@@ -135,7 +138,8 @@ ui <- fluidPage(
           tabPanel("usage by weekday",plotlyOutput(outputId = "weekdayChart")),
           tabPanel("usage by desk type",plotlyOutput(outputId = "deskChart")),
           tabPanel("usage by floor",plotlyOutput(outputId = "floorChart")),
-          tabPanel("raw data",dataTableOutput(outputId = "df_sum"))
+          tabPanel("summarised data",dataTableOutput(outputId = "df_sum")),
+          tabPanel("raw data",dataTableOutput(outputId = "raw_data"))
       )
       
     )
@@ -150,35 +154,42 @@ server <- function(input,output,session) {
 
 # Raw data download -------------------------------------------------------
 
-  
-  # This section (or something like it) is here as a placeholder while waiting for the Athena fix.
-  # Once that occurs, this will need to be uncommented and the filtered() function below
-  # will need to hook to this function rather than a local version of df_sum
-  
-  df_sum <- reactive({
-    input$loadCSV
-    withProgress(message = paste0("Loading report ",input$raw_csv), {
-      isolate({
-        csv_Path <- report_list %>% filter(filename == input$raw_csv)
-        df <- s3tools::read_using(FUN=readr::read_csv, s3_path=csv_Path$path)
-        get_df_sum(df,input$start_time,input$end_time)
-  
-      })
-    })
+  RV <- reactiveValues(data = temp_df,df_sum = temp_df_sum, filtered = temp_df_sum)
 
-  })
-  
-  
+
   observeEvent(input$loadCSV, {
+    
+    
+    withProgress(message = paste0("Loading report ",input$raw_csv), {
+      csv_Path <- report_list %>% filter(filename == input$raw_csv)
+      RV$data <- s3tools::read_using(FUN=readr::read_csv, s3_path=csv_Path$path)
+      
+    })
+    
+    withProgress(message="summarising the dataset", {
+      RV$df_sum <- get_df_sum(RV$data,input$start_time,input$end_time)
+    })
+        
+
+    
+    
+    
+    floor_list <- unique(RV$df_sum$floor)
+    desk_type_list <- unique(RV$df_sum$devicetype)
+    date_list <- unique(RV$df_sum$date)
+    
+    
     updatePickerInput(session, inputId = "floors",
-                      choices = unique(df_sum()$floor),
-                      selected = unique(df_sum()$floor))
+                      choices = floor_list,
+                      selected = floor_list)
     updatePickerInput(session, inputId = "desk_type",
-                      choices = unique(df_sum()$devicetype),
-                      selected =unique(df_sum()$devicetype))
+                      choices = desk_type_list,
+                      selected =desk_type_list)
     updateDateRangeInput(session, inputId = "date_range",
-                         min = min(unique(df_sum()$date)),
-                         max = max(unique(df_sum()$date)))
+                         min = min(date_list),
+                         max = max(date_list),
+                         start = min(date_list),
+                         end = max(date_list))
   })
 
 
@@ -186,46 +197,39 @@ server <- function(input,output,session) {
   
   
   # Filter the data based on the input filters. This forms the input for the plots and tables
-  filtered <- reactive({
+  observeEvent(input$goButton, {
     
-    # only update this when you hit go
-    input$goButton
     
-    # Isolate the actual calculation bit so it only updates when you want it to (i.e. when you hit go)
-    isolate({
-    
-      #loop through the layers of the team selection tree to get the selected names at each level
-      tree <- input$tree
-      l1Names <- NULL
-      l2Names <- NULL
-      l3Names <- NULL
-      if (is.null(tree)){
-        "None"
-      } else{
-        selected <-get_selected(tree,"slice")
-        
-        
-        for(x in selected) {
-          l1Names <- c(l1Names,names(x))
-          for(y in x) {
-            l2Names <- c(l2Names,names(y))
-            for (z in y) {
-              l3Names <- c(l3Names,names(z))
-            }
+    #loop through the layers of the team selection tree to get the selected names at each level
+    tree <- input$tree
+    l1Names <- NULL
+    l2Names <- NULL
+    l3Names <- NULL
+    if (is.null(tree)){
+      "None"
+    } else{
+      selected <-get_selected(tree,"slice")
+      
+      
+      for(x in selected) {
+        l1Names <- c(l1Names,names(x))
+        for(y in x) {
+          l2Names <- c(l2Names,names(y))
+          for (z in y) {
+            l3Names <- c(l3Names,names(z))
           }
         }
       }
-      
-      # apply the filters
-       filtered <- df_sum() %>%
-        filter(date >= input$date_range[1] & date <= input$date_range[2],
-               devicetype %in% input$desk_type,
-               floor %in% input$floors,
-               category_1 %in% l1Names,
-               category_2 %in% l2Names,
-               category_3 %in% l3Names)
+    }
     
-    })
+    # apply the filters
+     RV$filtered <- RV$df_sum %>%
+      filter(date >= input$date_range[1] & date <= input$date_range[2],
+             devicetype %in% input$desk_type,
+             floor %in% input$floors,
+             category_1 %in% l1Names,
+             category_2 %in% l2Names,
+             category_3 %in% l3Names)
   })
   
   
@@ -235,7 +239,15 @@ server <- function(input,output,session) {
   
   output$tree <- renderTree({
     
-    category_list <- get_cat_list(get_sensors_list(get_survey_id(surveys_list,input$survey_name)))
+    # Ideally get category list from Athena...
+    #category_list <- get_cat_list(get_sensors_list(get_survey_id(surveys_list,input$survey_name)))
+    
+    # But while that isn't working, get it from the CSV instead
+    
+    category_list <- RV$df_sum %>%
+      select(category_1,category_2,category_3) %>%
+      unique %>%
+      mutate_all(funs(ifelse(.=="","N/A",.))) # replaces empty string with "N/A" so that ShinyTree works properly
     
     # split the data.frame of categories into a nested list of lists
     cat1split <- with(category_list,split(category_list,category_1))
@@ -253,49 +265,53 @@ server <- function(input,output,session) {
 # These functions generate the charts and tables in the report
   observeEvent(input$goButton, {
   output$myPivot <- renderRpivotTable({
-    rpivotTable(data = filtered())
+    rpivotTable(data = RV$filtered)
   })
 
   output$recom_table <- renderTable({
-    isolate(allocation_strategy_table(filtered()))
+    isolate(allocation_strategy_table(RV$filtered))
   })
   
   output$desk_count <- renderTable({
-    isolate(desks_by_desk_type(filtered()))
+    isolate(desks_by_desk_type(RV$filtered))
   })
   
   output$team_count <- renderTable({
-    isolate(desks_by_team(filtered()))
+    isolate(desks_by_team(RV$filtered))
   })
   
   output$team_desk_count <- renderTable({
-    isolate(desks_by_desk_type_and_team(filtered()))
+    isolate(desks_by_desk_type_and_team(RV$filtered))
   })
   
   
   output$smoothChart <- renderPlotly({
-    isolate(smoothing_chart(filtered(),input$smoothing_factor))
+    isolate(smoothing_chart(RV$filtered,input$smoothing_factor))
   })
 
   output$dailyChart <- renderPlotly({
-    isolate(prop_daily_usage_chart(filtered()))
+    isolate(prop_daily_usage_chart(RV$filtered))
   })
   
   output$weekdayChart <- renderPlotly({
-    isolate(prop_weekday_usage_chart(filtered()))
+    isolate(prop_weekday_usage_chart(RV$filtered))
   })
   
   output$deskChart <- renderPlotly({
-    isolate(prop_desk_usage_chart(filtered()))
+    isolate(prop_desk_usage_chart(RV$filtered))
   })
   
   output$floorChart <- renderPlotly({
-    isolate(prop_floor_usage_chart(filtered()))
+    isolate(prop_floor_usage_chart(RV$filtered))
   })
   
   
   output$df_sum <- renderDataTable({
-    filtered()
+    RV$df_sum
+  })
+  
+  output$raw_data <- renderDataTable({
+    RV$data
   })
 
 })
