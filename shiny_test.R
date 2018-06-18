@@ -27,7 +27,7 @@ source("data_cleaning_functions.R")
 # Downloads a sample dataset from S3, and uses it to initialise the UI fields.
 # These will need to be removed/revised once the Athena connection is fixed.
 
-temp_df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-fact/OccupEye/occupeye_automation/surveys/336/HMPPS/Wales.csv")
+temp_df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-fact/OccupEye/occupeye_automation/surveys/336/HMCTS - Finance.csv")
 temp_df_sum <- get_df_sum(temp_df,"09:00","17:00")
 time_list <- unique(strftime(temp_df$obs_datetime,format="%H:%M"))
 date_list <- unique(date(temp_df$obs_datetime))
@@ -46,6 +46,12 @@ ui <- fluidPage(
     sidebarPanel(
       tabsetPanel(
         tabPanel("Choose report to download",
+                 
+         selectInput(inputId = "survey_name",
+                     label = "Select OccupEye survey",
+                     choices = surveys_list$name,
+                     selected = "102 Petty France v1.1"),
+         
           selectInput(inputId = "raw_csv",
                       label = "Select report to download",
                       choices = report_list$filename),
@@ -66,20 +72,13 @@ ui <- fluidPage(
         
         
         
-        
-        
         tabPanel("Report config",
                  
           helpText("Hit the go button below to update the filter"),
       
           
-          actionButton("goButton","Go!"),
+          actionButton("goButton","Update filter"),
     
-           
-          selectInput(inputId = "survey_name",
-                     label = "Select OccupEye survey",
-                     choices = surveys_list$name,
-                     selected = "102 Petty France v1.1"),
           
           
           dateRangeInput(inputId = "date_range",
@@ -88,8 +87,6 @@ ui <- fluidPage(
                          end = max(date_list),
                          min = min(date_list),
                          max = max(date_list)),
-          
-          
 
           
           pickerInput(inputId = "desk_type",
@@ -169,7 +166,7 @@ server <- function(input,output,session) {
     withProgress(message="summarising the dataset", {
       RV$df_sum <- get_df_sum(RV$data,input$start_time,input$end_time)
     })
-        
+    
 
     
     
@@ -178,7 +175,6 @@ server <- function(input,output,session) {
     desk_type_list <- unique(RV$df_sum$devicetype)
     date_list <- unique(RV$df_sum$date)
     
-    
     updatePickerInput(session, inputId = "floors",
                       choices = floor_list,
                       selected = floor_list)
@@ -186,10 +182,10 @@ server <- function(input,output,session) {
                       choices = desk_type_list,
                       selected =desk_type_list)
     updateDateRangeInput(session, inputId = "date_range",
-                         min = min(date_list),
-                         max = max(date_list),
-                         start = min(date_list),
-                         end = max(date_list))
+                         min = min(date_list,na.rm = TRUE),
+                         max = max(date_list,na.rm = TRUE),
+                         start = min(date_list,na.rm = TRUE),
+                         end = max(date_list,na.rm = TRUE))
   })
 
 
@@ -222,6 +218,9 @@ server <- function(input,output,session) {
       }
     }
     
+    l3Names <- replace(l3Names,l3Names == "N/A",NA) # Convert N/A from string to NA to make filtering work
+
+    
     # apply the filters
      RV$filtered <- RV$df_sum %>%
       filter(date >= input$date_range[1] & date <= input$date_range[2],
@@ -247,7 +246,7 @@ server <- function(input,output,session) {
     category_list <- RV$df_sum %>%
       select(category_1,category_2,category_3) %>%
       unique %>%
-      mutate_all(funs(ifelse(.=="","N/A",.))) # replaces empty string with "N/A" so that ShinyTree works properly
+      mutate_all(funs(ifelse(is.na(.) | .=="","N/A",.))) # replaces nulls/empty string with "N/A" so that ShinyTree works properly
     
     # split the data.frame of categories into a nested list of lists
     cat1split <- with(category_list,split(category_list,category_1))
