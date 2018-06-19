@@ -125,6 +125,7 @@ ui <- fluidPage(
     
       mainPanel(
         tabsetPanel(
+          tabPanel("Introduction",includeMarkdown("intro.md")),
           tabPanel("Pivot table",rpivotTableOutput("myPivot")),
           tabPanel("Summary tables",tableOutput(outputId = "recom_table"),
                    column(4,tableOutput(outputId = "team_count")),
