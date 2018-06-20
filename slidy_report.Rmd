@@ -1,5 +1,5 @@
 ---
-title: "Desk usage in Analytical Services"
+title: "Desk usage Report"
 author: "Thomas Hirsch"
 date:  "`r format(Sys.time(), '%d %B, %Y')`"
 output: slidy_presentation
@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Desk utilisation for `r params$start_date` to `r params$end_date`
 
 ```{r summary, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
-df_sum <- filtered()
+df_sum <- RV$filtered
 
 knitr::kable(allocation_strategy_table(df_sum))
 cat('\n\n----\n\n')
