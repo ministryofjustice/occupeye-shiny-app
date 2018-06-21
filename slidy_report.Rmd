@@ -5,8 +5,8 @@ date:  "`r format(Sys.time(), '%d %B, %Y')`"
 output: slidy_presentation
 
 params:
-  start_date: input$date_range[1]
-  end_date: input$date_range[2]
+  start_date: NULL
+  end_date: NULL
 ---
 
 ```{r setup, include=FALSE}

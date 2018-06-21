@@ -339,8 +339,11 @@ server <- function(input,output,session) {
       on.exit(setwd(owd))
       file.copy(src, out_report, overwrite = TRUE)
       
-      out <- rmarkdown::render(out_report)
-      file.rename(out, file)
+      withProgress(message = "Generating report...", {
+        out <- rmarkdown::render(out_report,params = list(start_date = input$date_range[1],end_date=input$date_range[2]))
+        file.rename(out, file)
+      })
+      
     }
     
     
