@@ -27,7 +27,7 @@ source("data_cleaning_functions.R")
 # Downloads a sample dataset from S3, and uses it to initialise the UI fields.
 # These will need to be removed/revised once the Athena connection is fixed.
 
-temp_df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-fact/OccupEye/occupeye_automation/surveys/336/HMCTS - Finance.csv")
+temp_df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-app-occupeye-automation/surveys/336/ORCG.csv")
 temp_df_sum <- get_df_sum(temp_df,"09:00","17:00")
 time_list <- unique(strftime(temp_df$obs_datetime,format="%H:%M"))
 date_list <- unique(lubridate::date(temp_df$obs_datetime))
@@ -35,8 +35,8 @@ device_types <- unique(temp_df$devicetype)
 floors <- unique(temp_df$floor)
 
 
-report_list <- s3tools::list_files_in_buckets("alpha-fact") %>% dplyr::filter(grepl("336",path)) %>% arrange(filename)
-surveys_list <- s3tools::read_using(FUN=readr::read_csv,s3_path = "alpha-fact/OccupEye/occupeye_automation/surveys.csv")
+report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation") %>% dplyr::filter(grepl("336",path)) %>% arrange(filename)
+surveys_list <- s3tools::read_using(FUN=readr::read_csv,s3_path = "alpha-app-occupeye-automation/surveys.csv")
 
 # UI function -------------------------------------------------------------
 # Constructs the UI
