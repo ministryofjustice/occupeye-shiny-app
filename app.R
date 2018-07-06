@@ -35,7 +35,11 @@ device_types <- unique(temp_df$devicetype)
 floors <- unique(temp_df$floor)
 
 
-report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation") %>% dplyr::filter(grepl("336",path)) %>% arrange(filename)
+#report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation") %>% dplyr::filter(grepl("336",path)) %>% arrange(filename)
+#write_df_to_csv_in_s3(report_list,"alpha-app-occupeye-automation/report_list.csv",overwrite=TRUE,row.names = FALSE)
+
+report_list <- s3tools::read_using(FUN=readr::read_csv,s3_path = "alpha-app-occupeye-automation/report_list.csv")
+
 surveys_list <- s3tools::read_using(FUN=readr::read_csv,s3_path = "alpha-app-occupeye-automation/surveys.csv")
 
 # UI function -------------------------------------------------------------
