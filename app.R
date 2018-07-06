@@ -4,7 +4,7 @@
 library(shiny)          # For the shiny!
 library(ggplot2)        # For plotting
 library(dplyr)          # For pipes
-library(htmlwidgets)    # rpivottool depends on it
+library(htmlwidgets)    # rpivotTable depends on it
 library(shinyWidgets)   # For pickerInput
 library(plotly)         # Makes ggplot interactive
 library(shinyTree)      # for the category tree
@@ -30,12 +30,12 @@ source("data_cleaning_functions.R")
 temp_df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-fact/OccupEye/occupeye_automation/surveys/336/HMCTS - Finance.csv")
 temp_df_sum <- get_df_sum(temp_df,"09:00","17:00")
 time_list <- unique(strftime(temp_df$obs_datetime,format="%H:%M"))
-date_list <- unique(date(temp_df$obs_datetime))
+date_list <- unique(lubridate::date(temp_df$obs_datetime))
 device_types <- unique(temp_df$devicetype)
 floors <- unique(temp_df$floor)
 
 
-report_list <- s3tools::list_files_in_buckets("alpha-fact") %>% filter(grepl("336",path)) %>% arrange(filename)
+report_list <- s3tools::list_files_in_buckets("alpha-fact") %>% dplyr::filter(grepl("336",path)) %>% arrange(filename)
 surveys_list <- s3tools::read_using(FUN=readr::read_csv,s3_path = "alpha-fact/OccupEye/occupeye_automation/surveys.csv")
 
 # UI function -------------------------------------------------------------
@@ -159,7 +159,7 @@ server <- function(input,output,session) {
     
     
     withProgress(message = paste0("Loading report ",input$raw_csv), {
-      csv_Path <- report_list %>% filter(filename == input$raw_csv)
+      csv_Path <- report_list %>% dplyr::filter(filename == input$raw_csv)
       RV$data <- s3tools::read_using(FUN=readr::read_csv, s3_path=csv_Path$path)
       
     })
@@ -224,7 +224,7 @@ server <- function(input,output,session) {
     
     # apply the filters
      RV$filtered <- RV$df_sum %>%
-      filter(date >= input$date_range[1] & date <= input$date_range[2],
+      dplyr::filter(date >= input$date_range[1] & date <= input$date_range[2],
              devicetype %in% input$desk_type,
              floor %in% input$floors,
              category_1 %in% l1Names,
