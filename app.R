@@ -259,7 +259,7 @@ server <- function(input,output,session) {
     
     # replace the category-3 level with the names, 
     # so that the original data frame headings aren't added as an extra layer.
-    final <- lapply(cat3split,lapply,lapply,function(x) x <- names(x))
+    final <- lapply(cat3split,lapply,lapply,function(x) x <- structure(names(x),stselected=TRUE))
     
   })
 
