@@ -49,13 +49,12 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       tabsetPanel(
-        tabPanel("Choose report to download",
-                 
-         selectInput(inputId = "survey_name",
+        tabPanel("Report config",
+          selectInput(inputId = "survey_name",
                      label = "Select OccupEye survey",
                      choices = surveys_list$name,
                      selected = "102 Petty France v1.1"),
-         
+          
           selectInput(inputId = "raw_csv",
                       label = "Select report to download",
                       choices = report_list$filename),
@@ -70,61 +69,61 @@ ui <- fluidPage(
                       choices = time_list,
                       selected = "17:00"),
           
-          actionButton("loadCSV","Load report")
-          
-        ),
+          actionButton("loadCSV","Load report"),
+         
+          actionButton("toggleFilter","Show/hide report filters"),
         
-        
-        
-        tabPanel("Report config",
-                 
-          helpText("Hit the go button below to update the filter"),
-      
-          
-          actionButton("goButton","Update filter"),
-    
-          
-          
-          dateRangeInput(inputId = "date_range",
-                         label = "Select sample date range",
-                         start = min(date_list),
-                         end = max(date_list),
-                         min = min(date_list),
-                         max = max(date_list)),
 
-          
-          pickerInput(inputId = "desk_type",
-                      label = "Pick desk type(s)",
-                      choices = device_types,
-                      options = list(`actions-box` = TRUE),
-                      multiple = TRUE,
-                      selected = device_types),
-          
-          pickerInput(inputId = "floors",
-                      label = "Pick floor(s)",
-                      choices = floors,
-                      options = list(`actions-box` = TRUE),
-                      multiple = TRUE,
-                      selected = floors),
-          
-          numericInput(inputId = "smoothing_factor",
-                       label = "Smoothing Factor",
-                       min = 0,
-                       max = 1,
-                       value=0.5,
-                       step=0.1),
-          
-          helpText("Select Department(s) and team(s)"),
-          shinyTree("tree",checkbox = TRUE,search=TRUE)
-          ),
-          
-          tabPanel("Download Report",
-            radioButtons('format', 'Document format', c('HTML', 'Word'),
-                         inline = TRUE),
-            downloadButton("download_button","Generate report")
-          )
+          conditionalPanel("input.toggleFilter % 2 == 1",
+            helpText("Hit the go button below to update the filter"),
         
-        )
+            
+            actionButton("goButton","Update filter"),
+      
+            
+            
+            dateRangeInput(inputId = "date_range",
+                           label = "Select sample date range",
+                           start = min(date_list),
+                           end = max(date_list),
+                           min = min(date_list),
+                           max = max(date_list)),
+  
+            
+            pickerInput(inputId = "desk_type",
+                        label = "Pick desk type(s)",
+                        choices = device_types,
+                        options = list(`actions-box` = TRUE),
+                        multiple = TRUE,
+                        selected = device_types),
+            
+            pickerInput(inputId = "floors",
+                        label = "Pick floor(s)",
+                        choices = floors,
+                        options = list(`actions-box` = TRUE),
+                        multiple = TRUE,
+                        selected = floors),
+            
+            numericInput(inputId = "smoothing_factor",
+                         label = "Smoothing Factor",
+                         min = 0,
+                         max = 1,
+                         value=0.5,
+                         step=0.1),
+            
+            helpText("Select Department(s) and team(s)"),
+            shinyTree("tree",checkbox = TRUE,search=TRUE)
+            )
+            
+        ),
+          
+            tabPanel("Download Report",
+              radioButtons('format', 'Document format', c('HTML', 'Word'),
+                           inline = TRUE),
+              downloadButton("download_button","Generate report")
+            )
+          
+          )
       ),
     
       mainPanel(
