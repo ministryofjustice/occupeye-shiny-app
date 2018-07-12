@@ -176,7 +176,7 @@ server <- function(input,output,session) {
     
     
     
-    floor_list <- unique(RV$df_sum$floor)
+    floor_list <- unique(RV$df_sum$floor) %>% sort()
     desk_type_list <- unique(RV$df_sum$devicetype)
     date_list <- unique(RV$df_sum$date)
     
