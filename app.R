@@ -140,7 +140,9 @@ ui <- fluidPage(
           tabPanel("usage by desk type",plotlyOutput(outputId = "deskChart")),
           tabPanel("usage by floor",plotlyOutput(outputId = "floorChart")),
           tabPanel("summarised data",dataTableOutput(outputId = "df_sum")),
-          tabPanel("raw data",dataTableOutput(outputId = "raw_data"))
+          tabPanel("raw data",dataTableOutput(outputId = "raw_data")),
+          
+          tabPanel("debug",textOutput("debug"))
       )
       
     )
@@ -156,10 +158,10 @@ server <- function(input,output,session) {
 # Raw data download -------------------------------------------------------
 
   RV <- reactiveValues(data = temp_df,df_sum = temp_df_sum, filtered = temp_df_sum)
+  
 
 
   observeEvent(input$loadCSV, {
-    
     
     withProgress(message = paste0("Loading report ",input$raw_csv), {
       csv_Path <- report_list %>% dplyr::filter(filename == input$raw_csv)
@@ -171,9 +173,11 @@ server <- function(input,output,session) {
       RV$df_sum <- get_df_sum(RV$data,input$start_time,input$end_time)
     })
     
+    
 
-    
-    
+  })
+  
+  observeEvent(RV$df_sum, {
     
     floor_list <- unique(RV$df_sum$floor) %>% sort()
     desk_type_list <- unique(RV$df_sum$devicetype)
@@ -190,6 +194,10 @@ server <- function(input,output,session) {
                          max = max(date_list,na.rm = TRUE),
                          start = min(date_list,na.rm = TRUE),
                          end = max(date_list,na.rm = TRUE))
+    
+    
+    updateTree(session,"tree",data=get_team_tree())
+    
   })
 
 
@@ -201,14 +209,13 @@ server <- function(input,output,session) {
     
     
     #loop through the layers of the team selection tree to get the selected names at each level
-    tree <- input$tree
     l1Names <- NULL
     l2Names <- NULL
     l3Names <- NULL
-    if (is.null(tree)){
+    if (is.null(input$tree)){
       "None"
     } else{
-      selected <-get_selected(tree,"slice")
+      selected <-get_selected(input$tree,"slice")
       
       
       for(x in selected) {
@@ -223,6 +230,10 @@ server <- function(input,output,session) {
     }
     
     l3Names <- replace(l3Names,l3Names == "N/A",NA) # Convert N/A from string to NA to make filtering work
+    
+    RV$l1Names <- l1Names
+    RV$l2Names <- l2Names
+    RV$l3Names <- l3Names
 
     
     # apply the filters
@@ -240,8 +251,7 @@ server <- function(input,output,session) {
 # Team selection tree -----------------------------------------------------
 # Creates the UI for selecting the teams
   
-  output$tree <- renderTree({
-    
+  get_team_tree <- function() {
     # Ideally get category list from Athena...
     #category_list <- get_cat_list(get_sensors_list(get_survey_id(surveys_list,input$survey_name)))
     
@@ -259,9 +269,11 @@ server <- function(input,output,session) {
     
     # replace the category-3 level with the names, 
     # so that the original data frame headings aren't added as an extra layer.
-    final <- lapply(cat3split,lapply,lapply,function(x) x <- structure(names(x),stselected=TRUE))
-    
-  })
+    RV$team_tree <- lapply(cat3split,lapply,lapply,function(x) x <- structure(names(x),stselected=TRUE))
+  }
+  
+  
+  output$tree <- renderEmptyTree()
 
 # Plots and table outputs -------------------------------------------------
 
@@ -316,6 +328,17 @@ server <- function(input,output,session) {
   output$raw_data <- renderDataTable({
     RV$data
   })
+  
+  output$debug <- renderPrint({
+    print(RV$l1Names)
+    print(RV$l2Names)
+    print(RV$l3Names)
+    print(input$date_range[1])
+    print(input$date_range[2])
+    print(input$desk_type)
+    print(input$floors)
+    
+  })
 
 })
 # Download handler --------------------------------------------------------
@@ -356,7 +379,7 @@ server <- function(input,output,session) {
   
   # refreshes connection when grey screened
   
-  session$allowReconnect(TRUE)
+  session$allowReconnect("force")
 
   
 }  
