@@ -50,10 +50,10 @@ ui <- fluidPage(
     sidebarPanel(
       tabsetPanel(
         tabPanel("Report config",
-          selectInput(inputId = "survey_name",
-                     label = "Select OccupEye survey",
-                     choices = surveys_list$name,
-                     selected = "102 Petty France v1.1"),
+          # selectInput(inputId = "survey_name",
+          #            label = "Select OccupEye survey",
+          #            choices = surveys_list$name,
+          #            selected = "102 Petty France v1.1"),
           
           selectInput(inputId = "raw_csv",
                       label = "Select report to download",
@@ -379,7 +379,7 @@ server <- function(input,output,session) {
   
   # refreshes connection when grey screened
   
-  session$allowReconnect("force")
+  session$allowReconnect(TRUE)
 
   
 }  
