@@ -140,9 +140,8 @@ ui <- fluidPage(
           tabPanel("usage by desk type",plotlyOutput(outputId = "deskChart")),
           tabPanel("usage by floor",plotlyOutput(outputId = "floorChart")),
           tabPanel("summarised data",dataTableOutput(outputId = "df_sum")),
-          tabPanel("raw data",dataTableOutput(outputId = "raw_data")),
+          tabPanel("raw data",dataTableOutput(outputId = "raw_data"))
           
-          tabPanel("debug",textOutput("debug"))
       )
       
     )
@@ -329,16 +328,6 @@ server <- function(input,output,session) {
     RV$data
   })
   
-  output$debug <- renderPrint({
-    print(RV$l1Names)
-    print(RV$l2Names)
-    print(RV$l3Names)
-    print(input$date_range[1])
-    print(input$date_range[2])
-    print(input$desk_type)
-    print(input$floors)
-    
-  })
 
 })
 # Download handler --------------------------------------------------------
