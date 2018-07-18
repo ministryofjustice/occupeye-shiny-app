@@ -49,13 +49,12 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       tabsetPanel(
-        tabPanel("Choose report to download",
-                 
-         selectInput(inputId = "survey_name",
-                     label = "Select OccupEye survey",
-                     choices = surveys_list$name,
-                     selected = "102 Petty France v1.1"),
-         
+        tabPanel("Report config",
+          # selectInput(inputId = "survey_name",
+          #            label = "Select OccupEye survey",
+          #            choices = surveys_list$name,
+          #            selected = "102 Petty France v1.1"),
+          
           selectInput(inputId = "raw_csv",
                       label = "Select report to download",
                       choices = report_list$filename),
@@ -70,61 +69,61 @@ ui <- fluidPage(
                       choices = time_list,
                       selected = "17:00"),
           
-          actionButton("loadCSV","Load report")
-          
-        ),
+          actionButton("loadCSV","Load report"),
+         
+          actionButton("toggleFilter","Show/hide report filters"),
         
-        
-        
-        tabPanel("Report config",
-                 
-          helpText("Hit the go button below to update the filter"),
-      
-          
-          actionButton("goButton","Update filter"),
-    
-          
-          
-          dateRangeInput(inputId = "date_range",
-                         label = "Select sample date range",
-                         start = min(date_list),
-                         end = max(date_list),
-                         min = min(date_list),
-                         max = max(date_list)),
 
-          
-          pickerInput(inputId = "desk_type",
-                      label = "Pick desk type(s)",
-                      choices = device_types,
-                      options = list(`actions-box` = TRUE),
-                      multiple = TRUE,
-                      selected = device_types),
-          
-          pickerInput(inputId = "floors",
-                      label = "Pick floor(s)",
-                      choices = floors,
-                      options = list(`actions-box` = TRUE),
-                      multiple = TRUE,
-                      selected = floors),
-          
-          numericInput(inputId = "smoothing_factor",
-                       label = "Smoothing Factor",
-                       min = 0,
-                       max = 1,
-                       value=0.5,
-                       step=0.1),
-          
-          helpText("Select Department(s) and team(s)"),
-          shinyTree("tree",checkbox = TRUE,search=TRUE)
-          ),
-          
-          tabPanel("Download Report",
-            radioButtons('format', 'Document format', c('HTML', 'Word'),
-                         inline = TRUE),
-            downloadButton("download_button","Generate report")
-          )
+          conditionalPanel("input.toggleFilter % 2 == 0",
+            helpText("Hit the button below to update the filter"),
         
-        )
+            
+            actionButton("goButton","Update filter"),
+      
+            
+            
+            dateRangeInput(inputId = "date_range",
+                           label = "Select sample date range",
+                           start = min(date_list),
+                           end = max(date_list),
+                           min = min(date_list),
+                           max = max(date_list)),
+  
+            
+            pickerInput(inputId = "desk_type",
+                        label = "Pick desk type(s)",
+                        choices = device_types,
+                        options = list(`actions-box` = TRUE),
+                        multiple = TRUE,
+                        selected = device_types),
+            
+            pickerInput(inputId = "floors",
+                        label = "Pick floor(s)",
+                        choices = floors,
+                        options = list(`actions-box` = TRUE),
+                        multiple = TRUE,
+                        selected = floors),
+            
+            numericInput(inputId = "smoothing_factor",
+                         label = "Smoothing Factor",
+                         min = 0,
+                         max = 1,
+                         value=0.5,
+                         step=0.1),
+            
+            helpText("Select Department(s) and team(s)"),
+            shinyTree("tree",checkbox = TRUE,search=TRUE)
+            )
+            
+        ),
+          
+            tabPanel("Download Report",
+              radioButtons('format', 'Document format', c('HTML', 'Word'),
+                           inline = TRUE),
+              downloadButton("download_button","Generate report")
+            )
+          
+          )
       ),
     
       mainPanel(
@@ -142,6 +141,7 @@ ui <- fluidPage(
           tabPanel("usage by floor",plotlyOutput(outputId = "floorChart")),
           tabPanel("summarised data",dataTableOutput(outputId = "df_sum")),
           tabPanel("raw data",dataTableOutput(outputId = "raw_data"))
+          
       )
       
     )
@@ -157,10 +157,10 @@ server <- function(input,output,session) {
 # Raw data download -------------------------------------------------------
 
   RV <- reactiveValues(data = temp_df,df_sum = temp_df_sum, filtered = temp_df_sum)
+  
 
 
   observeEvent(input$loadCSV, {
-    
     
     withProgress(message = paste0("Loading report ",input$raw_csv), {
       csv_Path <- report_list %>% dplyr::filter(filename == input$raw_csv)
@@ -172,11 +172,13 @@ server <- function(input,output,session) {
       RV$df_sum <- get_df_sum(RV$data,input$start_time,input$end_time)
     })
     
+    
 
+  })
+  
+  observeEvent(RV$df_sum, {
     
-    
-    
-    floor_list <- unique(RV$df_sum$floor)
+    floor_list <- unique(RV$df_sum$floor) %>% sort()
     desk_type_list <- unique(RV$df_sum$devicetype)
     date_list <- unique(RV$df_sum$date)
     
@@ -191,6 +193,10 @@ server <- function(input,output,session) {
                          max = max(date_list,na.rm = TRUE),
                          start = min(date_list,na.rm = TRUE),
                          end = max(date_list,na.rm = TRUE))
+    
+    
+    updateTree(session,"tree",data=get_team_tree())
+    
   })
 
 
@@ -202,14 +208,13 @@ server <- function(input,output,session) {
     
     
     #loop through the layers of the team selection tree to get the selected names at each level
-    tree <- input$tree
     l1Names <- NULL
     l2Names <- NULL
     l3Names <- NULL
-    if (is.null(tree)){
+    if (is.null(input$tree)){
       "None"
     } else{
-      selected <-get_selected(tree,"slice")
+      selected <-get_selected(input$tree,"slice")
       
       
       for(x in selected) {
@@ -224,6 +229,10 @@ server <- function(input,output,session) {
     }
     
     l3Names <- replace(l3Names,l3Names == "N/A",NA) # Convert N/A from string to NA to make filtering work
+    
+    RV$l1Names <- l1Names
+    RV$l2Names <- l2Names
+    RV$l3Names <- l3Names
 
     
     # apply the filters
@@ -241,8 +250,7 @@ server <- function(input,output,session) {
 # Team selection tree -----------------------------------------------------
 # Creates the UI for selecting the teams
   
-  output$tree <- renderTree({
-    
+  get_team_tree <- function() {
     # Ideally get category list from Athena...
     #category_list <- get_cat_list(get_sensors_list(get_survey_id(surveys_list,input$survey_name)))
     
@@ -260,9 +268,11 @@ server <- function(input,output,session) {
     
     # replace the category-3 level with the names, 
     # so that the original data frame headings aren't added as an extra layer.
-    final <- lapply(cat3split,lapply,lapply,function(x) x <- names(x))
-    
-  })
+    RV$team_tree <- lapply(cat3split,lapply,lapply,function(x) x <- structure(names(x),stselected=TRUE))
+  }
+  
+  
+  output$tree <- renderEmptyTree()
 
 # Plots and table outputs -------------------------------------------------
 
@@ -317,6 +327,7 @@ server <- function(input,output,session) {
   output$raw_data <- renderDataTable({
     RV$data
   })
+  
 
 })
 # Download handler --------------------------------------------------------
@@ -357,7 +368,7 @@ server <- function(input,output,session) {
   
   # refreshes connection when grey screened
   
-  session$allowReconnect("force")
+  session$allowReconnect(TRUE)
 
   
 }  
