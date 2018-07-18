@@ -74,8 +74,8 @@ ui <- fluidPage(
           actionButton("toggleFilter","Show/hide report filters"),
         
 
-          conditionalPanel("input.toggleFilter % 2 == 1",
-            helpText("Hit the go button below to update the filter"),
+          conditionalPanel("input.toggleFilter % 2 == 0",
+            helpText("Hit the button below to update the filter"),
         
             
             actionButton("goButton","Update filter"),
