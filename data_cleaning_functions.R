@@ -116,7 +116,6 @@ get_df_sum <- function(df,start_time,end_time) {
   df2 <- df %>% 
     filter_time_range(start_time,end_time) %>%         
     clean_and_mutate_raw_data() %>% 
-    filter(is_workdesk == 1) %>% 
     remove_non_business_days()
   
   
