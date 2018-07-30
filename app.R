@@ -9,7 +9,7 @@ library(shinyWidgets)   # For pickerInput
 library(plotly)         # Makes ggplot interactive
 library(shinyTree)      # for the category tree
 library(rpivotTable)    # Pivot tables
-
+library(feather)        # Feather data reading
 
 # import other source code ------------------------------------------------
 
@@ -27,20 +27,25 @@ source("data_cleaning_functions.R")
 # Downloads a sample dataset from S3, and uses it to initialise the UI fields.
 # These will need to be removed/revised once the Athena connection is fixed.
 
-temp_df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-app-occupeye-automation/surveys/336/ORCG.csv")
+temp_df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-app-occupeye-automation/surveys/336/Unallocated.csv")
 temp_df_sum <- get_df_sum(temp_df,"09:00","17:00")
 time_list <- unique(strftime(temp_df$obs_datetime,format="%H:%M"))
 date_list <- unique(lubridate::date(temp_df$obs_datetime))
 device_types <- unique(temp_df$devicetype)
 floors <- unique(temp_df$floor)
 
+sensors <- s3tools::read_using(FUN=feather::read_feather,s3_path = "alpha-app-occupeye-automation/sensors.feather") %>%
+            mutate_at(.funs = funs(ifelse(.=="",NA,.)), # Feather imports missing values 
+            .vars = vars(category_1,category_2,category_3))
 
-#report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation") %>% dplyr::filter(grepl("336",path)) %>% arrange(filename)
-#write_df_to_csv_in_s3(report_list,"alpha-app-occupeye-automation/report_list.csv",overwrite=TRUE,row.names = FALSE)
 
-report_list <- s3tools::read_using(FUN=readr::read_csv,s3_path = "alpha-app-occupeye-automation/report_list.csv")
 
-surveys_list <- s3tools::read_using(FUN=readr::read_csv,s3_path = "alpha-app-occupeye-automation/surveys.csv")
+surveys_list <- s3tools::read_using(FUN=feather::read_feather,s3_path = "alpha-app-occupeye-automation/surveys.feather")
+surveys_hash <- with(surveys_list[c('name','survey_id')],setNames(survey_id,name))
+
+report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation") %>% filter(grepl("\\.feather",path))
+
+
 
 # UI function -------------------------------------------------------------
 # Constructs the UI
@@ -50,14 +55,14 @@ ui <- fluidPage(
     sidebarPanel(
       tabsetPanel(
         tabPanel("Report config",
-          # selectInput(inputId = "survey_name",
-          #            label = "Select OccupEye survey",
-          #            choices = surveys_list$name,
-          #            selected = "102 Petty France v1.1"),
-          
-          selectInput(inputId = "raw_csv",
+          selectInput(inputId = "survey_name",
+                      label = "Select OccupEye survey",
+                      choices = surveys_list$name,
+                      selected = "102 Petty France v1.1"),
+
+          selectInput(inputId = "raw_feather",
                       label = "Select report to download",
-                      choices = report_list$filename),
+                      choices = gsub("\\.feather","",report_list$filename)),
           
           selectInput(inputId = "start_time",
                       label = "Start time:",
@@ -180,7 +185,9 @@ server <- function(input,output,session) {
       }
     }
     
-    l3Names <- replace(l3Names,l3Names == "N/A",NA) # Convert N/A from string to NA to make filtering work
+    l1Names <- replace(l1Names,l1Names %in% c("N/A",""),NA)
+    l2Names <- replace(l2Names,l2Names %in% c("N/A",""),NA)
+    l3Names <- replace(l3Names,l3Names %in% c("N/A",""),NA) # Convert N/A from string to NA to make filtering work
     
     RV$l1Names <- l1Names
     RV$l2Names <- l2Names
@@ -224,12 +231,25 @@ server <- function(input,output,session) {
   }
   
   
+  observeEvent(input$survey_name, {
+    survey_reports <- report_list %>% dplyr::filter(grepl(surveys_hash[input$survey_name],path)) %>% arrange(filename)
+    survey_files <- gsub("\\.feather","",survey_reports$filename)
+    updateSelectInput(session,inputId = "raw_feather",
+                      choices = survey_files)
+  })
+  
   
   observeEvent(input$loadCSV, {
     
-    withProgress(message = paste0("Loading report ",input$raw_csv), {
-      csv_Path <- report_list %>% dplyr::filter(filename == input$raw_csv)
-      RV$data <- s3tools::read_using(FUN=readr::read_csv, s3_path=csv_Path$path)
+    withProgress(message = paste0("Loading report ",input$raw_feather), {
+      feather_path <- report_list %>% dplyr::filter(filename == paste0(input$raw_feather,".feather"),
+                                                    grepl(surveys_hash[input$survey_name],path))
+      df_min <- s3tools::read_using(FUN=feather::read_feather, s3_path=feather_path$path)
+      df_full <- left_join(df_min,sensors,by=c("survey_device_id" = "surveydeviceid")) %>% 
+                  rename(surveydeviceid = survey_device_id)
+      
+      
+      RV$data <- df_full
       
     })
     
@@ -269,7 +289,10 @@ server <- function(input,output,session) {
     input$date_range
     input$desk_type
     input$smoothing_factor},
-    {RV$filtered <- update_filter()}
+    
+    {
+      RV$filtered <- update_filter()
+    }
   )
   
   # Plots and table outputs -------------------------------------------------
@@ -296,7 +319,6 @@ server <- function(input,output,session) {
       isolate(desks_by_desk_type_and_team(RV$filtered))
     })
     
-    
     output$smoothChart <- renderPlotly({
       isolate(smoothing_chart(RV$filtered,input$smoothing_factor))
     })
@@ -316,7 +338,6 @@ server <- function(input,output,session) {
     output$floorChart <- renderPlotly({
       isolate(prop_floor_usage_chart(RV$filtered))
     })
-    
     
     output$df_sum <- renderDataTable({
       RV$df_sum
