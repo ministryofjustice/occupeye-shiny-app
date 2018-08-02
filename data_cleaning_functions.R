@@ -91,7 +91,7 @@ remove_non_business_days <- function(df) {
 clean_and_mutate_raw_data <- function(df) {
   df %>%
     fix_bad_sensor_observations() %>%
-    add_is_workdesk_column() %>% 
+    #add_is_workdesk_column() %>% 
     add_sensor_acc()
 }
 
