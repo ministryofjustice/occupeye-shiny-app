@@ -58,7 +58,7 @@ ui <- fluidPage(
           selectInput(inputId = "survey_name",
                       label = "Select OccupEye survey",
                       choices = surveys_list$name,
-                      selected = "102 Petty France v1.1"),
+                      selected = "102 Petty France v1.2"),
 
           selectInput(inputId = "raw_feather",
                       label = "Select report to download",
@@ -133,10 +133,10 @@ ui <- fluidPage(
                  column(4,tableOutput(outputId = "desk_count")),
                  column(4,tableOutput(outputId = "team_desk_count"))),
         tabPanel("Smoothing",plotlyOutput(outputId = "smoothChart")),
-        tabPanel("daily usage",plotlyOutput(outputId = "dailyChart")),
-        tabPanel("usage by weekday",plotlyOutput(outputId = "weekdayChart")),
-        tabPanel("usage by desk type",plotlyOutput(outputId = "deskChart")),
-        tabPanel("usage by floor",plotlyOutput(outputId = "floorChart")),
+        tabPanel("daily usage",plotlyOutput(outputId = "dailyChart"),includeMarkdown("chart_info.md")),
+        tabPanel("usage by weekday",plotlyOutput(outputId = "weekdayChart"),includeMarkdown("chart_info.md")),
+        tabPanel("usage by desk type",plotlyOutput(outputId = "deskChart"),includeMarkdown("chart_info.md")),
+        tabPanel("usage by floor",plotlyOutput(outputId = "floorChart"),includeMarkdown("chart_info.md")),
         tabPanel("summarised data",dataTableOutput(outputId = "df_sum")),
         tabPanel("raw data",dataTableOutput(outputId = "raw_data"))
       )
