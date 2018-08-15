@@ -137,8 +137,9 @@ ui <- fluidPage(
         tabPanel("usage by weekday",plotlyOutput(outputId = "weekdayChart"),includeMarkdown("chart_info.md")),
         tabPanel("usage by desk type",plotlyOutput(outputId = "deskChart"),includeMarkdown("chart_info.md")),
         tabPanel("usage by floor",plotlyOutput(outputId = "floorChart"),includeMarkdown("chart_info.md")),
-        tabPanel("summarised data",dataTableOutput(outputId = "df_sum")),
-        tabPanel("raw data",dataTableOutput(outputId = "raw_data"))
+        tabPanel("summarised data",downloadButton("download_summarised_data"),dataTableOutput(outputId = "df_sum")),
+        tabPanel("filtered data",downloadButton("download_filtered_data"),dataTableOutput(outputId = "filtered")),
+        tabPanel("raw data",downloadButton("download_raw_data"),dataTableOutput(outputId = "raw_data"))
       )
         
     )
@@ -343,6 +344,10 @@ server <- function(input,output,session) {
       RV$df_sum
     })
     
+    output$filtered <- renderDataTable({
+      RV$filtered
+    })
+    
     output$raw_data <- renderDataTable({
       RV$data
     })
@@ -380,7 +385,27 @@ server <- function(input,output,session) {
       
     }
     
-    
+  )
+  
+  output$download_summarised_data <- downloadHandler(
+    filename = "summarised data.csv",
+    content = function(file) {
+      write.csv(RV$df_sum, file, row.names = FALSE)
+    }
+  )
+  
+  output$download_filtered_data <- downloadHandler(
+    filename = "filtered data.csv",
+    content = function(file) {
+      write.csv(RV$filtered, file, row.names = FALSE)
+    }
+  )
+  
+  output$download_raw_data <- downloadHandler(
+    filename = "raw data.csv",
+    content = function(file) {
+      write.csv(RV$data, file, row.names = FALSE)
+    }
   )
   
   # change to TRUE when deployed
