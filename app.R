@@ -139,7 +139,8 @@ ui <- fluidPage(
         tabPanel("usage by floor",plotlyOutput(outputId = "floorChart"),includeMarkdown("chart_info.md")),
         tabPanel("summarised data",downloadButton("download_summarised_data"),dataTableOutput(outputId = "df_sum")),
         tabPanel("filtered data",downloadButton("download_filtered_data"),dataTableOutput(outputId = "filtered")),
-        tabPanel("raw data",downloadButton("download_raw_data"),dataTableOutput(outputId = "raw_data"))
+        tabPanel("raw data",downloadButton("download_raw_data"),dataTableOutput(outputId = "raw_data")),
+        tabPanel("bad observations",downloadButton("download_bad_observations"),dataTableOutput(outputId = "bad_observations"))
       )
         
     )
@@ -231,6 +232,14 @@ server <- function(input,output,session) {
     RV$team_tree <- lapply(cat3split,lapply,lapply,function(x) x <- structure(names(x),stselected=TRUE))
   }
   
+  get_bad_observations <- function(df) {
+    df %>%
+      filter(!sensor_value %in% c(1,0))
+      mutate(obs_date = date(obs_datetime)) %>%
+      group_by(obs_date,sensor_value,surveydeviceid,hardware_id,sensor_id,location) %>% 
+      summarise(count = n())
+    
+  }
   
   observeEvent(input$survey_name, {
     survey_reports <- report_list %>% dplyr::filter(grepl(surveys_hash[input$survey_name],path)) %>% arrange(filename)
@@ -352,6 +361,10 @@ server <- function(input,output,session) {
       RV$data
     })
     
+    output$bad_observations <- renderDataTable({
+      get_bad_observations(RV$data)
+    })
+    
     
   })
   # Download handler --------------------------------------------------------
@@ -408,11 +421,19 @@ server <- function(input,output,session) {
     }
   )
   
+  output$download_bad_observations<- downloadHandler(
+    filename = "bad data.csv",
+    content = function(file) {
+      write.csv(get_bad_observations(RV$data), file, row.names = FALSE)
+    }
+  )
+  
+  
   # change to TRUE when deployed
   
   # refreshes connection when grey screened
   
-  session$allowReconnect(TRUE)
+  session$allowReconnect("force")
   
   
 }  
