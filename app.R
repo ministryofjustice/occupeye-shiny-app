@@ -27,7 +27,7 @@ source("data_cleaning_functions.R")
 # Downloads a sample dataset from S3, and uses it to initialise the UI fields.
 # These will need to be removed/revised once the Athena connection is fixed.
 
-temp_df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-app-occupeye-automation/surveys/336/Unallocated.csv")
+temp_df <- s3tools::read_using(FUN=feather::read_feather, s3_path="alpha-app-occupeye-automation/surveys/337/Unallocated.feather")
 temp_df_sum <- get_df_sum(temp_df,"09:00","17:00")
 time_list <- unique(strftime(temp_df$obs_datetime,format="%H:%M"))
 date_list <- unique(lubridate::date(temp_df$obs_datetime))
@@ -212,10 +212,6 @@ server <- function(input,output,session) {
   # Creates the UI for selecting the teams
   
   get_team_tree <- function() {
-    # Ideally get category list from Athena...
-    #category_list <- get_cat_list(get_sensors_list(get_survey_id(surveys_list,input$survey_name)))
-    
-    # But while that isn't working, get it from the CSV instead
     
     category_list <- RV$df_sum %>%
       select(category_1,category_2,category_3) %>%
@@ -241,8 +237,12 @@ server <- function(input,output,session) {
     
   }
   
+  # event observers -----------------------------------------------------
+  
   observeEvent(input$survey_name, {
-    survey_reports <- report_list %>% dplyr::filter(grepl(surveys_hash[input$survey_name],path)) %>% arrange(filename)
+    survey_reports <- report_list %>% 
+      dplyr::filter(grepl(surveys_hash[input$survey_name],path)) %>% 
+      arrange(filename)
     survey_files <- gsub("\\.feather","",survey_reports$filename)
     updateSelectInput(session,inputId = "raw_feather",
                       choices = survey_files)
@@ -260,7 +260,7 @@ server <- function(input,output,session) {
       
       
       RV$data <- df_full
-      
+      RV$bad_sensors <- get_bad_observations(RV$data)
     })
     
     withProgress(message="summarising the dataset", {
@@ -362,7 +362,7 @@ server <- function(input,output,session) {
     })
     
     output$bad_observations <- renderDataTable({
-      get_bad_observations(RV$data)
+      RV$bad_sensors
     })
     
     
@@ -392,7 +392,7 @@ server <- function(input,output,session) {
       file.copy(src, out_report, overwrite = TRUE)
       
       withProgress(message = "Generating report...", {
-        out <- rmarkdown::render(out_report,params = list(start_date = input$date_range[1],end_date=input$date_range[2]))
+        out <- rmarkdown::render(out_report,params = list(start_date = input$date_range[1],end_date=input$date_range[2],df_sum = RV$filtered))
         file.rename(out, file)
       })
       
@@ -424,7 +424,7 @@ server <- function(input,output,session) {
   output$download_bad_observations<- downloadHandler(
     filename = "bad data.csv",
     content = function(file) {
-      write.csv(get_bad_observations(RV$data), file, row.names = FALSE)
+      write.csv(RV$bad_sensors, file, row.names = FALSE)
     }
   )
   
