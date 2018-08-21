@@ -230,9 +230,9 @@ server <- function(input,output,session) {
   
   get_bad_observations <- function(df) {
     df %>%
-      filter(!sensor_value %in% c(1,0))
+      filter(!sensor_value %in% c(1,0)) %>%
       mutate(obs_date = date(obs_datetime)) %>%
-      group_by(obs_date,sensor_value,surveydeviceid,hardware_id,sensor_id,location) %>% 
+      group_by(obs_date,sensor_value,surveydeviceid,hardwareid,sensorid,location) %>% 
       summarise(count = n())
     
   }
