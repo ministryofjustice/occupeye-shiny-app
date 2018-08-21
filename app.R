@@ -7,7 +7,7 @@ library(dplyr)          # For pipes
 library(htmlwidgets)    # rpivotTable depends on it
 library(shinyWidgets)   # For pickerInput
 library(plotly)         # Makes ggplot interactive
-library(shinyTree)      # for the category tree
+library(shinyTree)      # for the category tree. Specifically requires the schaffman5 fork on github
 library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
 
@@ -27,7 +27,7 @@ source("data_cleaning_functions.R")
 # Downloads a sample dataset from S3, and uses it to initialise the UI fields.
 # These will need to be removed/revised once the Athena connection is fixed.
 
-temp_df <- s3tools::read_using(FUN=feather::read_feather, s3_path="alpha-app-occupeye-automation/surveys/337/Unallocated.feather")
+temp_df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-app-occupeye-automation/surveys/336/Unallocated.csv")
 temp_df_sum <- get_df_sum(temp_df,"09:00","17:00")
 time_list <- unique(strftime(temp_df$obs_datetime,format="%H:%M"))
 date_list <- unique(lubridate::date(temp_df$obs_datetime))
