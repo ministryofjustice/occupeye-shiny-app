@@ -128,10 +128,18 @@ ui <- fluidPage(
       tabsetPanel(
         tabPanel("Introduction",includeMarkdown("intro.md")),
         tabPanel("Pivot table",rpivotTableOutput("myPivot")),
-        tabPanel("Summary tables",tableOutput(outputId = "recom_table"),
-                 column(4,tableOutput(outputId = "team_count")),
-                 column(4,tableOutput(outputId = "desk_count")),
-                 column(4,tableOutput(outputId = "team_desk_count"))),
+        tabPanel("Summary tables",
+          fluidPage(
+            fluidRow(
+               column(6,tableOutput(outputId = "recom_table"))
+               ),
+            fluidRow(
+              column(3,tableOutput(outputId = "team_count")),
+              column(3,tableOutput(outputId = "desk_count")),
+              column(3,tableOutput(outputId = "team_desk_count"))
+              )
+            )
+          ),
         tabPanel("Smoothing",plotlyOutput(outputId = "smoothChart")),
         tabPanel("daily usage",plotlyOutput(outputId = "dailyChart"),includeMarkdown("chart_info.md")),
         tabPanel("usage by weekday",plotlyOutput(outputId = "weekdayChart"),includeMarkdown("chart_info.md")),
@@ -258,7 +266,7 @@ server <- function(input,output,session) {
       
       
       RV$data <- df_full
-      
+      RV$bad_sensors <- get_bad_observations(RV$data)
     })
     
     withProgress(message="summarising the dataset", {
