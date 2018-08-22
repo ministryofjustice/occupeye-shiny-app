@@ -43,7 +43,7 @@ sensors <- s3tools::read_using(FUN=feather::read_feather,s3_path = "alpha-app-oc
 surveys_list <- s3tools::read_using(FUN=feather::read_feather,s3_path = "alpha-app-occupeye-automation/surveys.feather")
 surveys_hash <- with(surveys_list[c('name','survey_id')],setNames(survey_id,name))
 
-report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation") %>% filter(grepl("\\.feather",path))
+report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", prefix = "surveys/337") %>% filter(grepl("\\.feather",path))
 
 
 
@@ -240,9 +240,8 @@ server <- function(input,output,session) {
   # event observers -----------------------------------------------------
   
   observeEvent(input$survey_name, {
-    survey_reports <- report_list %>% 
-      dplyr::filter(grepl(surveys_hash[input$survey_name],path)) %>% 
-      arrange(filename)
+    RV$report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", prefix = glue("surveys/{surveys_hash[input$survey_name]}"))
+    survey_reports <- RV$report_list %>% arrange(filename)
     survey_files <- gsub("\\.feather","",survey_reports$filename)
     updateSelectInput(session,inputId = "raw_feather",
                       choices = survey_files)
@@ -252,15 +251,14 @@ server <- function(input,output,session) {
   observeEvent(input$loadCSV, {
     
     withProgress(message = paste0("Loading report ",input$raw_feather), {
-      feather_path <- report_list %>% dplyr::filter(filename == paste0(input$raw_feather,".feather"),
-                                                    grepl(surveys_hash[input$survey_name],path))
+      feather_path <- RV$report_list %>% dplyr::filter(filename == paste0(input$raw_feather,".feather"))
       df_min <- s3tools::read_using(FUN=feather::read_feather, s3_path=feather_path$path)
       df_full <- left_join(df_min,sensors,by=c("survey_device_id" = "surveydeviceid")) %>% 
-                  rename(surveydeviceid = survey_device_id)
+        rename(surveydeviceid = survey_device_id)
       
       
       RV$data <- df_full
-      RV$bad_sensors <- get_bad_observations(RV$data)
+      
     })
     
     withProgress(message="summarising the dataset", {
