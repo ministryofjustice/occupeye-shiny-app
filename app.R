@@ -70,25 +70,18 @@ ui <- fluidPage(
                       selected = "17:00"),
           
           actionButton("loadCSV","Load report"),
-         
+          
           actionButton("toggleFilter","Show/hide report filters"),
-        
-
+          
+          
           conditionalPanel("input.toggleFilter % 2 == 0",
-            helpText("Hit the button below to update the filter"),
-        
-            
-            actionButton("goButton","Update filter"),
-      
-            
-            
             dateRangeInput(inputId = "date_range",
                            label = "Select sample date range",
                            start = min(date_list),
                            end = max(date_list),
                            min = min(date_list),
                            max = max(date_list)),
-  
+            
             
             pickerInput(inputId = "desk_type",
                         label = "Pick desk type(s)",
@@ -113,37 +106,36 @@ ui <- fluidPage(
             
             helpText("Select Department(s) and team(s)"),
             shinyTree("tree",checkbox = TRUE,search=TRUE)
-            )
-            
-        ),
-          
-            tabPanel("Download Report",
-              radioButtons('format', 'Document format', c('HTML', 'Word'),
-                           inline = TRUE),
-              downloadButton("download_button","Generate report")
-            )
-          
           )
-      ),
-    
-      mainPanel(
-        tabsetPanel(
-          tabPanel("Introduction",includeMarkdown("intro.md")),
-          tabPanel("Pivot table",rpivotTableOutput("myPivot")),
-          tabPanel("Summary tables",tableOutput(outputId = "recom_table"),
-                   column(4,tableOutput(outputId = "team_count")),
-                   column(4,tableOutput(outputId = "desk_count")),
-                   column(4,tableOutput(outputId = "team_desk_count"))),
-          tabPanel("Smoothing",plotlyOutput(outputId = "smoothChart")),
-          tabPanel("daily usage",plotlyOutput(outputId = "dailyChart")),
-          tabPanel("usage by weekday",plotlyOutput(outputId = "weekdayChart")),
-          tabPanel("usage by desk type",plotlyOutput(outputId = "deskChart")),
-          tabPanel("usage by floor",plotlyOutput(outputId = "floorChart")),
-          tabPanel("summarised data",dataTableOutput(outputId = "df_sum")),
-          tabPanel("raw data",dataTableOutput(outputId = "raw_data"))
-          
+                 
+        ),
+        
+        tabPanel("Download Report",
+                 radioButtons('format', 'Document format', c('HTML', 'Word'),
+                              inline = TRUE),
+                 downloadButton("download_button","Generate report")
+        )
+        
       )
-      
+    ),
+    
+    mainPanel(
+      tabsetPanel(
+        tabPanel("Introduction",includeMarkdown("intro.md")),
+        tabPanel("Pivot table",rpivotTableOutput("myPivot")),
+        tabPanel("Summary tables",tableOutput(outputId = "recom_table"),
+                 column(4,tableOutput(outputId = "team_count")),
+                 column(4,tableOutput(outputId = "desk_count")),
+                 column(4,tableOutput(outputId = "team_desk_count"))),
+        tabPanel("Smoothing",plotlyOutput(outputId = "smoothChart")),
+        tabPanel("daily usage",plotlyOutput(outputId = "dailyChart")),
+        tabPanel("usage by weekday",plotlyOutput(outputId = "weekdayChart")),
+        tabPanel("usage by desk type",plotlyOutput(outputId = "deskChart")),
+        tabPanel("usage by floor",plotlyOutput(outputId = "floorChart")),
+        tabPanel("summarised data",dataTableOutput(outputId = "df_sum")),
+        tabPanel("raw data",dataTableOutput(outputId = "raw_data"))
+      )
+        
     )
   )
 )
@@ -153,58 +145,18 @@ ui <- fluidPage(
 # This function defines the server function. Should be separated into a separate file
 server <- function(input,output,session) {
   
-
-# Raw data download -------------------------------------------------------
-
+  
+  # Raw data download -------------------------------------------------------
+  
   RV <- reactiveValues(data = temp_df,df_sum = temp_df_sum, filtered = temp_df_sum)
+  output$tree <- renderEmptyTree()
   
-
-
-  observeEvent(input$loadCSV, {
-    
-    withProgress(message = paste0("Loading report ",input$raw_csv), {
-      csv_Path <- report_list %>% dplyr::filter(filename == input$raw_csv)
-      RV$data <- s3tools::read_using(FUN=readr::read_csv, s3_path=csv_Path$path)
-      
-    })
-    
-    withProgress(message="summarising the dataset", {
-      RV$df_sum <- get_df_sum(RV$data,input$start_time,input$end_time)
-    })
-    
-    
-
-  })
   
-  observeEvent(RV$df_sum, {
-    
-    floor_list <- unique(RV$df_sum$floor) %>% sort()
-    desk_type_list <- unique(RV$df_sum$devicetype)
-    date_list <- unique(RV$df_sum$date)
-    
-    updatePickerInput(session, inputId = "floors",
-                      choices = floor_list,
-                      selected = floor_list)
-    updatePickerInput(session, inputId = "desk_type",
-                      choices = desk_type_list,
-                      selected =desk_type_list)
-    updateDateRangeInput(session, inputId = "date_range",
-                         min = min(date_list,na.rm = TRUE),
-                         max = max(date_list,na.rm = TRUE),
-                         start = min(date_list,na.rm = TRUE),
-                         end = max(date_list,na.rm = TRUE))
-    
-    
-    updateTree(session,"tree",data=get_team_tree())
-    
-  })
-
-
-# Data filter -------------------------------------------------------------
+  # Data filter -------------------------------------------------------------
   
   
   # Filter the data based on the input filters. This forms the input for the plots and tables
-  observeEvent(input$goButton, {
+  update_filter <- function() {
     
     
     #loop through the layers of the team selection tree to get the selected names at each level
@@ -233,22 +185,22 @@ server <- function(input,output,session) {
     RV$l1Names <- l1Names
     RV$l2Names <- l2Names
     RV$l3Names <- l3Names
-
+    
     
     # apply the filters
-     RV$filtered <- RV$df_sum %>%
+    RV$filtered <- RV$df_sum %>%
       dplyr::filter(date >= input$date_range[1] & date <= input$date_range[2],
-             devicetype %in% input$desk_type,
-             floor %in% input$floors,
-             category_1 %in% l1Names,
-             category_2 %in% l2Names,
-             category_3 %in% l3Names)
-  })
+                    devicetype %in% input$desk_type,
+                    floor %in% input$floors,
+                    category_1 %in% l1Names,
+                    category_2 %in% l2Names,
+                    category_3 %in% l3Names)
+  }
   
   
-
-# Team selection tree -----------------------------------------------------
-# Creates the UI for selecting the teams
+  
+  # Team selection tree -----------------------------------------------------
+  # Creates the UI for selecting the teams
   
   get_team_tree <- function() {
     # Ideally get category list from Athena...
@@ -272,67 +224,113 @@ server <- function(input,output,session) {
   }
   
   
-  output$tree <- renderEmptyTree()
-
-# Plots and table outputs -------------------------------------------------
-
-# These functions generate the charts and tables in the report
-  observeEvent(input$goButton, {
-  output$myPivot <- renderRpivotTable({
-    rpivotTable(data = RV$filtered)
-  })
-
-  output$recom_table <- renderTable({
-    isolate(allocation_strategy_table(RV$filtered))
-  })
   
-  output$desk_count <- renderTable({
-    isolate(desks_by_desk_type(RV$filtered))
-  })
-  
-  output$team_count <- renderTable({
-    isolate(desks_by_team(RV$filtered))
+  observeEvent(input$loadCSV, {
+    
+    withProgress(message = paste0("Loading report ",input$raw_csv), {
+      csv_Path <- report_list %>% dplyr::filter(filename == input$raw_csv)
+      RV$data <- s3tools::read_using(FUN=readr::read_csv, s3_path=csv_Path$path)
+      
+    })
+    
+    withProgress(message="summarising the dataset", {
+      RV$df_sum <- get_df_sum(RV$data,input$start_time,input$end_time)
+    })
+    
+    
+    
   })
   
-  output$team_desk_count <- renderTable({
-    isolate(desks_by_desk_type_and_team(RV$filtered))
+  observeEvent(RV$df_sum, {
+    
+    floor_list <- unique(RV$df_sum$floor) %>% sort()
+    desk_type_list <- unique(RV$df_sum$devicetype)
+    date_list <- unique(RV$df_sum$date)
+    
+    updatePickerInput(session, inputId = "floors",
+                      choices = floor_list,
+                      selected = floor_list)
+    updatePickerInput(session, inputId = "desk_type",
+                      choices = desk_type_list,
+                      selected =desk_type_list)
+    updateDateRangeInput(session, inputId = "date_range",
+                         min = min(date_list,na.rm = TRUE),
+                         max = max(date_list,na.rm = TRUE),
+                         start = min(date_list,na.rm = TRUE),
+                         end = max(date_list,na.rm = TRUE))
+    
+    updateTree(session,"tree",data=get_team_tree())
+    
   })
   
+  # Update the report if any of the filters have changed
+  observeEvent({input$tree
+    input$floor
+    input$date_range
+    input$desk_type
+    input$smoothing_factor},
+    {RV$filtered <- update_filter()}
+  )
   
-  output$smoothChart <- renderPlotly({
-    isolate(smoothing_chart(RV$filtered,input$smoothing_factor))
+  # Plots and table outputs -------------------------------------------------
+  
+  # These functions generate the charts and tables in the report
+  observeEvent(RV$filtered, {
+    output$myPivot <- renderRpivotTable({
+      rpivotTable(data = RV$filtered)
+    })
+    
+    output$recom_table <- renderTable({
+      isolate(allocation_strategy_table(RV$filtered))
+    })
+    
+    output$desk_count <- renderTable({
+      isolate(desks_by_desk_type(RV$filtered))
+    })
+    
+    output$team_count <- renderTable({
+      isolate(desks_by_team(RV$filtered))
+    })
+    
+    output$team_desk_count <- renderTable({
+      isolate(desks_by_desk_type_and_team(RV$filtered))
+    })
+    
+    
+    output$smoothChart <- renderPlotly({
+      isolate(smoothing_chart(RV$filtered,input$smoothing_factor))
+    })
+    
+    output$dailyChart <- renderPlotly({
+      isolate(prop_daily_usage_chart(RV$filtered))
+    })
+    
+    output$weekdayChart <- renderPlotly({
+      isolate(prop_weekday_usage_chart(RV$filtered))
+    })
+    
+    output$deskChart <- renderPlotly({
+      isolate(prop_desk_usage_chart(RV$filtered))
+    })
+    
+    output$floorChart <- renderPlotly({
+      isolate(prop_floor_usage_chart(RV$filtered))
+    })
+    
+    
+    output$df_sum <- renderDataTable({
+      RV$df_sum
+    })
+    
+    output$raw_data <- renderDataTable({
+      RV$data
+    })
+    
+    
   })
-
-  output$dailyChart <- renderPlotly({
-    isolate(prop_daily_usage_chart(RV$filtered))
-  })
+  # Download handler --------------------------------------------------------
   
-  output$weekdayChart <- renderPlotly({
-    isolate(prop_weekday_usage_chart(RV$filtered))
-  })
-  
-  output$deskChart <- renderPlotly({
-    isolate(prop_desk_usage_chart(RV$filtered))
-  })
-  
-  output$floorChart <- renderPlotly({
-    isolate(prop_floor_usage_chart(RV$filtered))
-  })
-  
-  
-  output$df_sum <- renderDataTable({
-    RV$df_sum
-  })
-  
-  output$raw_data <- renderDataTable({
-    RV$data
-  })
-  
-
-})
-# Download handler --------------------------------------------------------
-
-# Functions for handling the report download  
+  # Functions for handling the report download  
   output$download_button <- downloadHandler(
     filename = function() {
       paste('my-report', sep = '.', switch(
@@ -369,7 +367,7 @@ server <- function(input,output,session) {
   # refreshes connection when grey screened
   
   session$allowReconnect(TRUE)
-
+  
   
 }  
 

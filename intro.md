@@ -16,7 +16,7 @@ This is a tool for exploring data extracted from OccupEye sensors deployed by Mo
 1. In the "report config" tab, choose the report from the dropdown that you want to download. Currently the reports are saved as individual datasets grouped by team. For some of the smaller directorates, you can load the whole directorate, while other directorates are split into departments.
 2. Select the time interval you wish the data to be filtered - by default 09:00 to 17:00.
 3. Hit the **Load report** button to load the dataset into the interface. This could take a minute or two, as indicated by the loading bars in the bottom-right corner of the screen.
-4. Update the filters for dates, floors, desk types and teams to include in the reports. Click the **Update filter** button to update the charts with your selection.
+4. Update the filters for dates, floors, desk types and teams to include in the reports. The charts and tables will update accordingly.
 5. On the Download Reports tab, you can download reports based on the filters. You can choose between an HTML-based slideshow, and a Microsoft Word report. These follow the format of the reports produced previously by ASD - first showing charts and tables for the whole dataset, then showing the daily charts for each team (if there are multiple teams selected).
 
 ## Future plans and contact
