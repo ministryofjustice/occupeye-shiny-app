@@ -215,7 +215,7 @@ allocation_strategy_table <- function(df_sum) {
   orange <- daily_utilisation["Friday"] * current_allocation
   
   recommendation_list <- c("Current Allocation",
-                           glue("Given current working patterns, the selected region could have had {current_allocation - dark_blue} fewer desks over the sample period without experiencing any overcrowding issues."),
+                           glue("Given current working patterns, the selected region could have had {round(current_allocation - dark_blue)} fewer desks over the sample period without experiencing any overcrowding issues."),
                            glue("If you were to partially smooth working patterns over the week, you could save a further {round(current_allocation - green)} desks"),
                            glue("If you were to fully smooth working patterns over the week, you could save a further {round(current_allocation - second_green)} desks"),
                            glue("On average {round(mean_underutilised * 100)}% of desks were used inefficiently. By embedding a culture of hotdesking (assuming a desk-to-person ratio of 0.6) it would be possible to replace {round(current_allocation * mean_underutilised)} desks with {round(current_allocation * mean_underutilised * hotdesk_ratio)} desks."),
