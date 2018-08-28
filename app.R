@@ -10,7 +10,7 @@ library(plotly)         # Makes ggplot interactive
 library(shinyTree)      # for the category tree
 library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
-
+library(glue)           # Glue 
 # import other source code ------------------------------------------------
 
 
