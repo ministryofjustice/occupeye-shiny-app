@@ -44,33 +44,33 @@ Hash: e8805df54c65ac96d50235c44a82615c
 
 Package: aws.ec2metadata
 Source: github
-Version: 0.1.4
-Hash: ee83dd02c738347c60546c3a5841fc38
+Version: 0.1.5
+Hash: e9d11f55bfce50c79bfba66a4bd9cc13
 Requires: curl, jsonlite
 GithubRepo: aws.ec2metadata
 GithubUsername: cloudyr
 GithubRef: master
-GithubSha1: 48384302231712054d21643fb7f8caa03a4da73b
+GithubSha1: f6bc0bd67ed9b648ad05defe6ff1d7cc00596ecc
 
 Package: aws.s3
 Source: github
-Version: 0.3.12
-Hash: 16245aac8b3856215d565ee284fa00aa
-Requires: aws.signature, base64enc, digest, httr, xml2
+Version: 0.3.20
+Hash: cd48738628b1c94525e2ebbd42caf70a
+Requires: aws.signature, base64enc, curl, digest, httr, xml2
 GithubRepo: aws.s3
 GithubUsername: cloudyr
 GithubRef: master
-GithubSha1: 51753d4bc4931a0b69b8a0d1088d10127e180a53
+GithubSha1: 3d2b2e17b92255a73935514ee19fc7553fd80fae
 
 Package: aws.signature
 Source: github
-Version: 0.4.3
-Hash: 546333a34d411f812e0224347f34662e
+Version: 0.4.5
+Hash: 49686bde0575720d3059afb97f2c0b20
 Requires: base64enc, digest
 GithubRepo: aws.signature
 GithubUsername: cloudyr
 GithubRef: master
-GithubSha1: c0259f18f81bd687853cbc3c3c84331d41344c91
+GithubSha1: df1ddb4931d755bb83cd7f05937be0d7129f46fb
 
 Package: backports
 Source: CRAN
@@ -411,14 +411,14 @@ Hash: e2ebaff8160aff3e6b32e6e78a693c2d
 
 Package: s3tools
 Source: github
-Version: 0.0.3
-Hash: e9f4e0af9d16e70edc205b5b29e56442
+Version: 0.0.5
+Hash: 5a2b58d9817cc9c1f75e5a9bda71cd30
 Requires: aws.ec2metadata, aws.s3, aws.signature, digest, httr,
     jsonlite
 GithubRepo: s3tools
 GithubUsername: moj-analytical-services
 GithubRef: master
-GithubSha1: 53f111bc0c32bd5570c80ac18b7c517ac0451cd1
+GithubSha1: a07eddc1f38bf9bdd6e32d82cee22458161c9802
 
 Package: scales
 Source: github
