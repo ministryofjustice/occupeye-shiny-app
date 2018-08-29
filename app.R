@@ -279,8 +279,8 @@ server <- function(input,output,session) {
   
   observeEvent(RV$df_sum, {
     
-    floor_list <- unique(RV$df_sum$floor) %>% sort()
-    desk_type_list <- unique(RV$df_sum$devicetype)
+    floor_list <- unique(RV$df_sum$floor) %>% as.numeric() %>% sort()
+    desk_type_list <- unique(RV$df_sum$devicetype) %>% sort()
     date_list <- unique(RV$df_sum$date)
     
     updatePickerInput(session, inputId = "floors",
