@@ -58,7 +58,7 @@ ui <- fluidPage(
           selectInput(inputId = "survey_name",
                       label = "Select OccupEye survey",
                       choices = surveys_list$name,
-                      selected = "102 Petty France v1.2"),
+                      selected = "102 Petty France v2.0"),
 
           selectInput(inputId = "raw_feather",
                       label = "Select report to download",
