@@ -439,7 +439,7 @@ server <- function(input,output,session) {
   
   # refreshes connection when grey screened
   
-  session$allowReconnect("force")
+  session$allowReconnect(TRUE)
   
   
 }  
