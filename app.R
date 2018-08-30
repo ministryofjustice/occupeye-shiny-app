@@ -64,6 +64,11 @@ ui <- fluidPage(
                       label = "Select report to download",
                       choices = gsub("\\.feather","",report_list$filename)),
           
+          selectInput(inputId="start_date",
+                      label="Start date: ",
+                      choices = date_list,
+                      selected=min(date_list)),
+          
           selectInput(inputId = "start_time",
                       label = "Start time:",
                       choices = time_list,
@@ -248,11 +253,16 @@ server <- function(input,output,session) {
   # event observers -----------------------------------------------------
   
   observeEvent(input$survey_name, {
-    RV$report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", prefix = glue("surveys/{surveys_hash[input$survey_name]}"))
+    selected_survey_id <- surveys_hash[input$survey_name]
+    RV$report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", prefix = glue("surveys/{selected_survey_id}"))
     survey_reports <- RV$report_list %>% arrange(filename)
     survey_files <- gsub("\\.feather","",survey_reports$filename)
     updateSelectInput(session,inputId = "raw_feather",
                       choices = survey_files)
+    
+    start_date <- surveys_list %>% filter(survey_id == selected_survey_id) %>% .$startdate
+    dates_list <- rep.Date(as.Date(start_date),as.Date(today()),by="day")
+    updateSelectInput(session,inputId = "start_date",choices=dates_list)
   })
   
   
@@ -260,7 +270,8 @@ server <- function(input,output,session) {
     
     withProgress(message = paste0("Loading report ",input$raw_feather), {
       feather_path <- RV$report_list %>% dplyr::filter(filename == paste0(input$raw_feather,".feather"))
-      df_min <- s3tools::read_using(FUN=feather::read_feather, s3_path=feather_path$path)
+      df_min <- s3tools::read_using(FUN=feather::read_feather, s3_path=feather_path$path) %>%
+        filter(obs_datetime > input$start_date)
       df_full <- left_join(df_min,sensors,by=c("survey_device_id" = "surveydeviceid")) %>% 
         rename(surveydeviceid = survey_device_id)
       
