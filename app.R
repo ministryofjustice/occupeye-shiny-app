@@ -138,7 +138,8 @@ ui <- fluidPage(
         tabPanel("Summary tables",
           fluidPage(
             fluidRow(
-               column(6,tableOutput(outputId = "recom_table"))
+               column(6,tableOutput(outputId = "recom_table")),
+               column(6,htmlOutput("peak_occupancy_text"),tableOutput(outputId = "peak_occupancy"))
                ),
             fluidRow(
               column(3,tableOutput(outputId = "team_count")),
@@ -263,7 +264,7 @@ server <- function(input,output,session) {
                       choices = survey_files)
     
     start_date <- surveys_list %>% filter(survey_id == selected_survey_id) %>% .$startdate
-    dates_list <- rep.Date(as.Date(start_date),as.Date(today()),by="day")
+    dates_list <- seq(as.Date(start_date),as.Date(today()),by="day")
     updateDateRangeInput(session, inputId = "download_date_range",
                          min = min(dates_list,na.rm = TRUE),
                          max = max(dates_list,na.rm = TRUE),
@@ -277,7 +278,7 @@ server <- function(input,output,session) {
     withProgress(message = paste0("Loading report ",input$raw_feather), {
       feather_path <- RV$report_list %>% dplyr::filter(filename == paste0(input$raw_feather,".feather"))
       df_min <- s3tools::read_using(FUN=feather::read_feather, s3_path=feather_path$path) %>%
-        filter(obs_datetime >= input$download_date_range[1],input$download_date_range[2])
+        filter(obs_datetime >= input$download_date_range[1],obs_datetime <= input$download_date_range[2])
       df_full <- left_join(df_min,sensors,by=c("survey_device_id" = "surveydeviceid")) %>% 
         rename(surveydeviceid = survey_device_id)
       
@@ -350,6 +351,14 @@ server <- function(input,output,session) {
     
     output$team_desk_count <- renderTable({
       isolate(desks_by_desk_type_and_team(RV$filtered))
+    })
+    
+    output$peak_occupancy_text <- renderText({
+      "<b>Top 10 busiest days (in use + underutilised)</b>"
+    })
+    
+    output$peak_occupancy <- renderTable({
+      isolate(get_peak_occupancy(RV$filtered))
     })
     
     output$smoothChart <- renderPlotly({
@@ -456,7 +465,7 @@ server <- function(input,output,session) {
   
   # refreshes connection when grey screened
   
-  session$allowReconnect(TRUE)
+  session$allowReconnect("force")
   
   
 }  

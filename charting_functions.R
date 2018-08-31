@@ -251,3 +251,16 @@ desks_by_desk_type_and_team <- function(df_sum) {
     summarise(sensors = n_distinct(surveydeviceid)) %>%
     rename("Desk Type" = devicetype,"team"=category_3)
 }
+
+get_peak_occupancy <- function(df_sum) {
+  prop_usage <- get_prop_usage(df_sum)
+  
+  prop_usage %>% 
+    filter(util_cat != "Unused") %>%
+    group_by(date) %>%
+    summarise(prop=sum(prop)) %>%
+    mutate(date = as.character(date),utilisation=percent(prop)) %>% 
+    select(date,utilisation) %>%
+    arrange(desc(utilisation)) %>%
+    head(10)
+}
