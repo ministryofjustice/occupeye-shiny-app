@@ -108,13 +108,7 @@ ui <- fluidPage(
                         options = list(`actions-box` = TRUE),
                         multiple = TRUE,
                         selected = floors),
-            
-            numericInput(inputId = "smoothing_factor",
-                         label = "Smoothing Factor",
-                         min = 0,
-                         max = 1,
-                         value=0.5,
-                         step=0.1),
+    
             
             helpText("Select Department(s) and team(s)"),
             shinyTree("tree",checkbox = TRUE,search=TRUE)
@@ -148,7 +142,14 @@ ui <- fluidPage(
               )
             )
           ),
-        tabPanel("Smoothing",plotlyOutput(outputId = "smoothChart")),
+        tabPanel("Smoothing",plotlyOutput(outputId = "smoothChart"),
+                 numericInput(inputId = "smoothing_factor",
+                              label = "Smoothing Factor",
+                              min = 0,
+                              max = 1,
+                              value=0.5,
+                              step=0.1),
+                 textOutput(outputId="smoothing_description")),
         tabPanel("daily usage",plotlyOutput(outputId = "dailyChart"),includeMarkdown("chart_info.md")),
         tabPanel("usage by weekday",plotlyOutput(outputId = "weekdayChart"),includeMarkdown("chart_info.md")),
         tabPanel("usage by desk type",plotlyOutput(outputId = "deskChart"),includeMarkdown("chart_info.md")),
@@ -362,7 +363,13 @@ server <- function(input,output,session) {
     })
     
     output$smoothChart <- renderPlotly({
-      isolate(smoothing_chart(RV$filtered,input$smoothing_factor))
+      smoothing_chart(RV$filtered,input$smoothing_factor)
+    })
+    
+    output$smoothing_description <- renderText({
+      "The graph shows the difference in implied desk utilisation under the assumption of full smoothing over the week and the assumption of imperfect smoothing. 
+    A smoothing factor of 0.5 represents the midpoint between current utilisation and full smoothing.
+    "
     })
     
     output$dailyChart <- renderPlotly({
@@ -465,7 +472,7 @@ server <- function(input,output,session) {
   
   # refreshes connection when grey screened
   
-  session$allowReconnect("force")
+  session$allowReconnect(TRUE)
   
   
 }  
