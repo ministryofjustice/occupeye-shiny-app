@@ -34,8 +34,8 @@ Hash: c0d56cd15034f395874c870141870c25
 
 Package: Rcpp
 Source: CRAN
-Version: 0.12.17
-Hash: d2eff4634ccd7aca030c540ad805ac4a
+Version: 0.12.18
+Hash: c80398774358bc105b9f91f7f7519d7a
 
 Package: assertthat
 Source: CRAN
@@ -44,29 +44,33 @@ Hash: e8805df54c65ac96d50235c44a82615c
 
 Package: aws.ec2metadata
 Source: github
-Version: 0.1.4
-Hash: ee83dd02c738347c60546c3a5841fc38
+Version: 0.1.5
+Hash: e9d11f55bfce50c79bfba66a4bd9cc13
 Requires: curl, jsonlite
 GithubRepo: aws.ec2metadata
 GithubUsername: cloudyr
 GithubRef: master
-GithubSha1: 48384302231712054d21643fb7f8caa03a4da73b
+GithubSha1: f6bc0bd67ed9b648ad05defe6ff1d7cc00596ecc
 
 Package: aws.s3
 Source: github
-Version: 0.3.12
-Hash: 16245aac8b3856215d565ee284fa00aa
-Requires: aws.signature, base64enc, digest, httr, xml2
+Version: 0.3.20
+Hash: cd48738628b1c94525e2ebbd42caf70a
+Requires: aws.signature, base64enc, curl, digest, httr, xml2
 GithubRepo: aws.s3
 GithubUsername: cloudyr
 GithubRef: master
-GithubSha1: 51753d4bc4931a0b69b8a0d1088d10127e180a53
+GithubSha1: 3d2b2e17b92255a73935514ee19fc7553fd80fae
 
 Package: aws.signature
-Source: CRAN
-Version: 0.4.1
-Hash: dca7d4359e288f3f4d3fc218cae0ab27
+Source: github
+Version: 0.4.5
+Hash: 49686bde0575720d3059afb97f2c0b20
 Requires: base64enc, digest
+GithubRepo: aws.signature
+GithubUsername: cloudyr
+GithubRef: master
+GithubSha1: df1ddb4931d755bb83cd7f05937be0d7129f46fb
 
 Package: backports
 Source: CRAN
@@ -86,19 +90,8 @@ Hash: e3a02070cf705d3ad1c5af1635a515a3
 Package: bindrcpp
 Source: CRAN
 Version: 0.2
-Hash: 35bbe3b0c6a350247d649c242e1d0022
+Hash: 11e8c04319876297ec56bb4fb03d5ad9
 Requires: Rcpp, bindr, plogr
-
-Package: bitops
-Source: CRAN
-Version: 1.0-6
-Hash: 67d0775189fd0041d95abca618c5c07e
-
-Package: caTools
-Source: CRAN
-Version: 1.17.1
-Hash: 97cb6f6293cd18d17df77a6383cc6763
-Requires: bitops
 
 Package: cli
 Source: CRAN
@@ -146,13 +139,13 @@ Hash: 08eed0c80510af29bb15f840ccfe37ce
 
 Package: digest
 Source: CRAN
-Version: 0.6.15
-Hash: 1f202ebd812ac7192be3739245746a13
+Version: 0.6.16
+Hash: 6a025f0eaa147827d9843f25d86b5d23
 
 Package: dplyr
 Source: CRAN
 Version: 0.7.4
-Hash: 2499d66252cc78b7a72070e35bffca8b
+Hash: 53ab2b8ebc0b1aa4a75aa2f0909fe341
 Requires: BH, R6, Rcpp, assertthat, bindrcpp, glue, magrittr,
     pkgconfig, plogr, rlang, tibble
 
@@ -161,6 +154,17 @@ Source: CRAN
 Version: 0.10.1
 Hash: 54d95f4ec6d0300100413ed0127d89ae
 Requires: stringr
+
+Package: fansi
+Source: CRAN
+Version: 0.3.0
+Hash: 8d0a24d8245abbfa2b030460734495ab
+
+Package: feather
+Source: CRAN
+Version: 0.3.1
+Hash: d84c5cdf9b1a9eb24fa059a48bce6076
+Requires: Rcpp, hms, tibble
 
 Package: ggplot2
 Source: github
@@ -175,8 +179,8 @@ GithubSha1: 2495ba23ee34ecd57330a3e8af1f9d089a5f3374
 
 Package: git2r
 Source: CRAN
-Version: 0.22.1
-Hash: 2b46fc65cb449ab97c7a38fdcf3ed12c
+Version: 0.23.0
+Hash: f7190a7a4b5c5f0983b4b6ee29ed7bc3
 
 Package: glue
 Source: CRAN
@@ -208,7 +212,7 @@ Requires: pkgconfig, rlang
 Package: htmltools
 Source: CRAN
 Version: 0.3.6
-Hash: b24df7ea0856eab6618f6a56016d940d
+Hash: 87bd72cdfc46f686bbd46b180cb5f0b5
 Requires: Rcpp, digest
 
 Package: htmlwidgets
@@ -219,8 +223,8 @@ Requires: htmltools, jsonlite, yaml
 
 Package: httpuv
 Source: CRAN
-Version: 1.4.3
-Hash: deafed12fb901ce35c7993786f5a24e5
+Version: 1.4.5
+Hash: a21b769562c800e73d417208d7b242ab
 Requires: BH, Rcpp, later, promises
 
 Package: httr
@@ -248,7 +252,7 @@ Hash: ecf589b42cd284b03a4beb9665482d3e
 Package: later
 Source: CRAN
 Version: 0.7.3
-Hash: e36046a78ea73034484a54d1ec08b3cf
+Hash: 087b02f5b287d252fc78a4489de3ff3b
 Requires: BH, Rcpp, rlang
 
 Package: lattice
@@ -264,7 +268,7 @@ Hash: 88926ad9c43581fd0822a37c8ed09f05
 Package: lubridate
 Source: CRAN
 Version: 1.7.1
-Hash: 6cc92884887f2ecc2c8a42ac99c77665
+Hash: d8c5516ca06af3d531214d74a7a20e51
 Requires: Rcpp, stringr
 
 Package: magrittr
@@ -317,6 +321,12 @@ Source: CRAN
 Version: 0.4.8-1
 Hash: 6ad605ba7b4b476d84be6632393f5765
 
+Package: pillar
+Source: CRAN
+Version: 1.3.0
+Hash: 3e43f774fa6dfba877caca1aebbeaa6a
+Requires: cli, crayon, fansi, rlang, utf8
+
 Package: pkgconfig
 Source: CRAN
 Version: 2.0.1
@@ -338,7 +348,7 @@ Requires: RColorBrewer, base64enc, crosstalk, data.table, digest,
 Package: plyr
 Source: CRAN
 Version: 1.8.4
-Hash: c55fb89c35c97156ff505fc90346110f
+Hash: 05d65ee369a267f0d0c56604000c69b5
 Requires: Rcpp
 
 Package: praise
@@ -349,7 +359,7 @@ Hash: 77da8f1df873a4b91e5c4a68fe2fb1b6
 Package: promises
 Source: CRAN
 Version: 1.0.1
-Hash: 8aa5f93e1acd1ef14306a954a3d0cb82
+Hash: 1e5d5469b95be6e1b6cd8c35e3bdea60
 Requires: R6, Rcpp, later, magrittr, rlang
 
 Package: purrr
@@ -361,23 +371,19 @@ Requires: magrittr, rlang, tibble
 Package: readr
 Source: CRAN
 Version: 1.1.1
-Hash: ca6ad2638b5295fdb97e6bdcfd0f8568
+Hash: 23cf0dbcf5e1ccd3ec5832aaaedc1fdc
 Requires: BH, R6, Rcpp, hms, tibble
 
 Package: reshape2
 Source: CRAN
 Version: 1.4.2
-Hash: 2386b32e510057ea44ac24feaccc7478
+Hash: e5fa4390194ba19b86c0760e34588794
 Requires: Rcpp, plyr, stringr
 
 Package: rlang
-Source: github
-Version: 0.2.0.9001
-Hash: 478e5798690730412a6c104a99faf815
-GithubRepo: rlang
-GithubUsername: r-lib
-GithubRef: master
-GithubSha1: 82b27278d743387c6d0dabc91d878d4af64a9d00
+Source: CRAN
+Version: 0.2.2
+Hash: 49b735b7b1d14f561d21cce12c6703df
 
 Package: rmarkdown
 Source: CRAN
@@ -405,19 +411,19 @@ Hash: e2ebaff8160aff3e6b32e6e78a693c2d
 
 Package: s3tools
 Source: github
-Version: 0.0.3
-Hash: e9f4e0af9d16e70edc205b5b29e56442
+Version: 0.0.5
+Hash: 5a2b58d9817cc9c1f75e5a9bda71cd30
 Requires: aws.ec2metadata, aws.s3, aws.signature, digest, httr,
     jsonlite
 GithubRepo: s3tools
 GithubUsername: moj-analytical-services
 GithubRef: master
-GithubSha1: 53f111bc0c32bd5570c80ac18b7c517ac0451cd1
+GithubSha1: a07eddc1f38bf9bdd6e32d82cee22458161c9802
 
 Package: scales
 Source: github
 Version: 0.5.0.9000
-Hash: 150855a9da6f56e297264d883541d70b
+Hash: 3ed9fc4413f6a94e607559d3c9054c7a
 Requires: R6, RColorBrewer, Rcpp, dichromat, labeling, munsell, plyr,
     viridisLite
 GithubRepo: scales
@@ -448,16 +454,10 @@ Version: 0.4.0
 Hash: ec30ffb4a896703e76b9d1d830eff707
 Requires: htmltools, jsonlite, shiny
 
-Package: shinyjs
-Source: CRAN
-Version: 1.0
-Hash: ea95f751025e50227a96100be35e970b
-Requires: digest, htmltools, jsonlite, shiny
-
 Package: sourcetools
 Source: CRAN
-Version: 0.1.6
-Hash: 226d56d7469587da40b0f96180e711b4
+Version: 0.1.7
+Hash: d093478ac90064e670cd4bf1a99b47b6
 
 Package: stringi
 Source: CRAN
@@ -478,22 +478,27 @@ Requires: R6, cli, crayon, digest, magrittr, praise, rlang, withr
 
 Package: tibble
 Source: CRAN
-Version: 1.3.4
-Hash: 9a1bacff404a1b87875073a314f9aa9b
-Requires: Rcpp, rlang
+Version: 1.4.2
+Hash: 83895360ce4f8d2ce92eee00526b5b0b
+Requires: cli, crayon, pillar, rlang
 
 Package: tidyr
 Source: CRAN
 Version: 0.8.1
-Hash: b3c2471de7579cac40b4683e614ae72a
+Hash: ab27bbdbb8535215cbc0adad1d7001fe
 Requires: Rcpp, dplyr, glue, magrittr, purrr, rlang, stringi, tibble,
     tidyselect
 
 Package: tidyselect
 Source: CRAN
 Version: 0.2.3
-Hash: eee8f1393836500b0eefe45c34701d83
+Hash: 217371a01090c41867a63fdca8559351
 Requires: Rcpp, glue, purrr, rlang
+
+Package: utf8
+Source: CRAN
+Version: 1.1.4
+Hash: f3f97ce59092abc8ed3fd098a59e236c
 
 Package: viridisLite
 Source: CRAN
@@ -514,7 +519,7 @@ Requires: lattice
 Package: xml2
 Source: CRAN
 Version: 1.2.0
-Hash: a9af563f148c0170654bd9b4bb974ba7
+Hash: 1ee43aa8f57efa79384f290459c138b6
 Requires: Rcpp
 
 Package: xtable
