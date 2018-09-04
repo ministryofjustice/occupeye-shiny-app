@@ -10,6 +10,7 @@ library(plotly)         # Makes ggplot interactive
 library(shinyTree)      # for the category tree. Specifically requires the schaffman5 fork on github
 library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
+library(glue)           # Glue
 
 # import other source code ------------------------------------------------
 
@@ -17,15 +18,11 @@ library(feather)        # Feather data reading
 source("charting_functions.R")
 source("data_cleaning_functions.R")
 
-# Temporarily excluding Athena queries
-#source("data_retrieval_functions.R")
 
 
-
-
-# Temporary initialise functions ------------------------------------------
+# Initialise functions ------------------------------------------
 # Downloads a sample dataset from S3, and uses it to initialise the UI fields.
-# These will need to be removed/revised once the Athena connection is fixed.
+
 
 temp_df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-app-occupeye-automation/surveys/336/Unallocated.csv")
 temp_df_sum <- get_df_sum(temp_df,"09:00","17:00")
@@ -43,7 +40,9 @@ sensors <- s3tools::read_using(FUN=feather::read_feather,s3_path = "alpha-app-oc
 surveys_list <- s3tools::read_using(FUN=feather::read_feather,s3_path = "alpha-app-occupeye-automation/surveys.feather")
 surveys_hash <- with(surveys_list[c('name','survey_id')],setNames(survey_id,name))
 
-report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", prefix = "surveys/337") %>% filter(grepl("\\.feather",path))
+active_surveys <- s3tools::read_using(FUN=feather::read_feather,s3_path = "alpha-app-occupeye-automation/active surveys.feather")
+
+report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", prefix = "surveys/350") %>% filter(grepl("\\.feather",path))
 
 
 
@@ -57,7 +56,7 @@ ui <- fluidPage(
         tabPanel("Report config",
           selectInput(inputId = "survey_name",
                       label = "Select OccupEye survey",
-                      choices = surveys_list$name,
+                      choices = active_surveys$surveyname,
                       selected = "102 Petty France v2.0"),
 
           selectInput(inputId = "raw_feather",
