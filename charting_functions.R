@@ -260,7 +260,7 @@ get_peak_occupancy <- function(df_sum) {
     group_by(date) %>%
     summarise(prop=sum(prop)) %>%
     mutate(date = as.character(date),utilisation=percent(prop)) %>% 
+    arrange(desc(prop)) %>%
     select(date,utilisation) %>%
-    arrange(desc(utilisation)) %>%
     head(10)
 }
