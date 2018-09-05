@@ -5,7 +5,7 @@ library(ggplot2)
 library(scales)
 library(dplyr)
 library(reshape2)
-
+library(glue)
 
 
 get_prop_usage <- function(df_sum) {
@@ -203,18 +203,23 @@ allocation_strategy_table <- function(df_sum) {
   
   partial_smoothing_factor <- max(smoothing)
   
-  mean_underutlised <- mean(prop_usage[,"Under utilised"])
+  mean_underutilised <- mean(prop_usage[,"Under utilised"])
   
-  hotdesk_ratio <- 0.7 # assumption of hotdesk allocation. Could shift to the user input?
+  hotdesk_ratio <- 0.6 # assumption of hotdesk allocation. Could shift to the user input?
   
   
   dark_blue <- current_allocation * (1-min_unused)
   green <- current_allocation * partial_smoothing_factor
   second_green <- current_allocation * full_smoothing_factor
-  yellow <- second_green - ((1 - hotdesk_ratio)*current_allocation*mean_underutlised)
+  yellow <- second_green - ((1 - hotdesk_ratio)*current_allocation*mean_underutilised)
   orange <- daily_utilisation["Friday"] * current_allocation
   
-  recommendation_list <- c("Current Allocation","Unused Desks","Partial Smoothing","Full Smoothing","Hot Desking","Friday Figure")
+  recommendation_list <- c("Current Allocation",
+                           glue("Given current working patterns, the selected region could have had {round(current_allocation - dark_blue)} fewer desks over the sample period without experiencing any overcrowding issues."),
+                           glue("If you were to partially smooth working patterns over the week, you could save a further {round(current_allocation - green)} desks"),
+                           glue("If you were to fully smooth working patterns over the week, you could save a further {round(current_allocation - second_green)} desks"),
+                           glue("On average {round(mean_underutilised * 100)}% of desks were used inefficiently. By embedding a culture of hotdesking (assuming a desk-to-person ratio of 0.6) it would be possible to replace {round(current_allocation * mean_underutilised)} desks with {round(current_allocation * mean_underutilised * hotdesk_ratio)} desks."),
+                           "The average amount of desks effectively utilised and under utilised on Friday in the survey period.")
   desks_in_scope <- c(current_allocation,round(dark_blue),round(green),round(second_green),round(yellow),round(orange))
   percent_current_allocation <- paste(round((desks_in_scope/current_allocation)*100),"%",sep="")
   
@@ -245,4 +250,17 @@ desks_by_desk_type_and_team <- function(df_sum) {
     group_by(category_3,devicetype) %>%
     summarise(sensors = n_distinct(surveydeviceid)) %>%
     rename("Desk Type" = devicetype,"team"=category_3)
+}
+
+get_peak_occupancy <- function(df_sum) {
+  prop_usage <- get_prop_usage(df_sum)
+  
+  prop_usage %>% 
+    filter(util_cat != "Unused") %>%
+    group_by(date) %>%
+    summarise(prop=sum(prop)) %>%
+    mutate(date = as.character(date),utilisation=percent(prop)) %>% 
+    arrange(desc(prop)) %>%
+    select(date,utilisation) %>%
+    head(10)
 }
