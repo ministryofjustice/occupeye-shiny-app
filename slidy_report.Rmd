@@ -22,6 +22,9 @@ df_sum <- params$df_sum
 
 knitr::kable(allocation_strategy_table(df_sum),align=c('l','r','r'))
 cat('\n\n----\n\n')
+cat('## Top 10 busiest days in survey')
+knitr::kable(get_peak_occupancy(df_sum))
+cat('\n\n----\n\n')
 print(prop_daily_usage_chart(df_sum))
 cat('\n\n----\n\n')
 print(prop_weekday_usage_chart(df_sum))
