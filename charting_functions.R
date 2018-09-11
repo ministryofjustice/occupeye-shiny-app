@@ -215,16 +215,23 @@ allocation_strategy_table <- function(df_sum) {
   
   recommendation_list <- c("Current Allocation",
                            glue("Given current working patterns, the selected region could have had {round(current_allocation - dark_blue)} fewer desks over the sample period without experiencing any overcrowding issues."),
-                           glue("If you were to partially smooth working patterns over the week, you could save a further {round(current_allocation - green)} desks"),
-                           glue("If you were to fully smooth working patterns over the week, you could save a further {round(current_allocation - second_green)} desks"),
+                           glue("If you were to partially smooth working patterns over the week, you could save a further {round(dark_blue - green)} desks"),
+                           glue("If you were to fully smooth working patterns over the week, you could save a further {round(green - second_green)} desks"),
                            glue("On average {round(mean_underutilised * 100)}% of desks were used inefficiently. By embedding a culture of hotdesking (assuming a desk-to-person ratio of 0.6) it would be possible to replace {round(current_allocation * mean_underutilised)} desks with {round(current_allocation * mean_underutilised * hotdesk_ratio)} desks."),
                            "The average amount of desks effectively utilised and under utilised on Friday in the survey period.")
   desks_in_scope <- c(current_allocation,round(dark_blue),round(green),round(second_green),round(yellow),round(orange))
+  scenario_saving <- c(0,
+                       round(current_allocation - dark_blue),
+                       round(current_allocation - green),
+                       round(current_allocation - second_green),
+                       round(current_allocation - yellow),
+                       round(current_allocation - orange))
   percent_current_allocation <- paste(round((desks_in_scope/current_allocation)*100),"%",sep="")
   
   out <- data.frame("recommendation" = recommendation_list,
-                    "desks in scope" = desks_in_scope,
-                    "percent current allocation" = percent_current_allocation)
+                    "desks_in_scope" = desks_in_scope,
+                    "total_saving" = scenario_saving,
+                    "as_proportion_of_current_allocation" = percent_current_allocation)
   
   
 }
