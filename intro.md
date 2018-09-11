@@ -19,13 +19,7 @@ This is a tool for exploring data extracted from OccupEye sensors deployed by Mo
 4. Update the filters for dates, floors, desk types and teams to include in the reports. The charts and tables will update accordingly.
 5. On the Download Reports tab, you can download reports based on the filters. You can choose between an HTML-based slideshow, and a Microsoft Word report. These follow the format of the reports produced previously by ASD - first showing charts and tables for the whole dataset, then showing the daily charts for each team (if there are multiple teams selected).
 
-## Future plans and contact
-
-This tool is still very much in development. A few planned features:
-
-- More analysis
-- More timely data
-- A download button for the raw data
+## Contact
 
 Please direct any questions, suggestions or bug-reports to Thomas Hirsch, thomas.hirsch@justice.gov.uk
 
