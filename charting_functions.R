@@ -84,7 +84,6 @@ prop_desk_usage_chart <- function(df_sum) {
   
   prop_usage_type <- get_prop_usage_type(df_sum)
   
-  
   ggplot(prop_usage_type,
          aes(x=devicetype,y=prop,fill=util_cat)) +
     geom_bar(stat="identity", position='fill') +
@@ -95,7 +94,7 @@ prop_desk_usage_chart <- function(df_sum) {
     theme(legend.position="right") +
     theme(plot.title = element_text(hjust = 0.5)) +
     scale_fill_manual(values=c("Effective utilisation"="coral2","Under utilised"="thistle3","Unused"="powderblue")) +
-    theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=10))
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))
   
 }
 
