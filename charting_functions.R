@@ -229,9 +229,10 @@ allocation_strategy_table <- function(df_sum) {
   percent_current_allocation <- paste(round((desks_in_scope/current_allocation)*100),"%",sep="")
   
   out <- data.frame("recommendation" = recommendation_list,
-                    "desks_in_scope" = desks_in_scope,
-                    "total_saving" = scenario_saving,
-                    "as_proportion_of_current_allocation" = percent_current_allocation)
+                    "desks in scope" = desks_in_scope,
+                    "total saving" = scenario_saving,
+                    "% of current allocation" = percent_current_allocation,
+                    check.names = FALSE)
   
   
 }
