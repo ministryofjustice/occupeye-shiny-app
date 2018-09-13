@@ -294,6 +294,7 @@ server <- function(input,output,session) {
     
     withProgress(message="summarising the dataset", {
       RV$df_sum <- get_df_sum(RV$data,input$start_time,input$end_time)
+      showModal(modalDialog("Data download complete!",easyClose = TRUE))
     })
     
     
