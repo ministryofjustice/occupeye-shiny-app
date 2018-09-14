@@ -122,4 +122,7 @@ get_df_sum <- function(df,start_time,end_time) {
   df_sum <- get_summarised_data(df2) 
 }
 
+get_full_df <- function(df,sensors) {
+  left_join(df,sensors,by=c("survey_device_id"="surveydeviceid")) %>% rename(surveydeviceid=survey_device_id)
+}
 
