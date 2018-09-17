@@ -15,7 +15,7 @@ in_time_range <- function(datetime_column, start_time, end_time) {
 
   between(dt_to_numeric(datetime_column),
           hours_minutes_string_to_numeric(start_time),
-          hours_minutes_string_to_numeric(end_time))
+          hours_minutes_string_to_numeric(end_time) - 600) # 
 
 }
 
