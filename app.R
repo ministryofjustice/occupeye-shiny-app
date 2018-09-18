@@ -127,7 +127,13 @@ ui <- fluidPage(
     
     mainPanel(
       tabsetPanel(
-        tabPanel("Introduction",includeMarkdown("intro.md")),
+        tabPanel("Introduction",
+          fluidPage(
+            fluidRow(
+              column(8,includeMarkdown("intro.md"))
+            )
+          )
+        ),
         tabPanel("Pivot table",rpivotTableOutput("myPivot")),
         tabPanel("Summary tables",
           fluidPage(
@@ -336,6 +342,8 @@ server <- function(input,output,session) {
   )
   
   # Plots and table outputs -------------------------------------------------
+  
+  
   
   # These functions generate the charts and tables in the report
   observeEvent(RV$filtered, {
