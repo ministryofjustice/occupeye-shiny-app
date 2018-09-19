@@ -156,8 +156,14 @@ ui <- fluidPage(
                               value=0.5,
                               step=0.1),
                  textOutput(outputId="smoothing_description")),
-        tabPanel("daily usage",plotlyOutput(outputId = "dailyChart"),includeMarkdown("chart_info.md")),
-        tabPanel("usage by weekday",plotlyOutput(outputId = "weekdayChart"),includeMarkdown("chart_info.md")),
+        tabPanel("daily usage",
+                 plotlyOutput(outputId = "dailyChart"),
+                 textOutput(outputId="daily_chart_narrative"),
+                 includeMarkdown("chart_info.md")),
+        tabPanel("usage by weekday",
+                 plotlyOutput(outputId = "weekdayChart"),
+                 textOutput(outputId="weekday_chart_narrative"),
+                 includeMarkdown("chart_info.md")),
         tabPanel("usage by desk type",plotlyOutput(outputId = "deskChart"),includeMarkdown("chart_info.md")),
         tabPanel("usage by floor",plotlyOutput(outputId = "floorChart"),includeMarkdown("chart_info.md")),
         tabPanel("summarised data",downloadButton("download_summarised_data"),dataTableOutput(outputId = "df_sum")),
@@ -385,8 +391,16 @@ server <- function(input,output,session) {
     "
     })
     
+    output$daily_chart_narrative <- renderText({
+      daily_usage_chart_narrative(RV$filtered)
+    })
+    
     output$dailyChart <- renderPlotly({
       isolate(prop_daily_usage_chart(RV$filtered))
+    })
+    
+    output$weekday_chart_narrative <- renderText({
+      weekday_usage_narrative(RV$filtered)
     })
     
     output$weekdayChart <- renderPlotly({

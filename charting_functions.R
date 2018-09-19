@@ -36,6 +36,15 @@ prop_daily_usage_chart <- function(df_sum) {
   
 }
 
+daily_usage_chart_narrative <- function(df_sum) {
+  daily_unused <- get_prop_usage(df_sum) %>% filter(util_cat == "Unused")
+  
+  av_unused <- mean(daily_unused$prop)
+  
+  glue("On average, desks were unused {percent(av_unused)} of the time during the sample period.")
+  
+}
+
 
 get_prop_usage_day <- function(df_sum) {
 
@@ -45,6 +54,22 @@ get_prop_usage_day <- function(df_sum) {
     group_by(day) %>%
     mutate(prop = n/sum(n)) %>%
     ungroup(day)
+  
+}
+
+weekday_usage_narrative <- function(df_sum) {
+  prop_usage_day <- get_prop_usage_day(df_sum)
+  
+  daily_util <- prop_usage_day %>%
+                filter(util_cat %in% c("Effective utilisation","Under utilised")) %>%
+                group_by(day) %>%
+                summarise(prop = sum(prop))
+  
+  top_day <- daily_util %>% filter(prop==max(prop)) %>% .$day
+  
+  friday_util <- daily_util %>% filter(day=="Friday") %>% .$prop
+  
+  glue("The rate of unused desks varies over the working week with {top_day} being the busiest day on average. On average {percent(1-friday_util)} of desks are unused on Fridays.")
   
 }
 
@@ -271,3 +296,4 @@ get_peak_occupancy <- function(df_sum) {
     select(date,utilisation) %>%
     head(10)
 }
+
