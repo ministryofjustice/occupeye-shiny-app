@@ -93,6 +93,17 @@ Version: 0.2
 Hash: 11e8c04319876297ec56bb4fb03d5ad9
 Requires: Rcpp, bindr, plogr
 
+Package: bitops
+Source: CRAN
+Version: 1.0-6
+Hash: 67d0775189fd0041d95abca618c5c07e
+
+Package: caTools
+Source: CRAN
+Version: 1.17.1.1
+Hash: 1764f9cb70825aa7a1c461e7514ffb73
+Requires: bitops
+
 Package: cli
 Source: CRAN
 Version: 1.0.0
@@ -237,6 +248,13 @@ Package: jsonlite
 Source: CRAN
 Version: 1.5
 Hash: 9c51936d8dd00b2f1d4fe9d10499694c
+
+Package: kableExtra
+Source: CRAN
+Version: 0.9.0
+Hash: 98ee84e2e5ecaa6e416c40a489b9356c
+Requires: htmltools, knitr, magrittr, readr, rmarkdown, rstudioapi,
+    rvest, scales, stringr, viridisLite, xml2
 
 Package: knitr
 Source: CRAN
@@ -409,6 +427,12 @@ Source: CRAN
 Version: 0.7
 Hash: e2ebaff8160aff3e6b32e6e78a693c2d
 
+Package: rvest
+Source: CRAN
+Version: 0.3.2
+Hash: c69f7526520bad66fd2111ebe8b1364b
+Requires: httr, magrittr, selectr, xml2
+
 Package: s3tools
 Source: github
 Version: 0.0.5
@@ -430,6 +454,12 @@ GithubRepo: scales
 GithubUsername: hadley
 GithubRef: master
 GithubSha1: d76791529be802ff84bf9a343347335d58e03b1f
+
+Package: selectr
+Source: CRAN
+Version: 0.4-1
+Hash: b12802c11e35dec9d16a74d30ed0f3ed
+Requires: R6, stringr
 
 Package: shiny
 Source: CRAN
