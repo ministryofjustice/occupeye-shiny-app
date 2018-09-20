@@ -99,14 +99,14 @@ ui <- fluidPage(
             pickerInput(inputId = "desk_type",
                         label = "Pick desk type(s)",
                         choices = device_types,
-                        options = list(`actions-box` = TRUE),
+                        options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
                         multiple = TRUE,
                         selected = device_types),
             
             pickerInput(inputId = "floors",
                         label = "Pick floor(s)",
                         choices = floors,
-                        options = list(`actions-box` = TRUE),
+                        options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
                         multiple = TRUE,
                         selected = floors),
     
