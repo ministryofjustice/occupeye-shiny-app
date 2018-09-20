@@ -41,8 +41,9 @@ surveys_list <- s3tools::read_using(FUN=feather::read_feather,s3_path = "alpha-a
 surveys_hash <- with(surveys_list[c('name','survey_id')],setNames(survey_id,name))
 
 active_surveys <- s3tools::read_using(FUN=feather::read_feather,s3_path = "alpha-app-occupeye-automation/active surveys.feather")
+selected_survey_id <- surveys_hash["102 Petty France v2.0"]
 
-report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", prefix = "surveys/350") %>% filter(grepl("\\.feather",path))
+report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", prefix = glue("surveys/{selected_survey_id}")) %>% filter(grepl("\\.feather",path))
 
 
 
