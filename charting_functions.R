@@ -17,6 +17,16 @@ get_prop_usage <- function(df_sum) {
     ungroup(date)
 }
 
+get_max_capacity_days <- function(df_sum) {
+  
+  get_prop_usage(df_sum) %>% 
+    filter(util_cat != "Unused") %>% 
+    group_by(date) %>% 
+    summarise(prop = sum(prop)) %>% 
+    filter(prop == 1) %>%
+    .$date
+}
+
 prop_daily_usage_chart <- function(df_sum) {
   
   prop_usage <- get_prop_usage(df_sum)
@@ -41,7 +51,15 @@ daily_usage_chart_narrative <- function(df_sum) {
   
   av_unused <- mean(daily_unused$prop)
   
-  glue("On average, desks were unused {percent(av_unused)} of the time during the sample period.")
+  max_capacity_day_narrative <- ""
+  max_capacity_days <- get_max_capacity_days(df_sum)
+  
+  if(length(max_capacity_days) > 0) {
+    max_capacity_day_narrative <- glue(" There were several days where there were no unused desks: {paste(max_capacity_days,', ')}")
+  }
+  
+  paste0(glue("On average, desks were unused {percent(av_unused)} of the time during the sample period.",max_capacity_day_narrative))
+  
   
 }
 
