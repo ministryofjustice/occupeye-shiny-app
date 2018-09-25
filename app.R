@@ -159,7 +159,7 @@ ui <- fluidPage(
                  htmlOutput(outputId="smoothing_description")),
         tabPanel("daily usage",
                  plotlyOutput(outputId = "dailyChart"),
-                 textOutput(outputId="daily_chart_narrative"),
+                 htmlOutput(outputId="daily_chart_narrative"),
                  includeMarkdown("chart_info.md")),
         tabPanel("usage by weekday",
                  plotlyOutput(outputId = "weekdayChart"),

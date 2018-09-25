@@ -53,12 +53,13 @@ daily_usage_chart_narrative <- function(df_sum) {
   
   max_capacity_day_narrative <- ""
   max_capacity_days <- get_max_capacity_days(df_sum)
+  max_capacity_days_concatenated <- paste(max_capacity_days,collapse=', ')
   
   if(length(max_capacity_days) > 0) {
-    max_capacity_day_narrative <- glue(" There were several days where there were no unused desks: {paste(max_capacity_days,', ')}")
+    max_capacity_day_narrative <- glue("<li> Full capacity was reached on {length(max_capacity_days)} days in the sample period: {max_capacity_days_concatenated}</li>")
   }
   
-  paste0(glue("On average, desks were unused {percent(av_unused)} of the time during the sample period.",max_capacity_day_narrative))
+  paste0(glue("<ul><li>On average, desks were unused {percent(av_unused)} of the time during the sample period.</li>",max_capacity_day_narrative,"</ul>"))
   
   
 }
