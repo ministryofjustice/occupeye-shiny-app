@@ -156,7 +156,7 @@ ui <- fluidPage(
                               max = 1,
                               value=0.5,
                               step=0.1),
-                 textOutput(outputId="smoothing_description")),
+                 htmlOutput(outputId="smoothing_description")),
         tabPanel("daily usage",
                  plotlyOutput(outputId = "dailyChart"),
                  textOutput(outputId="daily_chart_narrative"),
@@ -387,9 +387,9 @@ server <- function(input,output,session) {
     })
     
     output$smoothing_description <- renderText({
-      "The graph shows the difference in implied desk utilisation under the assumption of full smoothing over the week and the assumption of imperfect smoothing. 
-    A smoothing factor of 0.5 represents the midpoint between current utilisation and full smoothing.
-    "
+      paste("The graph shows the difference in implied desk utilisation under the assumption of full smoothing over the week and the assumption of imperfect smoothing. 
+    A smoothing factor of 0.5 represents the midpoint between current utilisation and full smoothing.",
+            get_smoothing_narrative(RV$filtered,input$smoothing_factor),sep="<br/>")
     })
     
     output$daily_chart_narrative <- renderText({

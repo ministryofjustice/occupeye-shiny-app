@@ -178,13 +178,12 @@ prop_floor_usage_chart <- function(df_sum) {
   
 }
 
-
-smoothing_chart <- function(df_sum, smoothing_factor) {
-
+get_smoothing_table <- function(df_sum,smoothing_factor) {
+  
   weekdays <-c("Monday","Tuesday","Wednesday","Thursday","Friday")
   
   cat_order <- c("Full Smoothing","Current Utilisation","Partial Smoothing")
-
+  
   smoothing <- get_prop_usage_day(df_sum) %>%
     filter(util_cat == "Unused") %>%
     mutate(current_utilisation = 1- prop) %>%
@@ -193,6 +192,30 @@ smoothing_chart <- function(df_sum, smoothing_factor) {
     select(day,"Full Smoothing" = full_smoothing,"Current Utilisation" = current_utilisation, "Partial Smoothing" = partial_smoothing) %>%
     melt("day") %>%
     mutate(variable = factor(variable,cat_order))
+}
+
+get_smoothing_narrative <- function(df_sum,smoothing_factor) {
+  smoothing_table <- get_smoothing_table(df_sum,smoothing_factor)
+  
+  smoothing_table_wide <- smoothing_table %>% 
+    dcast(day ~ variable) %>%
+    mutate(diff = `Full Smoothing` - `Current Utilisation`)
+  
+  top_diff <- smoothing_table_wide %>% filter(diff == max(diff)) %>% .$day
+  bottom_diff <- smoothing_table_wide %>% filter(diff == min(diff)) %>% .$day
+  
+  glue("Partial or full smoothing would have most impact on {bottom_diff}s, where fewer people would work in the office, and {top_diff}s, where more people would work in the office")
+  
+}
+
+smoothing_chart <- function(df_sum, smoothing_factor) {
+  
+  
+  weekdays <-c("Monday","Tuesday","Wednesday","Thursday","Friday")
+  
+  cat_order <- c("Full Smoothing","Current Utilisation","Partial Smoothing")
+
+  smoothing <- get_smoothing_table(df_sum,smoothing_factor)
 
   
   ggplot(smoothing,

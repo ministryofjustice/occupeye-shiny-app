@@ -33,6 +33,7 @@ cat('\n\n----\n\n')
 print(prop_desk_usage_chart(df_sum))
 cat('\n\n----\n\n')
 print(smoothing_chart(df_sum,0.5))
+cat(paste0("\n\n ",get_smoothing_narrative(df_sum,0.5)))
 ```
 
 ```{r team_slides, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
