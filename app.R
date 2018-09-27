@@ -41,8 +41,9 @@ surveys_list <- s3tools::read_using(FUN=feather::read_feather,s3_path = "alpha-a
 surveys_hash <- with(surveys_list[c('name','survey_id')],setNames(survey_id,name))
 
 active_surveys <- s3tools::read_using(FUN=feather::read_feather,s3_path = "alpha-app-occupeye-automation/active surveys.feather")
+selected_survey_id <- surveys_hash["102 Petty France v2.0"]
 
-report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", prefix = "surveys/350") %>% filter(grepl("\\.feather",path))
+report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", prefix = glue("surveys/{selected_survey_id}")) %>% filter(grepl("\\.feather",path))
 
 
 
@@ -98,14 +99,14 @@ ui <- fluidPage(
             pickerInput(inputId = "desk_type",
                         label = "Pick desk type(s)",
                         choices = device_types,
-                        options = list(`actions-box` = TRUE),
+                        options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
                         multiple = TRUE,
                         selected = device_types),
             
             pickerInput(inputId = "floors",
                         label = "Pick floor(s)",
                         choices = floors,
-                        options = list(`actions-box` = TRUE),
+                        options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
                         multiple = TRUE,
                         selected = floors),
     
@@ -127,7 +128,13 @@ ui <- fluidPage(
     
     mainPanel(
       tabsetPanel(
-        tabPanel("Introduction",includeMarkdown("intro.md")),
+        tabPanel("Introduction",
+          fluidPage(
+            fluidRow(
+              column(8,includeMarkdown("intro.md"))
+            )
+          )
+        ),
         tabPanel("Pivot table",rpivotTableOutput("myPivot")),
         tabPanel("Summary tables",
           fluidPage(
@@ -149,9 +156,15 @@ ui <- fluidPage(
                               max = 1,
                               value=0.5,
                               step=0.1),
-                 textOutput(outputId="smoothing_description")),
-        tabPanel("daily usage",plotlyOutput(outputId = "dailyChart"),includeMarkdown("chart_info.md")),
-        tabPanel("usage by weekday",plotlyOutput(outputId = "weekdayChart"),includeMarkdown("chart_info.md")),
+                 htmlOutput(outputId="smoothing_description")),
+        tabPanel("daily usage",
+                 plotlyOutput(outputId = "dailyChart"),
+                 htmlOutput(outputId="daily_chart_narrative"),
+                 includeMarkdown("chart_info.md")),
+        tabPanel("usage by weekday",
+                 plotlyOutput(outputId = "weekdayChart"),
+                 textOutput(outputId="weekday_chart_narrative"),
+                 includeMarkdown("chart_info.md")),
         tabPanel("usage by desk type",plotlyOutput(outputId = "deskChart"),includeMarkdown("chart_info.md")),
         tabPanel("usage by floor",plotlyOutput(outputId = "floorChart"),includeMarkdown("chart_info.md")),
         tabPanel("summarised data",downloadButton("download_summarised_data"),dataTableOutput(outputId = "df_sum")),
@@ -271,7 +284,7 @@ server <- function(input,output,session) {
     updateDateRangeInput(session, inputId = "download_date_range",
                          min = min(dates_list,na.rm = TRUE),
                          max = max(dates_list,na.rm = TRUE),
-                         start = min(dates_list,na.rm = TRUE),
+                         start = today() - months(1),
                          end = max(dates_list,na.rm = TRUE))
   })
   
@@ -294,6 +307,7 @@ server <- function(input,output,session) {
     
     withProgress(message="summarising the dataset", {
       RV$df_sum <- get_df_sum(RV$data,input$start_time,input$end_time)
+      showModal(modalDialog(glue("{input$raw_feather} successfully loaded into the dashboard."),easyClose = TRUE))
     })
     
     
@@ -336,6 +350,8 @@ server <- function(input,output,session) {
   
   # Plots and table outputs -------------------------------------------------
   
+  
+  
   # These functions generate the charts and tables in the report
   observeEvent(RV$filtered, {
     output$myPivot <- renderRpivotTable({
@@ -371,13 +387,21 @@ server <- function(input,output,session) {
     })
     
     output$smoothing_description <- renderText({
-      "The graph shows the difference in implied desk utilisation under the assumption of full smoothing over the week and the assumption of imperfect smoothing. 
-    A smoothing factor of 0.5 represents the midpoint between current utilisation and full smoothing.
-    "
+      paste("The graph shows the difference in implied desk utilisation under the assumption of full smoothing over the week and the assumption of imperfect smoothing. 
+    A smoothing factor of 0.5 represents the midpoint between current utilisation and full smoothing.",
+            get_smoothing_narrative(RV$filtered,input$smoothing_factor),sep="<br/>")
+    })
+    
+    output$daily_chart_narrative <- renderText({
+      daily_usage_chart_narrative(RV$filtered)
     })
     
     output$dailyChart <- renderPlotly({
       isolate(prop_daily_usage_chart(RV$filtered))
+    })
+    
+    output$weekday_chart_narrative <- renderText({
+      weekday_usage_narrative(RV$filtered)
     })
     
     output$weekdayChart <- renderPlotly({

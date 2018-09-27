@@ -15,7 +15,7 @@ in_time_range <- function(datetime_column, start_time, end_time) {
 
   between(dt_to_numeric(datetime_column),
           hours_minutes_string_to_numeric(start_time),
-          hours_minutes_string_to_numeric(end_time))
+          hours_minutes_string_to_numeric(end_time) - 600) # 
 
 }
 
@@ -31,22 +31,6 @@ fix_bad_sensor_observations <- function(df) {
   df
 }
 
-get_run_groups <- function(x) {
-  runs <- rle(x)
-  num_runs <- length(runs$values)
-  rep(1:num_runs, runs$lengths)
-}
-
-add_sensor_acc <- function(df) {
-
-   df %>%
-      mutate(temp_values__ = ifelse(sensor_value == 0,-1,sensor_value)) %>%
-      group_by(date__ = date(obs_datetime), run__ = get_run_groups(temp_values__)) %>%
-      mutate(sensor_acc = cumsum(temp_values__)) %>%
-      select(-temp_values__) %>%
-      ungroup(date__, run__) %>%
-      select(-run__, -date__)
-}
 
 add_is_workdesk_column <- function(df) {
 
@@ -57,12 +41,11 @@ add_is_workdesk_column <- function(df) {
 }
 
 
-add_is_used <- function(df, perc_util=0.15, count_used_30 = 2) {
+add_is_used <- function(df, perc_util=0.15) {
 
   f1 <- df$utilisation > perc_util
-  f2 <- df$count_used_30 >= count_used_30
   df %>%
-    mutate(in_use = f1 | f2)
+    mutate(in_use = f1)
 
 }
 
@@ -90,9 +73,7 @@ remove_non_business_days <- function(df) {
 
 clean_and_mutate_raw_data <- function(df) {
   df %>%
-    fix_bad_sensor_observations() %>%
-    #add_is_workdesk_column() %>% 
-    add_sensor_acc()
+    fix_bad_sensor_observations()
 }
 
 get_summarised_data <- function(df) {
@@ -100,9 +81,6 @@ get_summarised_data <- function(df) {
   df %>%
     group_by(date = date(obs_datetime), surveydeviceid, devicetype, category_1, category_2,category_3,floor) %>%
     summarise(utilisation = mean(sensor_value, rm.na=TRUE),
-              longest_in_use = max(sensor_acc,0)*10,
-              longest_empty = min(sensor_acc,0)*-10,
-              count_used_30 = sum(sensor_acc == 3), # The sum of the number of occasions sensor_acc contains the value 3
               count_na = sum(is.na(sensor_value))) %>%  
     ungroup(date, surveydeviceid, devicetype, category_1, category_2,category_3,floor) %>%
     add_is_used() %>%
@@ -122,4 +100,7 @@ get_df_sum <- function(df,start_time,end_time) {
   df_sum <- get_summarised_data(df2) 
 }
 
+get_full_df <- function(df,sensors) {
+  left_join(df,sensors,by=c("survey_device_id"="surveydeviceid")) %>% rename(surveydeviceid=survey_device_id)
+}
 

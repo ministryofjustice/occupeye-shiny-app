@@ -17,6 +17,16 @@ get_prop_usage <- function(df_sum) {
     ungroup(date)
 }
 
+get_max_capacity_days <- function(df_sum) {
+  
+  get_prop_usage(df_sum) %>% 
+    filter(util_cat != "Unused") %>% 
+    group_by(date) %>% 
+    summarise(prop = sum(prop)) %>% 
+    filter(prop == 1) %>%
+    .$date
+}
+
 prop_daily_usage_chart <- function(df_sum) {
   
   prop_usage <- get_prop_usage(df_sum)
@@ -36,6 +46,24 @@ prop_daily_usage_chart <- function(df_sum) {
   
 }
 
+daily_usage_chart_narrative <- function(df_sum) {
+  daily_unused <- get_prop_usage(df_sum) %>% filter(util_cat == "Unused")
+  
+  av_unused <- mean(daily_unused$prop)
+  
+  max_capacity_day_narrative <- ""
+  max_capacity_days <- get_max_capacity_days(df_sum)
+  max_capacity_days_concatenated <- paste(max_capacity_days,collapse=', ')
+  
+  if(length(max_capacity_days) > 0) {
+    max_capacity_day_narrative <- glue("<li> Full capacity was reached on {length(max_capacity_days)} days in the sample period: {max_capacity_days_concatenated}</li>")
+  }
+  
+  paste0(glue("<ul><li>On average, desks were unused {percent(av_unused)} of the time during the sample period.</li>",max_capacity_day_narrative,"</ul>"))
+  
+  
+}
+
 
 get_prop_usage_day <- function(df_sum) {
 
@@ -45,6 +73,22 @@ get_prop_usage_day <- function(df_sum) {
     group_by(day) %>%
     mutate(prop = n/sum(n)) %>%
     ungroup(day)
+  
+}
+
+weekday_usage_narrative <- function(df_sum) {
+  prop_usage_day <- get_prop_usage_day(df_sum)
+  
+  daily_util <- prop_usage_day %>%
+                filter(util_cat %in% c("Effective utilisation","Under utilised")) %>%
+                group_by(day) %>%
+                summarise(prop = sum(prop))
+  
+  top_day <- daily_util %>% filter(prop==max(prop)) %>% .$day
+  
+  friday_util <- daily_util %>% filter(day=="Friday") %>% .$prop
+  
+  glue("The rate of unused desks varies over the working week with {top_day} being the busiest day on average. On average {percent(1-friday_util)} of desks are unused on Fridays.")
   
 }
 
@@ -84,7 +128,6 @@ prop_desk_usage_chart <- function(df_sum) {
   
   prop_usage_type <- get_prop_usage_type(df_sum)
   
-  
   ggplot(prop_usage_type,
          aes(x=devicetype,y=prop,fill=util_cat)) +
     geom_bar(stat="identity", position='fill') +
@@ -95,7 +138,7 @@ prop_desk_usage_chart <- function(df_sum) {
     theme(legend.position="right") +
     theme(plot.title = element_text(hjust = 0.5)) +
     scale_fill_manual(values=c("Effective utilisation"="coral2","Under utilised"="thistle3","Unused"="powderblue")) +
-    theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=10))
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))
   
 }
 
@@ -154,13 +197,12 @@ prop_floor_usage_chart <- function(df_sum) {
   
 }
 
-
-smoothing_chart <- function(df_sum, smoothing_factor) {
-
+get_smoothing_table <- function(df_sum,smoothing_factor) {
+  
   weekdays <-c("Monday","Tuesday","Wednesday","Thursday","Friday")
   
   cat_order <- c("Full Smoothing","Current Utilisation","Partial Smoothing")
-
+  
   smoothing <- get_prop_usage_day(df_sum) %>%
     filter(util_cat == "Unused") %>%
     mutate(current_utilisation = 1- prop) %>%
@@ -169,6 +211,30 @@ smoothing_chart <- function(df_sum, smoothing_factor) {
     select(day,"Full Smoothing" = full_smoothing,"Current Utilisation" = current_utilisation, "Partial Smoothing" = partial_smoothing) %>%
     melt("day") %>%
     mutate(variable = factor(variable,cat_order))
+}
+
+get_smoothing_narrative <- function(df_sum,smoothing_factor) {
+  smoothing_table <- get_smoothing_table(df_sum,smoothing_factor)
+  
+  smoothing_table_wide <- smoothing_table %>% 
+    dcast(day ~ variable) %>%
+    mutate(diff = `Full Smoothing` - `Current Utilisation`)
+  
+  top_diff <- smoothing_table_wide %>% filter(diff == max(diff)) %>% .$day
+  bottom_diff <- smoothing_table_wide %>% filter(diff == min(diff)) %>% .$day
+  
+  glue("Partial or full smoothing would have most impact on {bottom_diff}s, where fewer people would work in the office, and {top_diff}s, where more people would work in the office")
+  
+}
+
+smoothing_chart <- function(df_sum, smoothing_factor) {
+  
+  
+  weekdays <-c("Monday","Tuesday","Wednesday","Thursday","Friday")
+  
+  cat_order <- c("Full Smoothing","Current Utilisation","Partial Smoothing")
+
+  smoothing <- get_smoothing_table(df_sum,smoothing_factor)
 
   
   ggplot(smoothing,
@@ -216,16 +282,24 @@ allocation_strategy_table <- function(df_sum) {
   
   recommendation_list <- c("Current Allocation",
                            glue("Given current working patterns, the selected region could have had {round(current_allocation - dark_blue)} fewer desks over the sample period without experiencing any overcrowding issues."),
-                           glue("If you were to partially smooth working patterns over the week, you could save a further {round(current_allocation - green)} desks"),
-                           glue("If you were to fully smooth working patterns over the week, you could save a further {round(current_allocation - second_green)} desks"),
+                           glue("If you were to partially smooth working patterns over the week, you could save a further {round(dark_blue - green)} desks"),
+                           glue("If you were to fully smooth working patterns over the week, you could save a further {round(green - second_green)} desks"),
                            glue("On average {round(mean_underutilised * 100)}% of desks were used inefficiently. By embedding a culture of hotdesking (assuming a desk-to-person ratio of 0.6) it would be possible to replace {round(current_allocation * mean_underutilised)} desks with {round(current_allocation * mean_underutilised * hotdesk_ratio)} desks."),
                            "The average amount of desks effectively utilised and under utilised on Friday in the survey period.")
   desks_in_scope <- c(current_allocation,round(dark_blue),round(green),round(second_green),round(yellow),round(orange))
+  scenario_saving <- c(0,
+                       round(current_allocation - dark_blue),
+                       round(current_allocation - green),
+                       round(current_allocation - second_green),
+                       round(current_allocation - yellow),
+                       round(current_allocation - orange))
   percent_current_allocation <- paste(round((desks_in_scope/current_allocation)*100),"%",sep="")
   
   out <- data.frame("recommendation" = recommendation_list,
                     "desks in scope" = desks_in_scope,
-                    "percent current allocation" = percent_current_allocation)
+                    "total saving" = scenario_saving,
+                    "% of current allocation" = percent_current_allocation,
+                    check.names = FALSE)
   
   
 }
@@ -264,3 +338,4 @@ get_peak_occupancy <- function(df_sum) {
     select(date,utilisation) %>%
     head(10)
 }
+
