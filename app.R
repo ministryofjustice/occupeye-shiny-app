@@ -28,6 +28,7 @@ temp_df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-app-occupeye-
 temp_df_sum <- get_df_sum(temp_df,"09:00","17:00")
 time_list <- unique(strftime(temp_df$obs_datetime,format="%H:%M"))
 date_list <- unique(lubridate::date(temp_df$obs_datetime))
+room_types <- unique(temp_df$roomtype)
 device_types <- unique(temp_df$devicetype)
 floors <- unique(temp_df$floor)
 
@@ -95,6 +96,12 @@ ui <- fluidPage(
                            min = min(date_list),
                            max = max(date_list)),
             
+            pickerInput(inputId = "room_type",
+                        label = "Pick room type(s)",
+                        choices = room_types,
+                        options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
+                        multiple = TRUE,
+                        selected = room_types),
             
             pickerInput(inputId = "desk_type",
                         label = "Pick desk type(s)",
@@ -229,6 +236,7 @@ server <- function(input,output,session) {
     # apply the filters
     RV$filtered <- RV$df_sum %>%
       dplyr::filter(date >= input$date_range[1] & date <= input$date_range[2],
+                    roomtype %in% input$room_type,
                     devicetype %in% input$desk_type,
                     floor %in% input$floors,
                     category_1 %in% l1Names,
@@ -317,12 +325,16 @@ server <- function(input,output,session) {
   observeEvent(RV$df_sum, {
     
     floor_list <- unique(RV$df_sum$floor) %>% as.numeric() %>% sort()
+    room_type_list <- unique(RV$df_sum$roomtype) %>% sort()
     desk_type_list <- unique(RV$df_sum$devicetype) %>% sort()
     date_list <- unique(RV$df_sum$date)
     
     updatePickerInput(session, inputId = "floors",
                       choices = floor_list,
                       selected = floor_list)
+    updatePickerInput(session, inputId = "room_type",
+                      choices = room_type_list,
+                      selected =room_type_list)
     updatePickerInput(session, inputId = "desk_type",
                       choices = desk_type_list,
                       selected =desk_type_list)
@@ -340,6 +352,7 @@ server <- function(input,output,session) {
   observeEvent({input$tree
     input$floor
     input$date_range
+    input$room_type
     input$desk_type
     input$smoothing_factor},
     
