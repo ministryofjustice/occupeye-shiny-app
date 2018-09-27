@@ -14,7 +14,7 @@ This is a tool for exploring data extracted from OccupEye sensors deployed by Mo
 <tbody>
   <tr>
    <td style="text-align:left;"> Unused desks </td>
-   <td style="text-align:left;"> An unused desk is a desk which is not occupied for an entire day. To account for potential errors desks have been classified as unused where desk utilisation in the sample period is less than 15%, and there are fewer than 2 occurrences of that desk being occupied for 30-minute stretches during the day. </td>
+   <td style="text-align:left;"> An unused desk is a desk which is not occupied for an entire day. To account for potential errors desks have been classified as unused where desk utilisation in the sample period is less than 15%. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Under Utilised Desks </td>
