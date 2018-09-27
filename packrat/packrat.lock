@@ -1,5 +1,5 @@
 PackratFormat: 1.4
-PackratVersion: 0.4.8.1
+PackratVersion: 0.4.9.3
 RVersion: 3.4.2
 Repos: BioCsoft=https://bioconductor.org/packages/3.6/bioc,
     BioCann=https://bioconductor.org/packages/3.6/data/annotation,
@@ -177,16 +177,17 @@ Version: 0.3.1
 Hash: d84c5cdf9b1a9eb24fa059a48bce6076
 Requires: Rcpp, hms, tibble
 
+Package: formatR
+Source: CRAN
+Version: 1.5
+Hash: 258cf79a8dbeedf1c981cdb53837d2af
+
 Package: ggplot2
-Source: github
-Version: 2.2.1.9000
-Hash: dcdb96925574e3480fc5ef19ddcf36de
+Source: CRAN
+Version: 3.0.0
+Hash: 8332448b76ff31472a1bf6dd31fcddb1
 Requires: MASS, digest, gtable, lazyeval, mgcv, plyr, reshape2, rlang,
     scales, tibble, viridisLite, withr
-GithubRepo: ggplot2
-GithubUsername: hadley
-GithubRef: master
-GithubSha1: 2495ba23ee34ecd57330a3e8af1f9d089a5f3374
 
 Package: git2r
 Source: CRAN
@@ -195,8 +196,8 @@ Hash: f7190a7a4b5c5f0983b4b6ee29ed7bc3
 
 Package: glue
 Source: CRAN
-Version: 1.2.0
-Hash: 381e42baedecc633c0e547a0c7ca9de7
+Version: 1.3.0
+Hash: 1fbde6dec830370be696eee8ef31c9e4
 
 Package: gtable
 Source: CRAN
@@ -336,8 +337,8 @@ Hash: 3858537ac10388a5db1687450908f257
 
 Package: packrat
 Source: CRAN
-Version: 0.4.8-1
-Hash: 6ad605ba7b4b476d84be6632393f5765
+Version: 0.4.9-3
+Hash: 03fb817297975f1da0d1b774b47620b3
 
 Package: pillar
 Source: CRAN
@@ -357,11 +358,12 @@ Hash: fb19215402e2d9f1c7f803dcaa806fc2
 
 Package: plotly
 Source: CRAN
-Version: 4.7.1
-Hash: 18d2de809bf346363cd4ee7a587d58bf
+Version: 4.8.0
+Hash: 539126bf8ab38483d27005b4533f3ebe
 Requires: RColorBrewer, base64enc, crosstalk, data.table, digest,
     dplyr, ggplot2, hexbin, htmltools, htmlwidgets, httr, jsonlite,
-    lazyeval, magrittr, purrr, scales, tibble, tidyr, viridisLite
+    lazyeval, magrittr, promises, purrr, rlang, scales, tibble, tidyr,
+    viridisLite
 
 Package: plyr
 Source: CRAN
@@ -412,8 +414,8 @@ Requires: base64enc, evaluate, htmltools, jsonlite, knitr, mime,
 
 Package: rpivotTable
 Source: CRAN
-Version: 0.2.0
-Hash: 0f7122292906226597d34da3dab287a6
+Version: 0.3.0
+Hash: e80e3ce489fdbfbc2f8efadf5ece9efe
 Requires: htmlwidgets
 
 Package: rprojroot
@@ -480,9 +482,15 @@ GithubSha1: eabfe51337137c4f67fc126cd5cfa58b1d3923d0
 
 Package: shinyWidgets
 Source: CRAN
-Version: 0.4.0
-Hash: ec30ffb4a896703e76b9d1d830eff707
+Version: 0.4.3
+Hash: a5161a9baf5da9dbf041df853d79f49d
 Requires: htmltools, jsonlite, shiny
+
+Package: shinydashboard
+Source: CRAN
+Version: 0.7.0
+Hash: 5b865adc8fe7461ccc7a257f600112f8
+Requires: htmltools, shiny
 
 Package: sourcetools
 Source: CRAN
@@ -559,5 +567,5 @@ Hash: 7293235cfcc14cdff1ce7fd1a0212031
 
 Package: yaml
 Source: CRAN
-Version: 2.1.18
-Hash: 28c7e28c239d7a1d1bd579390bab89bd
+Version: 2.2.0
+Hash: a5ad5616d83d89f8d84cbf3cf4034e13
