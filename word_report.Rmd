@@ -55,7 +55,7 @@ for(team in team_list) {
       cat3s <- unique(cat2_df_sum$category_3)
       for(cat3 in cat3s) {
         cat3_df_sum <- cat2_df_sum %>% filter(category_3 == cat3)
-        if(length(cat2s) > 1) {
+        if(length(cat3s) > 1) {
           cat('\n\n## Desk utilisation for ',team,' - ',cat2,' - ',cat3,' (',n_distinct(cat3_df_sum$surveydeviceid),' sensors) \n\n',sep="")
           print(prop_daily_usage_chart(cat3_df_sum))
           cat(paste0("\n\n ",daily_usage_chart_narrative(cat3_df_sum)))
