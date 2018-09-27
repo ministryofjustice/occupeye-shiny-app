@@ -47,21 +47,29 @@ prop_daily_usage_chart <- function(df_sum) {
 }
 
 daily_usage_chart_narrative <- function(df_sum) {
-  daily_unused <- get_prop_usage(df_sum) %>% filter(util_cat == "Unused")
-  
-  av_unused <- mean(daily_unused$prop)
-  
-  max_capacity_day_narrative <- ""
-  max_capacity_days <- get_max_capacity_days(df_sum)
-  max_capacity_days_concatenated <- paste(max_capacity_days,collapse=', ')
-  
-  if(length(max_capacity_days) > 0) {
-    max_capacity_day_narrative <- glue("<li> Full capacity was reached on {length(max_capacity_days)} days in the sample period: {max_capacity_days_concatenated}</li>")
+  if(nrow(df_sum) == 0) {
+    narrative <- "There are no sensors in this filter. This may be an error."
+  } else {
+    
+    daily_unused <- get_prop_usage(df_sum) %>% filter(util_cat == "Unused")
+    
+    if(nrow(daily_unused)== 0) {
+      av_unused <- 0
+    } else {
+      av_unused <- mean(daily_unused$prop)
+    }
+    
+    max_capacity_day_narrative <- ""
+    max_capacity_days <- get_max_capacity_days(df_sum)
+    max_capacity_days_concatenated <- paste(max_capacity_days,collapse=', ')
+    
+    if(length(max_capacity_days) > 0) {
+      max_capacity_day_narrative <- glue("<li> Full capacity was reached on {length(max_capacity_days)} days in the sample period: {max_capacity_days_concatenated}</li>")
+    }
+    
+    narrative <- paste0(glue("<ul><li>On average, desks were unused {percent(av_unused)} of the time during the sample period.</li>",max_capacity_day_narrative,"</ul>"))
   }
-  
-  paste0(glue("<ul><li>On average, desks were unused {percent(av_unused)} of the time during the sample period.</li>",max_capacity_day_narrative,"</ul>"))
-  
-  
+  return(narrative)
 }
 
 
