@@ -146,7 +146,7 @@ prop_desk_usage_chart <- function(df_sum) {
     theme(legend.position="right") +
     theme(plot.title = element_text(hjust = 0.5)) +
     scale_fill_manual(values=c("Effective utilisation"="coral2","Under utilised"="thistle3","Unused"="powderblue")) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))
+    theme(axis.text.x = element_text(angle = 25, hjust = 1, size=10))
   
 }
 
