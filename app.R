@@ -231,9 +231,9 @@ server <- function(input,output,session) {
       dplyr::filter(date >= input$date_range[1] & date <= input$date_range[2],
                     devicetype %in% input$desk_type,
                     floor %in% input$floors,
-                    category_1 %in% l1Names,
-                    category_2 %in% l2Names,
-                    category_3 %in% l3Names)
+                    trimws(category_1) %in% l1Names,
+                    trimws(category_2) %in% l2Names,
+                    trimws(category_3) %in% l3Names)
   }
   
   
