@@ -13,11 +13,13 @@ params:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Note: The following table of recommendations is based on data for the top-level business group. Should any action be proposed following this report then further reports should be generated at the level at which desk sharing takes place.
 
 ## Desk utilisation for `r params$start_date` to `r params$end_date`
 
 ```{r summary, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
 df_sum <- params$df_sum
+
 
 knitr::kable(allocation_strategy_table(df_sum),align=c('l','r','r'))
 cat('## Top 10 busiest days in survey')
