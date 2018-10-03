@@ -350,7 +350,7 @@ server <- function(input,output,session) {
   
   # Update the report if any of the filters have changed
   observeEvent({input$tree
-    input$floor
+    input$floors
     input$date_range
     input$room_type
     input$desk_type
@@ -361,12 +361,14 @@ server <- function(input,output,session) {
     }
   )
   
+  
   # Plots and table outputs -------------------------------------------------
   
   
   
   # These functions generate the charts and tables in the report
   observeEvent(RV$filtered, {
+    
     output$myPivot <- renderRpivotTable({
       rpivotTable(data = RV$filtered)
     })
