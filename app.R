@@ -136,6 +136,13 @@ ui <- fluidPage(
             )
           )
         ),
+        tabPanel("Changelog",
+          fluidPage(
+            fluidRow(
+              column(8,includeMarkdown("changelog.md"))
+            )
+          )
+        ),
         tabPanel("Pivot table", rpivotTableOutput("myPivot")),
         tabPanel("Summary tables",
           fluidPage(
