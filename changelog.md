@@ -2,9 +2,10 @@
 
 ### v0.6 - 2018-10-09
 
+- Adds disclaimer to Word report (#35)
+- Make data download date range end yesterday rather than today (#37)
 - Group desk types by roomtype, selecting just Desk Settings by default (#38)
 - Fix listener for floor picker, so the filter updates when changing it (#41)
-- Make data download date range end yesterday rather than today (#37)
 - Add changelog
 
 ### v0.5.2 - 2018-10-02
