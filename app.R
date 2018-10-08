@@ -296,7 +296,7 @@ server <- function(input, output, session) {
                       choices = survey_files)
     
     start_date <- surveys_list %>% filter(survey_id == selected_survey_id) %>% .$startdate
-    dates_list <- seq(as.Date(start_date), as.Date(today()), by = "day")
+    dates_list <- seq(as.Date(start_date), as.Date(today() - 1), by = "day")
     updateDateRangeInput(session, inputId = "download_date_range",
                          min = min(dates_list, na.rm = TRUE),
                          max = max(dates_list, na.rm = TRUE),
