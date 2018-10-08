@@ -24,27 +24,27 @@ source("data_cleaning_functions.R")
 # Downloads a sample dataset from S3, and uses it to initialise the UI fields.
 
 
-temp_df <- s3tools::read_using(FUN=readr::read_csv, s3_path="alpha-app-occupeye-automation/surveys/336/Unallocated.csv")
-temp_df_sum <- get_df_sum(temp_df,"09:00","17:00")
-time_list <- unique(strftime(temp_df$obs_datetime,format="%H:%M"))
+temp_df <- s3tools::read_using(FUN = readr::read_csv, s3_path = "alpha-app-occupeye-automation/surveys/336/Unallocated.csv")
+temp_df_sum <- get_df_sum(temp_df, "09:00", "17:00")
+time_list <- unique(strftime(temp_df$obs_datetime, format = "%H:%M"))
 date_list <- unique(lubridate::date(temp_df$obs_datetime))
 room_types <- unique(temp_df$roomtype)
 device_types <- unique(temp_df$devicetype)
 floors <- unique(temp_df$floor)
 
-sensors <- s3tools::read_using(FUN=feather::read_feather,s3_path = "alpha-app-occupeye-automation/sensors.feather") %>%
-            mutate_at(.funs = funs(ifelse(.=="",NA,.)), # Feather imports missing values 
-            .vars = vars(category_1,category_2,category_3))
+sensors <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/sensors.feather") %>%
+            mutate_at(.funs = funs(ifelse(. == "", NA, .)), # Feather imports missing values
+            .vars = vars(category_1, category_2, category_3))
 
 
 
-surveys_list <- s3tools::read_using(FUN=feather::read_feather,s3_path = "alpha-app-occupeye-automation/surveys.feather")
-surveys_hash <- with(surveys_list[c('name','survey_id')],setNames(survey_id,name))
+surveys_list <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/surveys.feather")
+surveys_hash <- with(surveys_list[c("name", "survey_id")], setNames(survey_id, name))
 
-active_surveys <- s3tools::read_using(FUN=feather::read_feather,s3_path = "alpha-app-occupeye-automation/active surveys.feather")
+active_surveys <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/active surveys.feather")
 selected_survey_id <- surveys_hash["102 Petty France v2.0"]
 
-report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", prefix = glue("surveys/{selected_survey_id}")) %>% filter(grepl("\\.feather",path))
+report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", prefix = glue("surveys/{selected_survey_id}")) %>% filter(grepl("\\.feather", path))
 
 
 
@@ -64,7 +64,7 @@ ui <- fluidPage(
 
           selectInput(inputId = "raw_feather",
                       label = "Select report to download",
-                      choices = gsub("\\.feather","",report_list$filename)),
+                      choices = gsub("\\.feather", "", report_list$filename)),
           
           dateRangeInput(inputId = "download_date_range",
                          label = "Select date range to download",
@@ -83,9 +83,9 @@ ui <- fluidPage(
                       choices = time_list,
                       selected = "17:00"),
           
-          actionButton("loadCSV","Load report"),
+          actionButton("loadCSV", "Load report"),
           
-          actionButton("toggleFilter","Show/hide report filters"),
+          actionButton("toggleFilter", "Show/hide report filters"),
           
           
           conditionalPanel("input.toggleFilter % 2 == 0",
@@ -96,12 +96,6 @@ ui <- fluidPage(
                            min = min(date_list),
                            max = max(date_list)),
             
-            pickerInput(inputId = "room_type",
-                        label = "Pick room type(s)",
-                        choices = room_types,
-                        options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
-                        multiple = TRUE,
-                        selected = room_types),
             
             pickerInput(inputId = "desk_type",
                         label = "Pick desk type(s)",
@@ -119,15 +113,15 @@ ui <- fluidPage(
     
             
             helpText("Select Department(s) and team(s)"),
-            shinyTree("tree",checkbox = TRUE,search=TRUE)
+            shinyTree("tree", checkbox = TRUE, search = TRUE)
           )
                  
         ),
         
         tabPanel("Download Report",
-                 radioButtons('format', 'Document format', c('HTML', 'Word'),
+                 radioButtons("format", "Document format", c("HTML", "Word"),
                               inline = TRUE),
-                 downloadButton("download_button","Generate report")
+                 downloadButton("download_button", "Generate report")
         )
         
       )
@@ -138,46 +132,59 @@ ui <- fluidPage(
         tabPanel("Introduction",
           fluidPage(
             fluidRow(
-              column(8,includeMarkdown("intro.md"))
+              column(8, includeMarkdown("intro.md"))
             )
           )
         ),
-        tabPanel("Pivot table",rpivotTableOutput("myPivot")),
+        tabPanel("Pivot table", rpivotTableOutput("myPivot")),
         tabPanel("Summary tables",
           fluidPage(
             fluidRow(
-               column(6,tableOutput(outputId = "recom_table")),
-               column(6,htmlOutput("peak_occupancy_text"),tableOutput(outputId = "peak_occupancy"))
+               column(6, tableOutput(outputId = "recom_table")),
+               column(6, htmlOutput("peak_occupancy_text"),
+                      tableOutput(outputId = "peak_occupancy"))
                ),
             fluidRow(
-              column(3,tableOutput(outputId = "team_count")),
-              column(3,tableOutput(outputId = "desk_count")),
-              column(3,tableOutput(outputId = "team_desk_count"))
+              column(3, tableOutput(outputId = "team_count")),
+              column(3, tableOutput(outputId = "desk_count")),
+              column(3, tableOutput(outputId = "team_desk_count"))
               )
             )
           ),
-        tabPanel("Smoothing",plotlyOutput(outputId = "smoothChart"),
+        tabPanel("Smoothing", plotlyOutput(outputId = "smoothChart"),
                  numericInput(inputId = "smoothing_factor",
                               label = "Smoothing Factor",
                               min = 0,
                               max = 1,
-                              value=0.5,
-                              step=0.1),
-                 htmlOutput(outputId="smoothing_description")),
+                              value = 0.5,
+                              step = 0.1),
+                 htmlOutput(outputId = "smoothing_description")),
         tabPanel("daily usage",
                  plotlyOutput(outputId = "dailyChart"),
-                 htmlOutput(outputId="daily_chart_narrative"),
+                 htmlOutput(outputId = "daily_chart_narrative"),
                  includeMarkdown("chart_info.md")),
         tabPanel("usage by weekday",
                  plotlyOutput(outputId = "weekdayChart"),
-                 textOutput(outputId="weekday_chart_narrative"),
+                 textOutput(outputId = "weekday_chart_narrative"),
                  includeMarkdown("chart_info.md")),
-        tabPanel("usage by desk type",plotlyOutput(outputId = "deskChart"),includeMarkdown("chart_info.md")),
-        tabPanel("usage by floor",plotlyOutput(outputId = "floorChart"),includeMarkdown("chart_info.md")),
-        tabPanel("summarised data",downloadButton("download_summarised_data"),dataTableOutput(outputId = "df_sum")),
-        tabPanel("filtered data",downloadButton("download_filtered_data"),dataTableOutput(outputId = "filtered")),
-        tabPanel("raw data",downloadButton("download_raw_data"),dataTableOutput(outputId = "raw_data")),
-        tabPanel("bad observations",downloadButton("download_bad_observations"),dataTableOutput(outputId = "bad_observations"))
+        tabPanel("usage by desk type",
+                 plotlyOutput(outputId = "deskChart"),
+                 includeMarkdown("chart_info.md")),
+        tabPanel("usage by floor",
+                 plotlyOutput(outputId = "floorChart"),
+                 includeMarkdown("chart_info.md")),
+        tabPanel("summarised data",
+                 downloadButton("download_summarised_data"),
+                 dataTableOutput(outputId = "df_sum")),
+        tabPanel("filtered data",
+                 downloadButton("download_filtered_data"),
+                 dataTableOutput(outputId = "filtered")),
+        tabPanel("raw data",
+                 downloadButton("download_raw_data"),
+                 dataTableOutput(outputId = "raw_data")),
+        tabPanel("bad observations",
+                 downloadButton("download_bad_observations"),
+                 dataTableOutput(outputId = "bad_observations"))
       )
         
     )
@@ -187,12 +194,14 @@ ui <- fluidPage(
 
 # Server function ---------------------------------------------------------
 # This function defines the server function. Should be separated into a separate file
-server <- function(input,output,session) {
+server <- function(input, output, session) {
   
   
   # Raw data download -------------------------------------------------------
   
-  RV <- reactiveValues(data = temp_df,df_sum = temp_df_sum, filtered = temp_df_sum)
+  RV <- reactiveValues(data = temp_df,
+                       df_sum = temp_df_sum,
+                       filtered = temp_df_sum)
   output$tree <- renderEmptyTree()
   
   
@@ -210,23 +219,23 @@ server <- function(input,output,session) {
     if (is.null(input$tree)){
       "None"
     } else{
-      selected <-get_selected(input$tree,"slice")
+      selected <- get_selected(input$tree, "slice")
+
       
-      
-      for(x in selected) {
-        l1Names <- c(l1Names,names(x))
-        for(y in x) {
-          l2Names <- c(l2Names,names(y))
+      for (x in selected) {
+        l1Names <- c(l1Names, names(x))
+        for (y in x) {
+          l2Names <- c(l2Names, names(y))
           for (z in y) {
-            l3Names <- c(l3Names,names(z))
+            l3Names <- c(l3Names, names(z))
           }
         }
       }
     }
     
-    l1Names <- replace(l1Names,l1Names %in% c("N/A",""),NA)
-    l2Names <- replace(l2Names,l2Names %in% c("N/A",""),NA)
-    l3Names <- replace(l3Names,l3Names %in% c("N/A",""),NA) # Convert N/A from string to NA to make filtering work
+    l1Names <- replace(l1Names, l1Names %in% c("N/A", ""), NA)
+    l2Names <- replace(l2Names, l2Names %in% c("N/A", ""), NA)
+    l3Names <- replace(l3Names, l3Names %in% c("N/A", ""), NA) # Convert N/A from string to NA to make filtering work
     
     RV$l1Names <- l1Names
     RV$l2Names <- l2Names
@@ -236,12 +245,11 @@ server <- function(input,output,session) {
     # apply the filters
     RV$filtered <- RV$df_sum %>%
       dplyr::filter(date >= input$date_range[1] & date <= input$date_range[2],
-                    roomtype %in% input$room_type,
                     devicetype %in% input$desk_type,
                     floor %in% input$floors,
-                    category_1 %in% l1Names,
-                    category_2 %in% l2Names,
-                    category_3 %in% l3Names)
+                    trimws(category_1) %in% l1Names,
+                    trimws(category_2) %in% l2Names,
+                    trimws(category_3) %in% l3Names)
   }
   
   
@@ -252,25 +260,25 @@ server <- function(input,output,session) {
   get_team_tree <- function() {
     
     category_list <- RV$df_sum %>%
-      select(category_1,category_2,category_3) %>%
+      select(category_1, category_2, category_3) %>%
       unique %>%
-      mutate_all(funs(ifelse(is.na(.) | .=="","N/A",.))) # replaces nulls/empty string with "N/A" so that ShinyTree works properly
+      mutate_all(funs(ifelse(is.na(.) | . == "", "N/A", .))) # replaces nulls/empty string with "N/A" so that ShinyTree works properly
     
     # split the data.frame of categories into a nested list of lists
-    cat1split <- with(category_list,split(category_list,category_1))
+    cat1split <- with(category_list, split(category_list, category_1))
     cat2split <- lapply(cat1split, function(x) split(x, x$category_2))
-    cat3split <- lapply(cat2split,lapply,function(x) split(x,x$category_3))
+    cat3split <- lapply(cat2split, lapply, function(x) split(x, x$category_3))
     
     # replace the category-3 level with the names, 
     # so that the original data frame headings aren't added as an extra layer.
-    RV$team_tree <- lapply(cat3split,lapply,lapply,function(x) x <- structure(names(x),stselected=TRUE))
+    RV$team_tree <- lapply(cat3split, lapply, lapply, function(x) x <- structure(names(x), stselected = TRUE))
   }
   
   get_bad_observations <- function(df) {
     df %>%
-      filter(!sensor_value %in% c(1,0)) %>%
+      filter(!sensor_value %in% c(1, 0)) %>%
       mutate(obs_date = date(obs_datetime)) %>%
-      group_by(obs_date,sensor_value,surveydeviceid,hardwareid,sensorid,location) %>% 
+      group_by(obs_date, sensor_value, surveydeviceid, hardwareid, sensorid, location) %>% 
       summarise(count = n())
     
   }
@@ -283,29 +291,29 @@ server <- function(input,output,session) {
     RV$report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", prefix = glue("surveys/{selected_survey_id}"))
 
     survey_reports <- RV$report_list %>% arrange(filename)
-    survey_files <- gsub("\\.feather","",survey_reports$filename)
-    updateSelectInput(session,inputId = "raw_feather",
+    survey_files <- gsub("\\.feather", "", survey_reports$filename)
+    updateSelectInput(session, inputId = "raw_feather",
                       choices = survey_files)
     
     start_date <- surveys_list %>% filter(survey_id == selected_survey_id) %>% .$startdate
-    dates_list <- seq(as.Date(start_date),as.Date(today()),by="day")
+    dates_list <- seq(as.Date(start_date), as.Date(today()), by = "day")
     updateDateRangeInput(session, inputId = "download_date_range",
-                         min = min(dates_list,na.rm = TRUE),
-                         max = max(dates_list,na.rm = TRUE),
+                         min = min(dates_list, na.rm = TRUE),
+                         max = max(dates_list, na.rm = TRUE),
                          start = today() - months(1),
-                         end = max(dates_list,na.rm = TRUE))
+                         end = max(dates_list, na.rm = TRUE))
   })
   
   
   observeEvent(input$loadCSV, {
     
-    withProgress(message = paste0("Loading report ",input$raw_feather), {
-      feather_path <- RV$report_list %>% dplyr::filter(filename == paste0(input$raw_feather,".feather"))
+    withProgress(message = paste0("Loading report ", input$raw_feather), {
+      feather_path <- RV$report_list %>% dplyr::filter(filename == paste0(input$raw_feather, ".feather"))
 
-      df_min <- s3tools::read_using(FUN=feather::read_feather, s3_path=feather_path$path) %>%
-        filter(obs_datetime >= input$download_date_range[1],obs_datetime <= input$download_date_range[2])
+      df_min <- s3tools::read_using(FUN = feather::read_feather, s3_path = feather_path$path) %>%
+        filter(obs_datetime >= input$download_date_range[1], obs_datetime <= input$download_date_range[2])
 
-      df_full <- left_join(df_min,sensors,by=c("survey_device_id" = "surveydeviceid")) %>% 
+      df_full <- left_join(df_min, sensors, by = c("survey_device_id" = "surveydeviceid")) %>% 
         rename(surveydeviceid = survey_device_id)
       
       
@@ -313,9 +321,9 @@ server <- function(input,output,session) {
       RV$bad_sensors <- get_bad_observations(RV$data)
     })
     
-    withProgress(message="summarising the dataset", {
-      RV$df_sum <- get_df_sum(RV$data,input$start_time,input$end_time)
-      showModal(modalDialog(glue("{input$raw_feather} successfully loaded into the dashboard."),easyClose = TRUE))
+    withProgress(message = "summarising the dataset", {
+      RV$df_sum <- get_df_sum(RV$data, input$start_time, input$end_time)
+      showModal(modalDialog(glue("{input$raw_feather} successfully loaded into the dashboard."), easyClose = TRUE))
     })
     
     
@@ -325,36 +333,37 @@ server <- function(input,output,session) {
   observeEvent(RV$df_sum, {
     
     floor_list <- unique(RV$df_sum$floor) %>% as.numeric() %>% sort()
-    room_type_list <- unique(RV$df_sum$roomtype) %>% sort()
-    desk_type_list <- unique(RV$df_sum$devicetype) %>% sort()
+    
+    unique_device_types <- RV$df_sum %>% select(roomtype, devicetype) %>% unique()
+    
+    desk_type_list <- lapply(split(unique_device_types$devicetype,unique_device_types$roomtype),as.list)
+    
     date_list <- unique(RV$df_sum$date)
     
     updatePickerInput(session, inputId = "floors",
                       choices = floor_list,
                       selected = floor_list)
-    updatePickerInput(session, inputId = "room_type",
-                      choices = room_type_list,
-                      selected =room_type_list)
     updatePickerInput(session, inputId = "desk_type",
                       choices = desk_type_list,
-                      selected =desk_type_list)
+                      selected = desk_type_list$`Desk Setting`)
     updateDateRangeInput(session, inputId = "date_range",
-                         min = min(date_list,na.rm = TRUE),
-                         max = max(date_list,na.rm = TRUE),
-                         start = min(date_list,na.rm = TRUE),
-                         end = max(date_list,na.rm = TRUE))
+                         min = min(date_list, na.rm = TRUE),
+                         max = max(date_list, na.rm = TRUE),
+                         start = min(date_list, na.rm = TRUE),
+                         end = max(date_list, na.rm = TRUE))
     
-    updateTree(session,"tree",data=get_team_tree())
+    updateTree(session, "tree", data = get_team_tree())
     
   })
   
   # Update the report if any of the filters have changed
-  observeEvent({input$tree
+  observeEvent({
+    input$tree
     input$floors
     input$date_range
-    input$room_type
     input$desk_type
-    input$smoothing_factor},
+    input$smoothing_factor
+    },
     
     {
       RV$filtered <- update_filter()
@@ -398,13 +407,13 @@ server <- function(input,output,session) {
     })
     
     output$smoothChart <- renderPlotly({
-      smoothing_chart(RV$filtered,input$smoothing_factor)
+      smoothing_chart(RV$filtered, input$smoothing_factor)
     })
     
     output$smoothing_description <- renderText({
       paste("The graph shows the difference in implied desk utilisation under the assumption of full smoothing over the week and the assumption of imperfect smoothing. 
     A smoothing factor of 0.5 represents the midpoint between current utilisation and full smoothing.",
-            get_smoothing_narrative(RV$filtered,input$smoothing_factor),sep="<br/>")
+            get_smoothing_narrative(RV$filtered, input$smoothing_factor), sep = "<br/>")
     })
     
     output$daily_chart_narrative <- renderText({
@@ -454,15 +463,15 @@ server <- function(input,output,session) {
   # Functions for handling the report download  
   output$download_button <- downloadHandler(
     filename = function() {
-      paste('my-report', sep = '.', switch(
-        input$format, PDF = 'pdf', HTML = 'html', Word = 'docx'
+      paste("my-report", sep = '.', switch(
+        input$format, PDF = "pdf", HTML = "html", Word = "docx"
       ))
     },
     
     content = function(file) {
       
       out_report <- switch(
-        input$format, PDF = 'pdf', HTML = 'slidy_report.Rmd', Word = 'word_report.Rmd'
+        input$format, PDF = "pdf", HTML = "slidy_report.Rmd", Word = "word_report.Rmd"
       )
       
       src <- normalizePath(out_report)
@@ -474,7 +483,10 @@ server <- function(input,output,session) {
       file.copy(src, out_report, overwrite = TRUE)
       
       withProgress(message = "Generating report...", {
-        out <- rmarkdown::render(out_report,params = list(start_date = input$date_range[1],end_date=input$date_range[2],df_sum = RV$filtered))
+        out <- rmarkdown::render(out_report, 
+                                 params = list(start_date = input$date_range[1],
+                                               end_date = input$date_range[2], 
+                                               df_sum = RV$filtered))
         file.rename(out, file)
       })
       
@@ -503,7 +515,7 @@ server <- function(input,output,session) {
     }
   )
   
-  output$download_bad_observations<- downloadHandler(
+  output$download_bad_observations <- downloadHandler(
     filename = "bad data.csv",
     content = function(file) {
       write.csv(RV$bad_sensors, file, row.names = FALSE)
@@ -520,5 +532,5 @@ server <- function(input,output,session) {
   
 }  
 
-shinyApp(ui=ui,server=server)
+shinyApp(ui = ui, server = server)
 
