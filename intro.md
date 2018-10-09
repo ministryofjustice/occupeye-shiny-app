@@ -1,4 +1,6 @@
-# OccupEye data dashboard - v0.5.2
+
+# OccupEye data dashboard - v0.6
+
 
 ## Introduction
 
