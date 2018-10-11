@@ -1,7 +1,10 @@
 ---
 title: "Desk usage report"
 date:  "`r format(Sys.time(), '%d %B, %Y')`"
-output: word_document
+output: 
+  word_document:
+    toc: true
+    reference_docx: occupeye-report-reference.dotx
 
 params:
   start_date: NULL
@@ -12,6 +15,10 @@ params:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+##### line break
+
+# Desk usage report
 
 Note: The following table of recommendations is based on data for the top-level business group. Should any action be proposed following this report then further reports should be generated at the level at which desk sharing takes place.
 

@@ -507,6 +507,13 @@ server <- function(input, output, session) {
       file.copy(src, out_report, overwrite = TRUE)
       
       
+      # Downlaods a template for the word report.
+      # Note - this has a specially modified style, in which Heading 5 has been adapted into a line break.
+      # See here: https://scriptsandstatistics.wordpress.com/2015/12/18/rmarkdown-how-to-inserts-page-breaks-in-a-ms-word-document/
+      word_report_reference <- s3tools::download_file_from_s3("alpha-app-occupeye-automation/occupeye-report-reference.dotx",
+                                                              "occupeye-report-reference.dotx",
+                                                              overwrite = TRUE)
+      
       # Generate report, with progress bar
       withProgress(message = "Generating report...", {
         out <- rmarkdown::render(out_report, 
