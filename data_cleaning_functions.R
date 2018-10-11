@@ -77,7 +77,7 @@ get_summarised_data <- function(df) {
 
 }
 
-get_df_sum <- function(df, start_time, end_time) {
+get_df_sum <- function(df, start_time = "09:00", end_time = "17:00") {
   
   
   df2 <- df %>% 

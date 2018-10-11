@@ -1,5 +1,9 @@
 ## Changelog
 
+### v0.7 - 2018-10-11
+
+- Add MoJ template to word report
+
 ### v0.6 - 2018-10-09
 
 - Adds disclaimer to Word report (#35)

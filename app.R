@@ -3,14 +3,14 @@
 
 library(shiny)          # For the shiny!
 library(ggplot2)        # For plotting
-library(dplyr)          # For pipes
+library(dplyr)          # For pipes data wrangling
 library(htmlwidgets)    # rpivotTable depends on it
 library(shinyWidgets)   # For pickerInput
 library(plotly)         # Makes ggplot interactive
 library(shinyTree)      # for the category tree. Specifically requires the schaffman5 fork on github
 library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
-library(glue)           # Glue
+library(glue)           # Interpreted string literals
 
 # import other source code ------------------------------------------------
 
@@ -33,24 +33,27 @@ device_types <- unique(temp_df$devicetype)
 floors <- unique(temp_df$floor)
 
 sensors <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/sensors.feather") %>%
-            mutate_at(.funs = funs(ifelse(. == "", NA, .)), # Feather imports missing values
-            .vars = vars(category_1, category_2, category_3))
+            mutate_at(.funs = funs(ifelse(. == "", NA, .)), # Feather imports missing values as emptystring, so convert them to NA
+            .vars = vars(category_1, category_2, category_3)) # This only pertains to the team categories, so just mutate the team categories
 
 
-
+# Get the surveys table, and make a dictionary of survey names to their IDs. 
+# So calling surveys_hash["survey_name"] returns its corresponding survey_id
 surveys_list <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/surveys.feather")
 surveys_hash <- with(surveys_list[c("name", "survey_id")], setNames(survey_id, name))
 
+# Get the list of active survey
 active_surveys <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/active surveys.feather")
-selected_survey_id <- surveys_hash["102 Petty France v2.0"]
+selected_survey_id <- surveys_hash[1]
 
-report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", prefix = glue("surveys/{selected_survey_id}")) %>% filter(grepl("\\.feather", path))
-
+# Get the list of reports in the folder of the selected file
+report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", 
+                                              prefix = glue("surveys/{selected_survey_id}")) %>% filter(grepl("\\.feather", path))
 
 
 
 # UI function -------------------------------------------------------------
-# Constructs the UI
+# Constructs the UI, starting with the sidebar, which has the user controls
 
 ui <- fluidPage(
   sidebarLayout(
@@ -60,7 +63,7 @@ ui <- fluidPage(
           selectInput(inputId = "survey_name",
                       label = "Select OccupEye survey",
                       choices = active_surveys$surveyname,
-                      selected = "102 Petty France v2.0"),
+                      selected = "102 Petty France v2.1"),
 
           selectInput(inputId = "raw_feather",
                       label = "Select report to download",
@@ -87,7 +90,9 @@ ui <- fluidPage(
           
           actionButton("toggleFilter", "Show/hide report filters"),
           
-          
+          # Action buttons have an integer value that increments every time it's pressed.
+          # Hence, for every even number of clicks, togglefilter's value is even
+          # Also note that the test is a javascript expression, hence why it says "input.toggleFilter" rather than "input$toggleFilter"
           conditionalPanel("input.toggleFilter % 2 == 0",
             dateRangeInput(inputId = "date_range",
                            label = "Select sample date range",
@@ -199,27 +204,26 @@ ui <- fluidPage(
 )
 
 
-# Server function ---------------------------------------------------------
-# This function defines the server function. Should be separated into a separate file
+# Server function -----------------------------------------------------------
+# This function defines the server function, which does the backend calculations
 server <- function(input, output, session) {
   
   
-  # Raw data download -------------------------------------------------------
-  
+  # Create and initialise RV, which is a collection of the reactive values
   RV <- reactiveValues(data = temp_df,
                        df_sum = temp_df_sum,
                        filtered = temp_df_sum)
+  
+  # Initialise the team's shinyTree
   output$tree <- renderEmptyTree()
   
   
   # Data filter -------------------------------------------------------------
-  
-  
   # Filter the data based on the input filters. This forms the input for the plots and tables
   update_filter <- function() {
     
     
-    #loop through the layers of the team selection tree to get the selected names at each level
+  # first, loop through the layers of the team selection tree to get the selected names at each level
     l1Names <- NULL
     l2Names <- NULL
     l3Names <- NULL
@@ -240,9 +244,10 @@ server <- function(input, output, session) {
       }
     }
     
+    # Convert N/A back from string to NA to make filtering work
     l1Names <- replace(l1Names, l1Names %in% c("N/A", ""), NA)
     l2Names <- replace(l2Names, l2Names %in% c("N/A", ""), NA)
-    l3Names <- replace(l3Names, l3Names %in% c("N/A", ""), NA) # Convert N/A from string to NA to make filtering work
+    l3Names <- replace(l3Names, l3Names %in% c("N/A", ""), NA)
     
     RV$l1Names <- l1Names
     RV$l2Names <- l2Names
@@ -311,42 +316,54 @@ server <- function(input, output, session) {
                          end = max(dates_list, na.rm = TRUE))
   })
   
-  
+  # When clicking the "load report" button...
   observeEvent(input$loadCSV, {
     
+    # Add a progress bar
     withProgress(message = paste0("Loading report ", input$raw_feather), {
-      feather_path <- RV$report_list %>% dplyr::filter(filename == paste0(input$raw_feather, ".feather"))
 
+      # find the s3 path for the selected report
+      feather_path <- RV$report_list %>% dplyr::filter(filename == paste0(input$raw_feather, ".feather"))
+      
+      # Download the minimal table, filtered by the download_date_range
       df_min <- s3tools::read_using(FUN = feather::read_feather, s3_path = feather_path$path) %>%
         filter(obs_datetime >= input$download_date_range[1], obs_datetime <= input$download_date_range[2])
-
+      
+      # Add the other sensor metadata, dealing with the inconsistently named survey_device_id and surveydeviceid
       df_full <- left_join(df_min, sensors, by = c("survey_device_id" = "surveydeviceid")) %>% 
         rename(surveydeviceid = survey_device_id)
       
-      
+      # add the raw data for displaying on the raw data tab
       RV$data <- df_full
+      
+      # make the bad sensors analysis
       RV$bad_sensors <- get_bad_observations(RV$data)
     })
     
+    # Then summarise the dataset
     withProgress(message = "summarising the dataset", {
       RV$df_sum <- get_df_sum(RV$data, input$start_time, input$end_time)
+    
+      # show dialog to show it's finished loading
       showModal(modalDialog(glue("{input$raw_feather} successfully loaded into the dashboard."), easyClose = TRUE))
     })
-    
-    
-    
   })
   
+  # Once it sees that RV$df_sum has updated, update the filter UI with metadata from new dataset
   observeEvent(RV$df_sum, {
     
+    # Get the list of floors
     floor_list <- unique(RV$df_sum$floor) %>% as.numeric() %>% sort()
     
+    # Get the list of desk types, grouped by room type
     unique_device_types <- RV$df_sum %>% select(roomtype, devicetype) %>% unique()
-    
-    desk_type_list <- lapply(split(unique_device_types$devicetype,unique_device_types$roomtype),as.list)
-    
+    desk_type_list <- lapply(split(unique_device_types$devicetype,
+                                   unique_device_types$roomtype),
+                             as.list)
+    # get new list of dates
     date_list <- unique(RV$df_sum$date)
     
+    # Update the UI
     updatePickerInput(session, inputId = "floors",
                       choices = floor_list,
                       selected = floor_list)
@@ -382,7 +399,7 @@ server <- function(input, output, session) {
   
   
   
-  # These functions generate the charts and tables in the report
+  # These functions generate the charts and tables in the report, only when the filter gets updated
   observeEvent(RV$filtered, {
     
     output$myPivot <- renderRpivotTable({
@@ -489,6 +506,15 @@ server <- function(input, output, session) {
       on.exit(setwd(owd))
       file.copy(src, out_report, overwrite = TRUE)
       
+      
+      # Downlaods a template for the word report.
+      # Note - this has a specially modified style, in which Heading 5 has been adapted into a line break.
+      # See here: https://scriptsandstatistics.wordpress.com/2015/12/18/rmarkdown-how-to-inserts-page-breaks-in-a-ms-word-document/
+      word_report_reference <- s3tools::download_file_from_s3("alpha-app-occupeye-automation/occupeye-report-reference.dotx",
+                                                              "occupeye-report-reference.dotx",
+                                                              overwrite = TRUE)
+      
+      # Generate report, with progress bar
       withProgress(message = "Generating report...", {
         out <- rmarkdown::render(out_report, 
                                  params = list(start_date = input$date_range[1],
@@ -500,6 +526,8 @@ server <- function(input, output, session) {
     }
     
   )
+  
+  # Download handlers for the different datasets -------------------
   
   output$download_summarised_data <- downloadHandler(
     filename = "summarised data.csv",
@@ -539,5 +567,6 @@ server <- function(input, output, session) {
   
 }  
 
+# launch the app
 shinyApp(ui = ui, server = server)
 
