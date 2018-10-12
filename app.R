@@ -32,10 +32,6 @@ room_types <- unique(temp_df$roomtype)
 device_types <- unique(temp_df$devicetype)
 floors <- unique(temp_df$floor)
 
-sensors <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/sensors.feather") %>%
-            mutate_at(.funs = funs(ifelse(. == "", NA, .)), # Feather imports missing values as emptystring, so convert them to NA
-            .vars = vars(category_1, category_2, category_3)) # This only pertains to the team categories, so just mutate the team categories
-
 
 # Get the surveys table, and make a dictionary of survey names to their IDs. 
 # So calling surveys_hash["survey_name"] returns its corresponding survey_id
@@ -207,6 +203,10 @@ ui <- fluidPage(
 # Server function -----------------------------------------------------------
 # This function defines the server function, which does the backend calculations
 server <- function(input, output, session) {
+  
+  sensors <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/sensors.feather") %>%
+    mutate_at(.funs = funs(ifelse(. == "", NA, .)), # Feather imports missing values as emptystring, so convert them to NA
+              .vars = vars(category_1, category_2, category_3)) # This only pertains to the team categories, so just mutate the team categories
   
   
   # Create and initialise RV, which is a collection of the reactive values
