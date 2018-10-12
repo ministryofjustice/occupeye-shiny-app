@@ -327,7 +327,7 @@ server <- function(input, output, session) {
       
       # Download the minimal table, filtered by the download_date_range
       df_min <- s3tools::read_using(FUN = feather::read_feather, s3_path = feather_path$path) %>%
-        filter(obs_datetime >= input$download_date_range[1], obs_datetime <= input$download_date_range[2])
+        filter(obs_datetime >= input$download_date_range[1], obs_datetime <= paste0(input$download_date_range[2]," 23:50"))
       
       # Add the other sensor metadata, dealing with the inconsistently named survey_device_id and surveydeviceid
       df_full <- left_join(df_min, sensors, by = c("survey_device_id" = "surveydeviceid")) %>% 
