@@ -1,5 +1,9 @@
 ## Changelog
 
+### v0.7.1 - 2018-10-12
+
+Minor update to make sure the data updates work correctly.
+
 ### v0.7 - 2018-10-11
 
 - Add MoJ template to word report
