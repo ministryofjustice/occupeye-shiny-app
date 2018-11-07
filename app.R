@@ -137,7 +137,7 @@ ui <- fluidPage(
             )
           )
         ),
-        tabPanel("Changelog",
+        tabPanel("Change log",
           fluidPage(
             fluidRow(
               column(8,includeMarkdown("changelog.md"))
@@ -167,30 +167,30 @@ ui <- fluidPage(
                               value = 0.5,
                               step = 0.1),
                  htmlOutput(outputId = "smoothing_description")),
-        tabPanel("daily usage",
+        tabPanel("Daily usage",
                  plotlyOutput(outputId = "dailyChart"),
                  htmlOutput(outputId = "daily_chart_narrative"),
                  includeMarkdown("chart_info.md")),
-        tabPanel("usage by weekday",
+        tabPanel("Usage by weekday",
                  plotlyOutput(outputId = "weekdayChart"),
                  textOutput(outputId = "weekday_chart_narrative"),
                  includeMarkdown("chart_info.md")),
-        tabPanel("usage by desk type",
+        tabPanel("Usage by desk type",
                  plotlyOutput(outputId = "deskChart"),
                  includeMarkdown("chart_info.md")),
-        tabPanel("usage by floor",
+        tabPanel("Usage by floor",
                  plotlyOutput(outputId = "floorChart"),
                  includeMarkdown("chart_info.md")),
-        tabPanel("summarised data",
+        tabPanel("Summarised data",
                  downloadButton("download_summarised_data"),
                  dataTableOutput(outputId = "df_sum")),
-        tabPanel("filtered data",
+        tabPanel("Filtered data",
                  downloadButton("download_filtered_data"),
                  dataTableOutput(outputId = "filtered")),
-        tabPanel("raw data",
+        tabPanel("Raw data",
                  downloadButton("download_raw_data"),
                  dataTableOutput(outputId = "raw_data")),
-        tabPanel("bad observations",
+        tabPanel("Bad observations",
                  downloadButton("download_bad_observations"),
                  dataTableOutput(outputId = "bad_observations"))
       )
