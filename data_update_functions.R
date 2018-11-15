@@ -12,8 +12,8 @@ survey_list <- c("102 Petty France v2.1",
 update_selected_survey_list <- function(survey_list) {
 
 my_df <- data.frame(surveyname = survey_list)
-feather::write_feather(my_df, "selected surveys.feather")
-s3tools::write_file_to_s3("selected surveys.feather", "alpha-app-occupeye-automation/selected surveys.feather", overwrite = TRUE)
+feather::write_feather(my_df, "active surveys.feather")
+s3tools::write_file_to_s3("active surveys.feather", "alpha-app-occupeye-automation/selected surveys.feather", overwrite = TRUE)
 }
 
 update_selected_survey_list(survey_list)
