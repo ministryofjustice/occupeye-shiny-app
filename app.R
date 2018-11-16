@@ -137,7 +137,7 @@ ui <- fluidPage(
             )
           )
         ),
-        tabPanel("Change log",
+        tabPanel("Changelog",
           fluidPage(
             fluidRow(
               column(8,includeMarkdown("changelog.md"))
