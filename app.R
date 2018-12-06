@@ -40,10 +40,8 @@ active_surveys <- s3tools::read_using(FUN = feather::read_feather, s3_path = "al
 # So calling surveys_hash["survey_name"] returns its corresponding survey_id
 surveys_list <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/surveys.feather") %>%
   filter(name %in% active_surveys$surveyname)
+
 surveys_hash <- with(surveys_list[c("name", "survey_id")], setNames(survey_id, name))
-
-
-
 
 selected_survey_id <- surveys_hash[1]
 
@@ -317,7 +315,7 @@ server <- function(input, output, session) {
     updateDateRangeInput(session, inputId = "download_date_range",
                          min = min(dates_list, na.rm = TRUE),
                          max = max(dates_list, na.rm = TRUE),
-                         start = today() - months(1),
+                         start = max(start_date, today() - months(1)),
                          end = max(dates_list, na.rm = TRUE))
   })
   
