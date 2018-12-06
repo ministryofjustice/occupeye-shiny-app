@@ -1,5 +1,15 @@
 ## Changelog
 
+### v0.7.3 - 2018-12-06
+
+- Revert authentication change
+- Fix several bugs
+- Added latest Home Office surveys
+
+### v0.7.2 - 2018-11-06
+
+Temporary switch to email authentication
+
 ### v0.7.1 - 2018-10-12
 
 Minor update to make sure the data updates work correctly.
