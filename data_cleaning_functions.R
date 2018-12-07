@@ -68,10 +68,28 @@ clean_and_mutate_raw_data <- function(df) {
 get_summarised_data <- function(df) {
   
   df %>%
-    group_by(date = date(obs_datetime), surveydeviceid, roomtype, devicetype, category_1, category_2, category_3, floor) %>%
+    group_by(date = date(obs_datetime),
+             surveydeviceid, 
+             roomtype, 
+             devicetype,
+             category_1, 
+             category_2,
+             category_3, 
+             floor,
+             roomname,
+             location) %>%
     summarise(utilisation = mean(sensor_value, rm.na = TRUE),
               count_na = sum(is.na(sensor_value))) %>%  
-    ungroup(date, surveydeviceid, roomtype, devicetype, category_1, category_2, category_3, floor) %>%
+    ungroup(date,
+            surveydeviceid, 
+            roomtype, 
+            devicetype, 
+            category_1, 
+            category_2, 
+            category_3, 
+            floor,
+            roomname,
+            location) %>%
     add_is_used() %>%
     add_util_category
 
