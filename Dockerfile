@@ -31,4 +31,8 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/
 
 # Run shiny-server on port 80
 RUN sed -i 's/3838/80/g' /etc/shiny-server/shiny-server.conf
+
+# Increase http timeout
+RUN echo "http_keepalive_timeout 90;" >> /etc/shiny-server/shiny-server.conf
+
 EXPOSE 80
