@@ -76,8 +76,7 @@ get_summarised_data <- function(df) {
              category_2,
              category_3, 
              floor,
-             roomname,
-             location) %>%
+             roomname) %>%
     summarise(utilisation = mean(sensor_value, rm.na = TRUE),
               count_na = sum(is.na(sensor_value))) %>%  
     ungroup(date,
@@ -88,8 +87,7 @@ get_summarised_data <- function(df) {
             category_2, 
             category_3, 
             floor,
-            roomname,
-            location) %>%
+            roomname) %>%
     add_is_used() %>%
     add_util_category
 
