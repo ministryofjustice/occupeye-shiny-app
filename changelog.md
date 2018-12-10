@@ -1,5 +1,10 @@
 ## Changelog
 
+### v0.8 - 2018-12-10
+
+- Adds filters for zone and desks
+- (hopefully) fixes timeout issue with large Markdown reports
+
 ### v0.7.3 - 2018-12-06
 
 - Revert authentication change

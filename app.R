@@ -31,7 +31,8 @@ date_list <- unique(lubridate::date(temp_df$obs_datetime))
 room_types <- unique(temp_df$roomtype)
 device_types <- unique(temp_df$devicetype)
 floors <- unique(temp_df$floor)
-
+zones <- unique(temp_df$roomname)
+desks <- unique(temp_df$location)
 
 # Get the list of active survey
 active_surveys <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/active surveys.feather")
@@ -114,6 +115,23 @@ ui <- fluidPage(
                         options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
                         multiple = TRUE,
                         selected = floors),
+            
+            pickerInput(inputId = "zones",
+                        label = "Pick zone(s)",
+                        choices = zones,
+                        options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
+                        multiple = TRUE,
+                        selected = zones),
+            
+            pickerInput(inputId = "desks",
+                        label = "Pick desks(s)",
+                        choices = desks,
+                        options = list(`actions-box` = TRUE,
+                                       `selected-text-format` = "count > 4",
+                                       `live-search` = TRUE),
+                        multiple = TRUE,
+                        selected = desks),
+            
     
             
             helpText("Select Department(s) and team(s)"),
@@ -209,7 +227,9 @@ server <- function(input, output, session) {
   
   sensors <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/sensors.feather") %>%
     mutate_at(.funs = funs(ifelse(. == "", NA, .)), # Feather imports missing values as emptystring, so convert them to NA
-              .vars = vars(category_1, category_2, category_3)) # This only pertains to the team categories, so just mutate the team categories
+              .vars = vars(category_1, category_2, category_3)) %>% # This only pertains to the team categories, so just mutate the team categories
+    mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
+              .vars = vars(roomname, location)) # 
   
   
   # Create and initialise RV, which is a collection of the reactive values
@@ -264,7 +284,9 @@ server <- function(input, output, session) {
                     floor %in% input$floors,
                     trimws(category_1) %in% l1Names,
                     trimws(category_2) %in% l2Names,
-                    trimws(category_3) %in% l3Names)
+                    trimws(category_3) %in% l3Names,
+                    roomname %in% input$zones,
+                    location %in% input$desks)
   }
   
   
@@ -363,6 +385,14 @@ server <- function(input, output, session) {
     desk_type_list <- lapply(split(unique_device_types$devicetype,
                                    unique_device_types$roomtype),
                              as.list)
+    
+    # Get list of zones
+  
+    zone_list <- unique(RV$df_sum$roomname) %>% sort()
+    
+    # Get list of desks
+    desks_list <- unique(RV$df_sum$location) %>% sort()
+    
     # get new list of dates
     date_list <- unique(RV$df_sum$date)
     
@@ -373,13 +403,26 @@ server <- function(input, output, session) {
     updatePickerInput(session, inputId = "desk_type",
                       choices = desk_type_list,
                       selected = desk_type_list$`Desk Setting`)
+    
+    updatePickerInput(session, inputId = "zones",
+                      choices = zone_list,
+                      selected = zone_list)
+    
+    updatePickerInput(session, inputId = "desks",
+                      choices = desks_list,
+                      selected = desks_list)
+
+    
     updateDateRangeInput(session, inputId = "date_range",
                          min = min(date_list, na.rm = TRUE),
                          max = max(date_list, na.rm = TRUE),
                          start = min(date_list, na.rm = TRUE),
                          end = max(date_list, na.rm = TRUE))
     
+    
     updateTree(session, "tree", data = get_team_tree())
+    
+    RV$filtered <- update_filter()
     
   })
   
@@ -390,6 +433,8 @@ server <- function(input, output, session) {
     input$date_range
     input$desk_type
     input$smoothing_factor
+    input$zones
+    input$desks
     },
     
     {
