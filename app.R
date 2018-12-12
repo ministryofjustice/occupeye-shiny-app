@@ -62,8 +62,7 @@ ui <- fluidPage(
         tabPanel("Report config",
           selectInput(inputId = "survey_name",
                       label = "Select OccupEye survey",
-                      choices = active_surveys$surveyname,
-                      selected = "102 Petty France v2.1"),
+                      choices = active_surveys$surveyname),
 
           selectInput(inputId = "raw_feather",
                       label = "Select report to download",
@@ -241,7 +240,7 @@ server <- function(input, output, session) {
   
   surveys_hash <- with(surveys_list[c("name", "survey_id")], setNames(survey_id, name))
   
-  updateSelectInput(inputId = "survey_name",
+  updateSelectInput(session, inputId = "survey_name",
               choices = active_surveys$surveyname)
   
   
