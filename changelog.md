@@ -1,5 +1,9 @@
 ## Changelog
 
+### v0.8.1 - 2018-12-12
+
+- Updates survey list at server function
+
 ### v0.8 - 2018-12-10
 
 - Adds filters for zone and desks
