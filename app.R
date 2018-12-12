@@ -231,6 +231,19 @@ server <- function(input, output, session) {
     mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
               .vars = vars(roomname, location)) # 
   
+  # Get the list of active survey
+  active_surveys <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/active surveys.feather")
+  
+  # Get the surveys table, and make a dictionary of survey names to their IDs. 
+  # So calling surveys_hash["survey_name"] returns its corresponding survey_id
+  surveys_list <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/surveys.feather") %>%
+    filter(name %in% active_surveys$surveyname)
+  
+  surveys_hash <- with(surveys_list[c("name", "survey_id")], setNames(survey_id, name))
+  
+  updateSelectInput(inputId = "survey_name",
+              choices = active_surveys$surveyname)
+  
   
   # Create and initialise RV, which is a collection of the reactive values
   RV <- reactiveValues(data = temp_df,
