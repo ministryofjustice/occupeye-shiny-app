@@ -356,6 +356,9 @@ server <- function(input, output, session) {
   # When clicking the "load report" button...
   observeEvent(input$loadCSV, {
     
+    # Store the selected survey name to log what survey is currently loaded, in case the selection is changed in the dropdown later
+    RV$survey_name <- input$survey_name
+    
     # Add a progress bar
     withProgress(message = paste0("Loading report ", input$raw_feather), {
 
@@ -579,7 +582,8 @@ server <- function(input, output, session) {
         out <- rmarkdown::render(out_report, 
                                  params = list(start_date = input$date_range[1],
                                                end_date = input$date_range[2], 
-                                               df_sum = RV$filtered))
+                                               df_sum = RV$filtered,
+                                               survey_name = RV$survey_name))
         file.rename(out, file)
       })
       

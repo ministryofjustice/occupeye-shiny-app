@@ -1,5 +1,4 @@
 ---
-title: "Desk usage report"
 date:  "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
   word_document:
@@ -10,7 +9,12 @@ params:
   start_date: NULL
   end_date: NULL
   df_sum: NULL
+  survey_name: NULL
+  
+title: "`r paste0('desk usage report, ', params$survey_name)`"
 ---
+
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
