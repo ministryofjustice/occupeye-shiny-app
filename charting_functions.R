@@ -345,9 +345,9 @@ desks_by_desk_type <- function(df_sum) {
 
 desks_by_team <- function(df_sum) {
   df_sum %>%
-    group_by(category_3) %>%
+    group_by(category_1, category_2, category_3) %>%
     summarise(sensors = n_distinct(surveydeviceid)) %>%
-    rename("Team" = category_3)
+    rename("Directorate" = category_1, "Department" = category_2, "Team" = category_3)
 }
 
 desks_by_desk_type_and_team <- function(df_sum) {

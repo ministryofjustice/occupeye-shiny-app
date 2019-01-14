@@ -174,9 +174,9 @@ ui <- fluidPage(
                       tableOutput(outputId = "peak_occupancy"))
                ),
             fluidRow(
-              column(3, tableOutput(outputId = "team_count")),
-              column(3, tableOutput(outputId = "desk_count")),
-              column(3, tableOutput(outputId = "team_desk_count"))
+              column(4, tableOutput(outputId = "team_count")),
+              column(2, tableOutput(outputId = "desk_count")),
+              column(4, tableOutput(outputId = "team_desk_count"))
               )
             )
           ),
