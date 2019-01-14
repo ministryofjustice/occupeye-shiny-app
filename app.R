@@ -140,7 +140,7 @@ ui <- fluidPage(
         ),
         
         tabPanel("Download Report",
-                 radioButtons("format", "Document format", c("HTML", "Word"),
+                 radioButtons("format", "Document format", c("Word"),
                               inline = TRUE),
                  downloadButton("download_button", "Generate report")
         )
