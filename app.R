@@ -62,8 +62,7 @@ ui <- fluidPage(
         tabPanel("Report config",
           selectInput(inputId = "survey_name",
                       label = "Select OccupEye survey",
-                      choices = active_surveys$surveyname,
-                      selected = "102 Petty France v2.1"),
+                      choices = active_surveys$surveyname),
 
           selectInput(inputId = "raw_feather",
                       label = "Select report to download",
@@ -230,6 +229,19 @@ server <- function(input, output, session) {
               .vars = vars(category_1, category_2, category_3)) %>% # This only pertains to the team categories, so just mutate the team categories
     mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
               .vars = vars(roomname, location)) # 
+  
+  # Get the list of active survey
+  active_surveys <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/active surveys.feather")
+  
+  # Get the surveys table, and make a dictionary of survey names to their IDs. 
+  # So calling surveys_hash["survey_name"] returns its corresponding survey_id
+  surveys_list <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/surveys.feather") %>%
+    filter(name %in% active_surveys$surveyname)
+  
+  surveys_hash <- with(surveys_list[c("name", "survey_id")], setNames(survey_id, name))
+  
+  updateSelectInput(session, inputId = "survey_name",
+              choices = active_surveys$surveyname)
   
   
   # Create and initialise RV, which is a collection of the reactive values

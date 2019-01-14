@@ -80,8 +80,9 @@ get_prop_usage_day <- function(df_sum) {
 
   df_sum %>%
     mutate(day = weekdays(date)) %>%
-    count(day, util_cat) %>%
-    group_by(day) %>%
+    group_by(day, util_cat) %>%
+    summarise(n = n()) %>%
+    tidyr::complete(day, util_cat, fill = list(n = 0)) %>%
     mutate(prop = n / sum(n)) %>%
     ungroup(day)
   
