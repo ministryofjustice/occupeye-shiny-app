@@ -7,10 +7,11 @@ library(dplyr)          # For pipes data wrangling
 library(htmlwidgets)    # rpivotTable depends on it
 library(shinyWidgets)   # For pickerInput
 library(plotly)         # Makes ggplot interactive
-library(shinyTree)      # for the category tree. Specifically requires the schaffman5 fork on github
+library(shinyTree)      # for the category tree.
 library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
 library(glue)           # Interpreted string literals
+library(s3tools)        # S3tools for getting stuff from S3
 
 # import other source code ------------------------------------------------
 
