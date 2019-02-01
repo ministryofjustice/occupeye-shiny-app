@@ -45,6 +45,20 @@ cat(paste0("\n\n ",get_smoothing_narrative(df_sum,0.5)))
 ```
 
 ```{r team_slides, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
+floor_list <- unique(df_sum$floor)
+
+if(length(floor_list) > 1) {
+  for(my_floor in floor_list) {
+    floor_df_sum <- df_sum %>% filter(floor == my_floor)
+    cat('\n\n## Desk utilisation for floor ',my_floor,' (',n_distinct(floor_df_sum$surveydeviceid),' sensors) \n\n',sep="")
+    print(prop_daily_usage_chart(floor_df_sum))
+    cat(paste0("\n\n ",daily_usage_chart_narrative(floor_df_sum)))
+    cat("The following teams are on this floor: \n\n")
+    print(knitr::kable(desks_by_team(floor_df_sum)))
+    
+  }
+}
+
 team_list <- unique(df_sum$category_1)
 for(team in team_list) {
   if(!is.na(team)) {

@@ -141,7 +141,7 @@ ui <- fluidPage(
         ),
         
         tabPanel("Download Report",
-                 radioButtons("format", "Document format", c("Word"),
+                 radioButtons("format", "Document format", c("By team", "By floor", "By floor and team"),
                               inline = TRUE),
                  downloadButton("download_button", "Generate report")
         )
@@ -550,16 +550,15 @@ server <- function(input, output, session) {
   
   # Functions for handling the report download  
   output$download_button <- downloadHandler(
-    filename = function() {
-      paste("my-report", sep = '.', switch(
-        input$format, PDF = "pdf", HTML = "html", Word = "docx"
-      ))
-    },
+    filename = "my-report.docx",
     
     content = function(file) {
       
       out_report <- switch(
-        input$format, PDF = "pdf", HTML = "slidy_report.Rmd", Word = "word_report.Rmd"
+        input$format, 
+        "By team" = "word_report.Rmd",
+        "By floor" = "word_report_floors.Rmd", 
+        "By floor and team" = "word_report_floors_teams.Rmd"
       )
       
       src <- normalizePath(out_report)
