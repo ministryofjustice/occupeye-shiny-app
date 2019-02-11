@@ -7,8 +7,8 @@ survey_list <- c("102 Petty France v2.1",
                  "10 South Colonnade",
                  "5WP; Leeds",
                  "HMPPS in Southern House v2.0",
-                 "Southern House - Home Office",
-                 "Apollo House - Home Office",
+                 "Home Office; Southern House",
+                 "Home Office; Apollo House",
                  "Home Office; Croydon")
 
 update_selected_survey_list <- function(survey_list) {

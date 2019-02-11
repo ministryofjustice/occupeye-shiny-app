@@ -1,5 +1,12 @@
 ## Changelog
 
+### v0.9 - 2019-02-04
+
+- Adds options for report output by floor, or by floor and team
+- Removed slidy report
+- Added survey name to report for easier trackability
+- Re-enabled email authorisation
+
 ### v0.8.1 - 2018-12-12
 
 - Updates survey list at server function

@@ -7,10 +7,11 @@ library(dplyr)          # For pipes data wrangling
 library(htmlwidgets)    # rpivotTable depends on it
 library(shinyWidgets)   # For pickerInput
 library(plotly)         # Makes ggplot interactive
-library(shinyTree)      # for the category tree. Specifically requires the schaffman5 fork on github
+library(shinyTree)      # for the category tree.
 library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
 library(glue)           # Interpreted string literals
+library(s3tools)        # S3tools for getting stuff from S3
 
 # import other source code ------------------------------------------------
 
@@ -140,7 +141,7 @@ ui <- fluidPage(
         ),
         
         tabPanel("Download Report",
-                 radioButtons("format", "Document format", c("HTML", "Word"),
+                 radioButtons("format", "Document format", c("By team", "By floor", "By floor and team"),
                               inline = TRUE),
                  downloadButton("download_button", "Generate report")
         )
@@ -173,9 +174,9 @@ ui <- fluidPage(
                       tableOutput(outputId = "peak_occupancy"))
                ),
             fluidRow(
-              column(3, tableOutput(outputId = "team_count")),
-              column(3, tableOutput(outputId = "desk_count")),
-              column(3, tableOutput(outputId = "team_desk_count"))
+              column(4, tableOutput(outputId = "team_count")),
+              column(2, tableOutput(outputId = "desk_count")),
+              column(4, tableOutput(outputId = "team_desk_count"))
               )
             )
           ),
@@ -344,17 +345,22 @@ server <- function(input, output, session) {
     updateSelectInput(session, inputId = "raw_feather",
                       choices = survey_files)
     
-    start_date <- surveys_list %>% filter(survey_id == selected_survey_id) %>% .$startdate
-    dates_list <- seq(as.Date(start_date), as.Date(today() - 1), by = "day")
+    start_date <- surveys_list %>% filter(survey_id == selected_survey_id) %>% pull(startdate)
+    end_date <- surveys_list %>% filter(survey_id == selected_survey_id) %>% pull(enddate)
+    
+    dates_list <- seq(as.Date(start_date), min(as.Date(end_date), as.Date(today() - 1)), by = "day")
     updateDateRangeInput(session, inputId = "download_date_range",
                          min = min(dates_list, na.rm = TRUE),
                          max = max(dates_list, na.rm = TRUE),
-                         start = max(start_date, today() - months(1)),
+                         start = max(min(today() %m-% months(1), end_date %m-% months(1)),start_date),
                          end = max(dates_list, na.rm = TRUE))
   })
   
   # When clicking the "load report" button...
   observeEvent(input$loadCSV, {
+    
+    # Store the selected survey name to log what survey is currently loaded, in case the selection is changed in the dropdown later
+    RV$survey_name <- input$survey_name
     
     # Add a progress bar
     withProgress(message = paste0("Loading report ", input$raw_feather), {
@@ -546,16 +552,15 @@ server <- function(input, output, session) {
   
   # Functions for handling the report download  
   output$download_button <- downloadHandler(
-    filename = function() {
-      paste("my-report", sep = '.', switch(
-        input$format, PDF = "pdf", HTML = "html", Word = "docx"
-      ))
-    },
+    filename = "my-report.docx",
     
     content = function(file) {
       
       out_report <- switch(
-        input$format, PDF = "pdf", HTML = "slidy_report.Rmd", Word = "word_report.Rmd"
+        input$format, 
+        "By team" = "word_report.Rmd",
+        "By floor" = "word_report_floors.Rmd", 
+        "By floor and team" = "word_report_floors_teams.Rmd"
       )
       
       src <- normalizePath(out_report)
@@ -579,7 +584,8 @@ server <- function(input, output, session) {
         out <- rmarkdown::render(out_report, 
                                  params = list(start_date = input$date_range[1],
                                                end_date = input$date_range[2], 
-                                               df_sum = RV$filtered))
+                                               df_sum = RV$filtered,
+                                               survey_name = RV$survey_name))
         file.rename(out, file)
       })
       
