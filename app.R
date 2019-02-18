@@ -35,8 +35,6 @@ floors <- unique(temp_df$floor)
 zones <- unique(temp_df$roomname)
 desks <- unique(temp_df$location)
 
-# Get the list of active survey
-active_surveys <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/active surveys.feather")
 
 # Get the surveys table, and make a dictionary of survey names to their IDs. 
 # So calling surveys_hash["survey_name"] returns its corresponding survey_id
@@ -61,9 +59,7 @@ ui <- fluidPage(
     sidebarPanel(
       tabsetPanel(
         tabPanel("Report config",
-          selectInput(inputId = "survey_name",
-                      label = "Select OccupEye survey",
-                      choices = active_surveys$surveyname),
+          uiOutput("survey_name"),
 
           selectInput(inputId = "raw_feather",
                       label = "Select report to download",
@@ -241,8 +237,9 @@ server <- function(input, output, session) {
   
   surveys_hash <- with(surveys_list[c("name", "survey_id")], setNames(survey_id, name))
   
-  updateSelectInput(session, inputId = "survey_name",
-              choices = active_surveys$surveyname)
+  output$survey_name <- renderUI({selectInput(inputId = "survey_name",
+              label = "Select OccupEye survey",
+              choices = active_surveys$surveyname)})
   
   
   # Create and initialise RV, which is a collection of the reactive values
