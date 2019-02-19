@@ -36,20 +36,6 @@ zones <- unique(temp_df$roomname)
 desks <- unique(temp_df$location)
 
 
-# Get the surveys table, and make a dictionary of survey names to their IDs. 
-# So calling surveys_hash["survey_name"] returns its corresponding survey_id
-surveys_list <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/surveys.feather") %>%
-  filter(name %in% active_surveys$surveyname)
-
-surveys_hash <- with(surveys_list[c("name", "survey_id")], setNames(survey_id, name))
-
-selected_survey_id <- surveys_hash[1]
-
-# Get the list of reports in the folder of the selected file
-report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", 
-                                              prefix = glue("surveys/{selected_survey_id}")) %>% filter(grepl("\\.feather", path))
-
-
 
 # UI function -------------------------------------------------------------
 # Constructs the UI, starting with the sidebar, which has the user controls
@@ -60,10 +46,8 @@ ui <- fluidPage(
       tabsetPanel(
         tabPanel("Report config",
           uiOutput("survey_name"),
+          uiOutput("raw_feather"),
 
-          selectInput(inputId = "raw_feather",
-                      label = "Select report to download",
-                      choices = gsub("\\.feather", "", report_list$filename)),
           
           dateRangeInput(inputId = "download_date_range",
                          label = "Select date range to download",
@@ -237,9 +221,23 @@ server <- function(input, output, session) {
   
   surveys_hash <- with(surveys_list[c("name", "survey_id")], setNames(survey_id, name))
   
-  output$survey_name <- renderUI({selectInput(inputId = "survey_name",
+  selected_survey_id <- surveys_hash[1]
+  
+  # Get the list of reports in the folder of the selected file
+  report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", 
+                                                prefix = glue("surveys/{selected_survey_id}")) %>% filter(grepl("\\.feather", path))
+  
+  output$survey_name <- renderUI({
+    selectInput(inputId = "survey_name",
               label = "Select OccupEye survey",
-              choices = active_surveys$surveyname)})
+              choices = active_surveys$surveyname)
+  })
+  
+  output$raw_feather <- renderUI({
+    selectInput(inputId = "raw_feather",
+                label = "Select report to download",
+                choices = gsub("\\.feather", "", report_list$filename))
+  })
   
   
   # Create and initialise RV, which is a collection of the reactive values
