@@ -12,6 +12,7 @@ library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
 library(glue)           # Interpreted string literals
 library(s3tools)        # S3tools for getting stuff from S3
+library(dbtools)
 
 # import other source code ------------------------------------------------
 
@@ -46,7 +47,6 @@ ui <- fluidPage(
       tabsetPanel(
         tabPanel("Report config",
           uiOutput("survey_name"),
-          uiOutput("raw_feather"),
 
           
           dateRangeInput(inputId = "download_date_range",
@@ -205,7 +205,7 @@ ui <- fluidPage(
 # This function defines the server function, which does the backend calculations
 server <- function(input, output, session) {
   
-  sensors <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/sensors.feather") %>%
+  sensors <- dbtools::read_sql("select * from occupeye_app_db.sensors") %>%
     mutate_at(.funs = funs(ifelse(. == "", NA, .)), # Feather imports missing values as emptystring, so convert them to NA
               .vars = vars(category_1, category_2, category_3)) %>% # This only pertains to the team categories, so just mutate the team categories
     mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
@@ -216,16 +216,12 @@ server <- function(input, output, session) {
   
   # Get the surveys table, and make a dictionary of survey names to their IDs. 
   # So calling surveys_hash["survey_name"] returns its corresponding survey_id
-  surveys_list <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/surveys.feather") %>%
+  surveys_list <- dbtools::read_sql("select * from occupeye_app_db.surveys") %>%
     filter(name %in% active_surveys$surveyname)
   
   surveys_hash <- with(surveys_list[c("name", "survey_id")], setNames(survey_id, name))
   
   selected_survey_id <- surveys_hash[1]
-  
-  # Get the list of reports in the folder of the selected file
-  report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", 
-                                                prefix = glue("surveys/{selected_survey_id}")) %>% filter(grepl("\\.feather", path))
   
   output$survey_name <- renderUI({
     selectInput(inputId = "survey_name",
@@ -233,13 +229,7 @@ server <- function(input, output, session) {
               choices = active_surveys$surveyname)
   })
   
-  output$raw_feather <- renderUI({
-    selectInput(inputId = "raw_feather",
-                label = "Select report to download",
-                choices = gsub("\\.feather", "", report_list$filename))
-  })
-  
-  
+
   # Create and initialise RV, which is a collection of the reactive values
   RV <- reactiveValues(data = temp_df,
                        df_sum = temp_df_sum,
@@ -333,12 +323,7 @@ server <- function(input, output, session) {
   observeEvent(input$survey_name, {
 
     selected_survey_id <- surveys_hash[input$survey_name]
-    RV$report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", prefix = glue("surveys/{selected_survey_id}"))
 
-    survey_reports <- RV$report_list %>% arrange(filename)
-    survey_files <- gsub("\\.feather", "", survey_reports$filename)
-    updateSelectInput(session, inputId = "raw_feather",
-                      choices = survey_files)
     
     start_date <- surveys_list %>% filter(survey_id == selected_survey_id) %>% pull(startdate)
     end_date <- surveys_list %>% filter(survey_id == selected_survey_id) %>% pull(enddate)
@@ -358,15 +343,21 @@ server <- function(input, output, session) {
     RV$survey_name <- input$survey_name
     
     # Add a progress bar
-    withProgress(message = paste0("Loading report ", input$raw_feather), {
+    withProgress(message = paste0("Loading report ", input$survey_name), {
+      start.time <- Sys.time()
 
-      # find the s3 path for the selected report
-      feather_path <- RV$report_list %>% dplyr::filter(filename == paste0(input$raw_feather, ".feather"))
+      sql <- get_df_sql(surveys_hash[input$survey_name],
+                        start_date = input$download_date_range[1], 
+                        end_date = input$download_date_range[2])
+      
+      
       
       # Download the minimal table, filtered by the download_date_range
-      df_min <- s3tools::read_using(FUN = feather::read_feather, s3_path = feather_path$path) %>%
-        filter(obs_datetime >= input$download_date_range[1], obs_datetime <= paste0(input$download_date_range[2]," 23:50"))
+      df_min <- dbtools::read_sql(sql)
       
+      end.time <- Sys.time()
+      diff <- end.time - start.time
+      print(diff)
       # Add the other sensor metadata, dealing with the inconsistently named survey_device_id and surveydeviceid
       df_full <- left_join(df_min, sensors, by = c("survey_device_id" = "surveydeviceid")) %>% 
         rename(surveydeviceid = survey_device_id)
@@ -383,7 +374,7 @@ server <- function(input, output, session) {
       RV$df_sum <- get_df_sum(RV$data, input$start_time, input$end_time)
     
       # show dialog to show it's finished loading
-      showModal(modalDialog(glue("{input$raw_feather} successfully loaded into the dashboard."), easyClose = TRUE))
+      showModal(modalDialog(glue("{input$survey_name} successfully loaded into the dashboard."), easyClose = TRUE))
     })
   })
   
