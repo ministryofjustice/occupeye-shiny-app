@@ -205,18 +205,12 @@ ui <- fluidPage(
 # This function defines the server function, which does the backend calculations
 server <- function(input, output, session) {
   
-  sensors <- dbtools::read_sql("select * from occupeye_app_db.sensors") %>%
-    mutate_at(.funs = funs(ifelse(. == "", NA, .)), # Feather imports missing values as emptystring, so convert them to NA
-              .vars = vars(category_1, category_2, category_3)) %>% # This only pertains to the team categories, so just mutate the team categories
-    mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
-              .vars = vars(roomname, location)) # 
-  
   # Get the list of active survey
   active_surveys <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/active surveys.feather")
   
   # Get the surveys table, and make a dictionary of survey names to their IDs. 
   # So calling surveys_hash["survey_name"] returns its corresponding survey_id
-  surveys_list <- dbtools::read_sql("select * from occupeye_app_db.surveys") %>%
+  surveys_list <- s3tools::read_using(readr::read_csv, "alpha-app-occupeye-automation/raw_data_v5/surveys/data.csv") %>%
     filter(name %in% active_surveys$surveyname)
   
   surveys_hash <- with(surveys_list[c("name", "survey_id")], setNames(survey_id, name))
@@ -338,6 +332,11 @@ server <- function(input, output, session) {
   
   # When clicking the "load report" button...
   observeEvent(input$loadCSV, {
+    
+    sensors <- s3tools::read_using(readr::read_csv, glue("alpha-app-occupeye-automation/raw_data_v5/sensors/survey_id={surveys_hash[input$survey_name]}/data.csv")) %>%
+      mutate(surveydeviceid = as.character(surveydeviceid)) %>% # coerce surveydeviceid to char to maintain type integrity
+      mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
+                .vars = vars(roomname, location))
     
     # Store the selected survey name to log what survey is currently loaded, in case the selection is changed in the dropdown later
     RV$survey_name <- input$survey_name
