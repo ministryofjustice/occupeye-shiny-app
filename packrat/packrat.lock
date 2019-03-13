@@ -24,8 +24,8 @@ Requires: lattice
 
 Package: R6
 Source: CRAN
-Version: 2.2.2
-Hash: b2366cd9d2f3851a5704b4e192b985c2
+Version: 2.4.0
+Hash: 948a547c484e5bea15eee76cc53cce3f
 
 Package: RColorBrewer
 Source: CRAN
@@ -57,16 +57,26 @@ GithubRepo: aws.ec2metadata
 GithubUsername: cloudyr
 GithubRef: master
 GithubSha1: f6bc0bd67ed9b648ad05defe6ff1d7cc00596ecc
+RemoteHost: https://api.github.com
+RemoteRepo: aws.ec2metadata
+RemoteUsername: cloudyr
+RemoteRef: master
+RemoteSha: f6bc0bd67ed9b648ad05defe6ff1d7cc00596ecc
 
 Package: aws.s3
 Source: github
 Version: 0.3.20
-Hash: cd48738628b1c94525e2ebbd42caf70a
+Hash: 1e57e151a01e9b3c1f411fa4247abf34
 Requires: aws.signature, base64enc, curl, digest, httr, xml2
 GithubRepo: aws.s3
 GithubUsername: cloudyr
 GithubRef: master
-GithubSha1: 3d2b2e17b92255a73935514ee19fc7553fd80fae
+GithubSha1: ff2966749a361ff143ef99053325163460dc15d0
+RemoteHost: https://api.github.com
+RemoteRepo: aws.s3
+RemoteUsername: cloudyr
+RemoteRef: master
+RemoteSha: ff2966749a361ff143ef99053325163460dc15d0
 
 Package: aws.signature
 Source: github
@@ -77,6 +87,11 @@ GithubRepo: aws.signature
 GithubUsername: cloudyr
 GithubRef: master
 GithubSha1: df1ddb4931d755bb83cd7f05937be0d7129f46fb
+RemoteHost: https://api.github.com
+RemoteRepo: aws.signature
+RemoteUsername: cloudyr
+RemoteRef: master
+RemoteSha: df1ddb4931d755bb83cd7f05937be0d7129f46fb
 
 Package: backports
 Source: CRAN
@@ -155,13 +170,28 @@ Requires: R6, ggplot2, htmltools, jsonlite, lazyeval, shiny
 
 Package: curl
 Source: CRAN
-Version: 3.2
-Hash: 82a7cf5bb702ef52329b6d23ea6132a7
+Version: 3.3
+Hash: b201f64e6e1469e8a3571c746ffa9059
 
 Package: data.table
 Source: CRAN
 Version: 1.11.8
 Hash: 67c877937c790a0cadb71284febb6b34
+
+Package: dbtools
+Source: github
+Version: 1.0.0
+Hash: 7f50f8af8dad90e80093aa8a64db362f
+Requires: readr, reticulate, s3tools
+GithubRepo: dbtools
+GithubUsername: moj-analytical-services
+GithubRef: master
+GithubSha1: c59bdf68eba419159f7e58a2f00e9eb9193bcb88
+RemoteHost: https://api.github.com
+RemoteRepo: dbtools
+RemoteUsername: moj-analytical-services
+RemoteRef: master
+RemoteSha: c59bdf68eba419159f7e58a2f00e9eb9193bcb88
 
 Package: desc
 Source: CRAN
@@ -481,9 +511,9 @@ Requires: R6, callr, cli, crayon, desc, digest, pkgbuild, prettyunits,
 
 Package: readr
 Source: CRAN
-Version: 1.1.1
-Hash: 3026fd99327154b534c62641dc40b3d1
-Requires: BH, R6, Rcpp, hms, tibble
+Version: 1.3.1
+Hash: 8e826fd33ba49b3fc327fd9e3b033713
+Requires: BH, R6, Rcpp, clipr, crayon, hms, tibble
 
 Package: remotes
 Source: CRAN
@@ -495,6 +525,12 @@ Source: CRAN
 Version: 1.4.2
 Hash: 08b394f20c3b88731503f67b1e6bc467
 Requires: Rcpp, plyr, stringr
+
+Package: reticulate
+Source: CRAN
+Version: 1.11
+Hash: 2a77175d32ed4d37f644e0b992b3e657
+Requires: Matrix, Rcpp, jsonlite
 
 Package: rlang
 Source: CRAN
@@ -533,14 +569,19 @@ Requires: httr, magrittr, selectr, xml2
 
 Package: s3tools
 Source: github
-Version: 0.0.5
-Hash: 5a2b58d9817cc9c1f75e5a9bda71cd30
+Version: 0.0.9
+Hash: d60f4100735c4a16a3caf389303db417
 Requires: aws.ec2metadata, aws.s3, aws.signature, digest, httr,
     jsonlite
 GithubRepo: s3tools
 GithubUsername: moj-analytical-services
 GithubRef: master
-GithubSha1: a07eddc1f38bf9bdd6e32d82cee22458161c9802
+GithubSha1: 934c9f9420acb168107979267660b2dbd31b6cd7
+RemoteHost: https://api.github.com
+RemoteRepo: s3tools
+RemoteUsername: moj-analytical-services
+RemoteRef: master
+RemoteSha: 934c9f9420acb168107979267660b2dbd31b6cd7
 
 Package: scales
 Source: github
@@ -614,8 +655,8 @@ Requires: R6, cli, crayon, digest, magrittr, praise, rlang, withr
 
 Package: tibble
 Source: CRAN
-Version: 2.0.0
-Hash: dd9c9442795b8b46425bf7ad5514bb0c
+Version: 2.0.1
+Hash: d2a00b9a314cfad8f6b51e2c97aaff5c
 Requires: cli, crayon, fansi, pillar, pkgconfig, rlang
 
 Package: tidyr
