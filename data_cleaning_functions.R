@@ -111,3 +111,44 @@ get_full_df <- function(df, sensors) {
   left_join(df, sensors, by = c("survey_device_id" = "surveydeviceid")) %>% rename(surveydeviceid = survey_device_id)
 }
 
+get_df_sql <- function(survey_id,
+                       category_1=NULL,
+                       category_2=NULL,
+                       category_3=NULL,
+                       floor=NULL,
+                       start_date = "2018-07-01",
+                       end_date = Sys.Date()) {
+  
+  notnull <- function(x) ! is.null(x)
+  
+  category_filter = ""
+  
+  if (notnull(category_1)) {
+    category_filter = glue("{category_filter} and category_1 = '{category_1}'")
+  }
+  if (notnull(category_2)) {
+    category_filter = glue("{category_filter} and category_2 = '{category_2}'")
+  }
+  if (notnull(category_3)) {
+    category_filter = glue("{category_filter} and category_3 = '{category_3}'")
+  }
+  if (notnull(floor)) {
+    category_filter = glue("{category_filter} and floor = '{floor}'")
+  }
+  
+  sql <- "
+    select so.sensor_value, so.obs_datetime, so.survey_device_id
+    from occupeye_app_db.sensor_observations as so
+    left join occupeye_app_db.sensors as se
+    on so.survey_device_id = se.surveydeviceid
+    where so.survey_id = {survey_id}
+    {category_filter}
+    and so.obs_datetime >= timestamp '{start_date} 00:00'
+    and so.obs_datetime <= timestamp '{end_date} 23:50'
+    
+    "
+  
+  glue(sql)
+  
+}
+
