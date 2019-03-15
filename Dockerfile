@@ -12,6 +12,8 @@ RUN mkdir -p /var/log/shiny-server
 RUN apt-get update
 RUN apt-get install libxml2-dev --yes
 RUN apt-get install libssl-dev --yes
+RUN apt-get install -y libpython3-dev
+
 
 # Add Packrat files individually so that next install command
 # can be cached as an image layer separate from application code
