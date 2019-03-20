@@ -2,14 +2,15 @@ library(feather)
 
 
 # replace this with the updated list of surveys
-survey_list <- c("102 Petty France v2.1",
-                 "102 Petty France v2.3b",
+survey_list <- c("102 Petty France v2.3b",
                  "10 South Colonnade",
                  "5WP; Leeds",
                  "HMPPS in Southern House v2.0",
                  "Home Office; Southern House",
                  "Home Office; Apollo House",
-                 "Home Office; Croydon")
+                 "Home Office; Croydon",
+                 "Victory House; OSPT",
+                 "Edward House; APVU")
 
 update_selected_survey_list <- function(survey_list) {
 
