@@ -194,7 +194,17 @@ ui <- fluidPage(
                  dataTableOutput(outputId = "raw_data")),
         tabPanel("Bad observations",
                  downloadButton("download_bad_observations"),
-                 dataTableOutput(outputId = "bad_observations"))
+                 dataTableOutput(outputId = "bad_observations")),
+        tabPanel("Admin",
+                 fluidPage(
+                   fluidRow(
+                     column(3,uiOutput('all_survey_names')),
+                     column(2,actionButton("add_survey_names", "Add survey(s) to list -->"),
+                            actionButton("remove_survey_names", "<-- Remove survey(s) from list"),
+                            actionButton("update_survey_names","Confirm list update")),
+                     column(3,uiOutput('survey_name_admin'))
+                   )
+                 ))
       )
         
     )
@@ -206,29 +216,57 @@ ui <- fluidPage(
 # This function defines the server function, which does the backend calculations
 server <- function(input, output, session) {
   
-  # Get the list of active survey
-  active_surveys <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/active surveys.feather")
-  
-  # Get the surveys table, and make a dictionary of survey names to their IDs. 
-  # So calling surveys_hash["survey_name"] returns its corresponding survey_id
-  surveys_list <- s3tools::read_using(readr::read_csv, "alpha-app-occupeye-automation/raw_data_v5/surveys/data.csv") %>%
-    filter(name %in% active_surveys$surveyname)
-  
-  surveys_hash <- with(surveys_list[c("name", "survey_id")], setNames(survey_id, name))
-  
-  selected_survey_id <- surveys_hash[1]
-  
-  output$survey_name <- renderUI({
-    selectInput(inputId = "survey_name",
-              label = "Select OccupEye survey",
-              choices = active_surveys$surveyname)
-  })
-  
-
   # Create and initialise RV, which is a collection of the reactive values
   RV <- reactiveValues(data = temp_df,
                        df_sum = temp_df_sum,
                        filtered = temp_df_sum)
+
+  # Get the list of active survey
+  RV$active_surveys_list <- s3tools::read_using(FUN = feather::read_feather, 
+                                                s3_path = "alpha-app-occupeye-automation/active surveys.feather") %>% 
+    .$surveyname %>% as.character()
+  
+
+  # Get the surveys table, and make a dictionary of survey names to their IDs. 
+  # So calling surveys_hash["survey_name"] returns its corresponding survey_id
+  surveys <- s3tools::read_using(readr::read_csv, "alpha-app-occupeye-automation/raw_data_v5/surveys/data.csv")
+  
+  observe({
+    RV$active_surveys <- surveys %>% filter(name %in% RV$active_surveys_list)
+  })
+  
+  observe({
+    RV$surveys_hash <- with(RV$active_surveys[c("name", "survey_id")], setNames(survey_id, name))
+  })
+  
+  observe({
+    selected_survey_id <- RV$surveys_hash[1]
+  })
+  
+  output$survey_name <- renderUI({
+    selectInput(inputId = "survey_name",
+              label = "Select OccupEye survey",
+              choices = RV$active_surveys_list)
+  })
+  
+  output$all_survey_names <- renderUI({
+    selectInput(inputId = "all_survey_names",
+                label = "All surveys",
+                choices = surveys$name,
+                multiple = TRUE,
+                selectize = FALSE,
+                size = 12)
+  })
+  
+  output$survey_name_admin <- renderUI({
+    selectInput(inputId = "survey_name_admin",
+                label = "Active surveys",
+                choices = RV$active_surveys$name,
+                multiple = TRUE,
+                selectize = FALSE,
+                size = 12)
+  })
+  
   
   # Initialise the team's shinyTree
   output$tree <- renderEmptyTree()
@@ -317,11 +355,11 @@ server <- function(input, output, session) {
   
   observeEvent(input$survey_name, {
 
-    selected_survey_id <- surveys_hash[input$survey_name]
+    selected_survey_id <- RV$surveys_hash[input$survey_name]
 
     
-    start_date <- surveys_list %>% filter(survey_id == selected_survey_id) %>% pull(startdate)
-    end_date <- surveys_list %>% filter(survey_id == selected_survey_id) %>% pull(enddate)
+    start_date <- RV$active_surveys %>% filter(survey_id == selected_survey_id) %>% pull(startdate)
+    end_date <- RV$active_surveys %>% filter(survey_id == selected_survey_id) %>% pull(enddate)
     
     dates_list <- seq(as.Date(start_date), min(as.Date(end_date), as.Date(today() - 1)), by = "day")
     updateDateRangeInput(session, inputId = "download_date_range",
@@ -334,7 +372,7 @@ server <- function(input, output, session) {
   # When clicking the "load report" button...
   observeEvent(input$loadCSV, {
     
-    sensors <- s3tools::read_using(readr::read_csv, glue("alpha-app-occupeye-automation/raw_data_v5/sensors/survey_id={surveys_hash[input$survey_name]}/data.csv")) %>%
+    sensors <- s3tools::read_using(readr::read_csv, glue("alpha-app-occupeye-automation/raw_data_v5/sensors/survey_id={RV$surveys_hash[input$survey_name]}/data.csv")) %>%
       mutate(surveydeviceid = as.character(surveydeviceid)) %>% # coerce surveydeviceid to char to maintain type integrity
       mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
                 .vars = vars(roomname, location))
@@ -346,7 +384,7 @@ server <- function(input, output, session) {
     withProgress(message = paste0("Loading report ", input$survey_name), {
       start.time <- Sys.time()
 
-      sql <- get_df_sql(surveys_hash[input$survey_name],
+      sql <- get_df_sql(RV$surveys_hash[input$survey_name],
                         start_date = input$download_date_range[1], 
                         end_date = input$download_date_range[2])
       
@@ -427,6 +465,38 @@ server <- function(input, output, session) {
     updateTree(session, "tree", data = get_team_tree())
     
     RV$filtered <- update_filter()
+    
+  })
+  
+  observeEvent(input$add_survey_names, {
+    asl <- RV$active_surveys_list
+    RV$active_surveys_list <- unique(c(input$all_survey_names, asl))
+    new_choices <- RV$active_surveys_list
+    
+    updateSelectInput(session = session, 
+                      inputId = "survey_name_admin", 
+                      choices = new_choices)
+    })
+  
+  observeEvent(input$remove_survey_names, {
+    RV$active_surveys_list <- RV$active_surveys_list[!RV$active_surveys_list %in% input$survey_name_admin]
+    new_choices <- RV$active_surveys_list
+    
+    updateSelectInput(session = session, 
+                      inputId = "survey_name_admin", choices = new_choices)
+  })
+  
+  observeEvent(input$update_survey_names, {
+    RV$active_surveys <- surveys %>% filter(name %in% RV$active_surveys_list)
+    RV$surveys_hash <- with(RV$active_surveys[c("name", "survey_id")], setNames(survey_id, name))
+    updateSelectInput(session, inputId = "survey_name", choices = RV$active_surveys_list)
+    
+    my_df <- data.frame(surveyname = RV$active_surveys_list)
+    feather::write_feather(my_df, "active surveys.feather")
+    s3tools::write_file_to_s3("active surveys.feather", "alpha-app-occupeye-automation/active surveys.feather", overwrite = TRUE)
+    
+    showModal(modalDialog(HTML(glue("Survey list saved. Current list of active surveys: <br> {paste(RV$active_surveys_list, collapse = '<br>')}"))))
+    
     
   })
   
