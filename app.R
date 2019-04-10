@@ -261,7 +261,7 @@ server <- function(input, output, session) {
   output$survey_name_admin <- renderUI({
     selectInput(inputId = "survey_name_admin",
                 label = "Active surveys",
-                choices = RV$active_surveys$name,
+                choices = RV$active_surveys_list,
                 multiple = TRUE,
                 selectize = FALSE,
                 size = 12)
