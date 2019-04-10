@@ -1,40 +1,27 @@
-FROM rocker/shiny@sha256:627a2b7b3b6b1f6e33d37bdba835bbbd854acf70d74010645af71fc3ff6c32b6
-
+FROM quay.io/mojanalytics/rshiny:3.5.1
+# FROM quay.io/mojanalytics/rshiny@sha256:4501e2af32f915aa2f2b652f07ff61d76d35c723843f3c4c1fe6e253d4463d7a
+SHELL ["/bin/bash", "-c"]
+ENV AWS_DEFAULT_REGION eu-west-1
 WORKDIR /srv/shiny-server
 
-# Cleanup shiny-server dir
-RUN rm -rf ./*
-
-# Make sure the directory for individual app logs exists
-RUN mkdir -p /var/log/shiny-server
-
-# Install dependency on xml2
-RUN apt-get update
-RUN apt-get install libxml2-dev --yes
-RUN apt-get install libssl-dev --yes
-RUN apt-get install -y libpython3-dev
-
-
-# Add Packrat files individually so that next install command
+# Add environment file individually so that next install command
 # can be cached as an image layer separate from application code
-ADD packrat packrat
+ADD environment.yml environment.yml
 
 # Install packrat itself then packages from packrat.lock
-RUN R -e "install.packages('packrat'); packrat::restore()"
+RUN conda env update --file environment.yml -n base
+
+## -----------------------------------------------------
+## Uncomment if still using packrat alongside conda
+## Install packrat itself then packages from packrat.lock
+# ADD packrat packrat
+# RUN R -e "install.packages('packrat'); packrat::restore()"
+## ------------------------------------------------------
 
 # Add shiny app code
 ADD . .
 
-# Shiny runs as 'shiny' user, adjust app directory permissions
-RUN chown -R shiny:shiny .
+# temporarily run this way until we can figure out how to run shiny-server in conda
+CMD R -e "library(shiny); runApp(host='0.0.0.0', port=80)"
 
-# APT Cleanup
-RUN apt-get clean && rm -rf /var/lib/apt/lists/
-
-# Run shiny-server on port 80
-RUN sed -i 's/3838/80/g' /etc/shiny-server/shiny-server.conf
-
-# Increase http timeout
-RUN echo "http_keepalive_timeout 90;" >> /etc/shiny-server/shiny-server.conf
-
-EXPOSE 80
+#CMD bash

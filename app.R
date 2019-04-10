@@ -12,6 +12,7 @@ library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
 library(glue)           # Interpreted string literals
 library(s3tools)        # S3tools for getting stuff from S3
+library(reticulate)
 library(dbtools)
 
 # import other source code ------------------------------------------------
