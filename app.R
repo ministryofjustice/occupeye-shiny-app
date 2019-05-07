@@ -371,7 +371,7 @@ server <- function(input, output, session) {
   
   # When clicking the "load report" button...
   observeEvent(input$loadCSV, {
-    
+    print(glue("Loading alpha-app-occupeye-automation/raw_data_v5/sensors/survey_id={RV$surveys_hash[input$survey_name]}/data.csv"))
     sensors <- s3tools::read_using(readr::read_csv, glue("alpha-app-occupeye-automation/raw_data_v5/sensors/survey_id={RV$surveys_hash[input$survey_name]}/data.csv")) %>%
       mutate(surveydeviceid = as.character(surveydeviceid)) %>% # coerce surveydeviceid to char to maintain type integrity
       mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
@@ -388,7 +388,7 @@ server <- function(input, output, session) {
                         start_date = input$download_date_range[1], 
                         end_date = input$download_date_range[2])
       
-      
+      print(glue("executing query: {sql}"))
       
       # Download the minimal table, filtered by the download_date_range
       df_min <- dbtools::read_sql(sql)
