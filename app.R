@@ -31,6 +31,7 @@ temp_df <- s3tools::read_using(FUN = readr::read_csv, s3_path = "alpha-app-occup
 temp_df_sum <- get_df_sum(temp_df, "09:00", "17:00")
 time_list <- unique(strftime(temp_df$obs_datetime, format = "%H:%M"))
 date_list <- unique(lubridate::date(temp_df$obs_datetime))
+buildings <- unique(temp_df$building)
 room_types <- unique(temp_df$roomtype)
 device_types <- unique(temp_df$devicetype)
 floors <- unique(temp_df$floor)
@@ -82,13 +83,12 @@ ui <- fluidPage(
                            min = min(date_list),
                            max = max(date_list)),
             
-            
-            pickerInput(inputId = "desk_type",
-                        label = "Pick desk type(s)",
-                        choices = device_types,
+            pickerInput(inputId = "buildings",
+                        label = "Pick building(s)",
+                        choices = buildings,
                         options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
                         multiple = TRUE,
-                        selected = device_types),
+                        selected = buildings),
             
             pickerInput(inputId = "floors",
                         label = "Pick floor(s)",
@@ -103,6 +103,13 @@ ui <- fluidPage(
                         options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
                         multiple = TRUE,
                         selected = zones),
+            
+            pickerInput(inputId = "desk_type",
+                        label = "Pick desk type(s)",
+                        choices = device_types,
+                        options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
+                        multiple = TRUE,
+                        selected = device_types),
             
             pickerInput(inputId = "desks",
                         label = "Pick desks(s)",
@@ -317,6 +324,7 @@ server <- function(input, output, session) {
     RV$filtered <- RV$df_sum %>%
       dplyr::filter(date >= input$date_range[1] & date <= input$date_range[2],
                     devicetype %in% input$desk_type,
+                    building %in% input$buildings,
                     floor %in% input$floors,
                     trimws(category_1) %in% l1Names,
                     trimws(category_2) %in% l2Names,
@@ -424,6 +432,10 @@ server <- function(input, output, session) {
   # Once it sees that RV$df_sum has updated, update the filter UI with metadata from new dataset
   observeEvent(RV$df_sum, {
     
+    # Get the list of buildings
+    
+    building_list <- unique(RV$df_sum$building) %>% sort()
+    
     # Get the list of floors
     floor_list <- unique(RV$df_sum$floor) %>% as.numeric() %>% sort()
     
@@ -444,6 +456,10 @@ server <- function(input, output, session) {
     date_list <- unique(RV$df_sum$date)
     
     # Update the UI
+    
+    updatePickerInput(session, inputId = "buildings",
+                      choices = building_list,
+                      selected = building_list)
     updatePickerInput(session, inputId = "floors",
                       choices = floor_list,
                       selected = floor_list)
@@ -509,6 +525,7 @@ server <- function(input, output, session) {
   observeEvent({
     input$tree
     input$floors
+    input$buildings
     input$date_range
     input$desk_type
     input$smoothing_factor
