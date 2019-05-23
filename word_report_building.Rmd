@@ -1,0 +1,145 @@
+---
+date:  "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  word_document:
+    toc: true
+    reference_docx: occupeye-report-reference.dotx
+
+params:
+  start_date: NULL
+  end_date: NULL
+  df_sum: NULL
+  survey_name: NULL
+  
+title: "`r paste0('Desk usage report, ', params$survey_name)`"
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##### line break
+
+# Desk usage report
+
+Note: The following table of recommendations is based on data for the top-level business group. Should any action be proposed following this report then further reports should be generated at the level at which desk sharing takes place.
+
+## Desk utilisation for `r params$start_date` to `r params$end_date`
+
+```{r summary, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
+df_sum <- params$df_sum
+
+
+knitr::kable(allocation_strategy_table(df_sum),align=c('l','r','r'))
+cat('## Top 10 busiest days in survey')
+knitr::kable(get_peak_occupancy(df_sum))
+print(prop_daily_usage_chart(df_sum))
+cat(paste0("\n\n ",daily_usage_chart_narrative(df_sum)))
+print(prop_weekday_usage_chart(df_sum))
+cat(paste0("\n\n ",weekday_usage_narrative(df_sum)))
+print(prop_desk_usage_chart(df_sum))
+print(smoothing_chart(df_sum,0.5))
+cat(paste0("\n\n ",get_smoothing_narrative(df_sum,0.5)))
+```
+
+```{r team_slides, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
+building_list <- unique(df_sum$building)
+
+if(length(building_list) > 1) {
+  for(my_building in building_list) {
+    building_df_sum <- df_sum %>% filter(building == my_building)
+    cat('\n\n# Desk utilisation for building ',
+        my_building,
+        ' (',
+        n_distinct(building_df_sum$surveydeviceid),
+        ' sensors) \n\n',
+        sep = "")
+    print(prop_daily_usage_chart(building_df_sum))
+    cat(paste0("\n\n ",daily_usage_chart_narrative(building_df_sum)))
+    
+    
+    floor_list <- unique(building_df_sum$floor)
+    
+    if(length(floor_list) > 1) {
+      for(my_floor in floor_list) {
+        floor_df_sum <- building_df_sum %>% filter(floor == my_floor)
+        cat('\n\n## Desk utilisation for floor ',
+            my_floor,
+            ' (',
+            n_distinct(floor_df_sum$surveydeviceid),
+            ' sensors) \n\n',
+            sep = "")
+        print(prop_daily_usage_chart(floor_df_sum))
+        cat(paste0("\n\n ",daily_usage_chart_narrative(floor_df_sum)))
+        cat("The following teams are on this floor: \n\n")
+        print(knitr::kable(desks_by_team(floor_df_sum)))
+        
+      }
+    }
+    
+    team_list <- unique(building_df_sum$category_1)
+    for(team in team_list) {
+      if(!is.na(team)) {
+        cat1_df_sum <- building_df_sum %>% filter(category_1 == team)
+        
+        if(length(team_list) > 1) {
+          cat('\n\n## Desk utilisation for ',
+              team,
+              ' (',
+              n_distinct(cat1_df_sum$surveydeviceid),
+              ' sensors) \n\n',
+              sep = "")
+          print(prop_daily_usage_chart(cat1_df_sum))
+          cat(paste0("\n\n ",
+                     daily_usage_chart_narrative(cat1_df_sum)))
+        }
+        
+        cat2s <- unique(cat1_df_sum$category_2)
+        for(cat2 in cat2s) {
+          cat2_df_sum <- cat1_df_sum %>% filter(category_2 == cat2)
+          if(length(cat2s) > 1) {
+            cat('\n\n## Desk utilisation for ',
+                team,
+                " - ",
+                cat2,
+                ' (',
+                n_distinct(cat2_df_sum$surveydeviceid),
+                ' sensors) \n\n',
+                sep = "")
+            print(prop_daily_usage_chart(cat2_df_sum))
+            cat(paste0("\n\n ",daily_usage_chart_narrative(cat2_df_sum)))
+          }
+          
+          cat3s <- unique(cat2_df_sum$category_3)
+          for(cat3 in cat3s) {
+            cat3_df_sum <- cat2_df_sum %>% filter(category_3 == cat3)
+            if(length(cat3s) > 1) {
+              cat('\n\n## Desk utilisation for ',
+                  team,' - ',
+                  cat2,' - ',
+                  cat3,
+                  ' (',
+                  n_distinct(cat3_df_sum$surveydeviceid),
+                  ' sensors) \n\n',
+                  sep = "")
+              print(prop_daily_usage_chart(cat3_df_sum))
+              cat(paste0("\n\n ",
+                         daily_usage_chart_narrative(cat3_df_sum)))
+            }
+          }
+          
+        }
+        
+      }
+    }
+    
+    
+    
+  }
+}
+
+
+
+```
