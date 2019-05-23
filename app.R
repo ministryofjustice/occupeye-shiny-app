@@ -129,8 +129,13 @@ ui <- fluidPage(
         ),
         
         tabPanel("Download Report",
-                 radioButtons("format", "Document format", c("By team", "By floor", "By floor and team"),
-                              inline = TRUE),
+                 radioButtons(inputId = "format",
+                              label = "Document format",
+                              choices = c("By team",
+                                          "By floor",
+                                          "By floor and team",
+                                          "By building"),
+                              inline = FALSE),
                  downloadButton("download_button", "Generate report")
         )
         
@@ -638,7 +643,8 @@ server <- function(input, output, session) {
         input$format, 
         "By team" = "word_report.Rmd",
         "By floor" = "word_report_floors.Rmd", 
-        "By floor and team" = "word_report_floors_teams.Rmd"
+        "By floor and team" = "word_report_floors_teams.Rmd",
+        "By building" = "word_report_building.Rmd"
       )
       
       src <- normalizePath(out_report)
