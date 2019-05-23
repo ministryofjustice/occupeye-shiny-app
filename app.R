@@ -11,6 +11,8 @@ library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
 library(glue)           # Interpreted string literals
 library(s3tools)        # S3tools for getting stuff from S3
+library(reticulate)
+library(dbtools)
 
 # import other source code ------------------------------------------------
 
@@ -122,7 +124,8 @@ ui <- fluidPage(
         tabPanel("Download Report",
                  radioButtons("format", "Document format", c("By team", "By floor", "By floor and team"),
                               inline = TRUE),
-                 downloadButton("download_button", "Generate report")
+                 downloadButton("download_button", "Generate report"),
+                 actionButton("testButton", "test")
         )
         
       )
@@ -454,6 +457,15 @@ server <- function(input, output, session) {
   }
   )
   
+  observeEvent({input$testButton}, {
+    withProgress(message = "Testing dbtools...", {
+      test_table <- dbtools::read_sql("select * from occupeye_app_db.surveys limit 10")
+      showModal(modalDialog(glue("If you're seeing this, dbtools is working: {nrow(test_table)}"), easyClose = TRUE))
+    })
+    
+    
+  })
+  
   
   # Plots and table outputs -------------------------------------------------
   
@@ -625,7 +637,7 @@ server <- function(input, output, session) {
   session$allowReconnect(TRUE)
   
   
-  }  
+}  
 
 # launch the app
 shinyApp(ui = ui, server = server)
