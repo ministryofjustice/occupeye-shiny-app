@@ -1,5 +1,11 @@
 ## Changelog
 
+### v0.10 - 2019-05-23
+
+- Changes data download method to using dbtools
+- Add admin tab for changing survey dropdown list
+- Add filter for buildings
+
 ### v0.9 - 2019-02-04
 
 - Adds options for report output by floor, or by floor and team
