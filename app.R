@@ -35,7 +35,7 @@ device_types <- unique(temp_df$devicetype)
 floors <- unique(temp_df$floor)
 zones <- unique(temp_df$roomname)
 desks <- unique(temp_df$location)
-
+buildings <- unique(temp_df$building)
 
 
 # UI function -------------------------------------------------------------
@@ -82,13 +82,12 @@ ui <- fluidPage(
                                                  min = min(date_list),
                                                  max = max(date_list)),
                                   
-                                  
-                                  pickerInput(inputId = "desk_type",
-                                              label = "Pick desk type(s)",
-                                              choices = device_types,
+                                  pickerInput(inputId = "buildings",
+                                              label = "Pick building(s)",
+                                              choices = buildings,
                                               options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
                                               multiple = TRUE,
-                                              selected = device_types),
+                                              selected = buildings),
                                   
                                   pickerInput(inputId = "floors",
                                               label = "Pick floor(s)",
@@ -103,6 +102,13 @@ ui <- fluidPage(
                                               options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
                                               multiple = TRUE,
                                               selected = zones),
+                                  
+                                  pickerInput(inputId = "desk_type",
+                                              label = "Pick desk type(s)",
+                                              choices = device_types,
+                                              options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
+                                              multiple = TRUE,
+                                              selected = device_types),
                                   
                                   pickerInput(inputId = "desks",
                                               label = "Pick desks(s)",
@@ -122,7 +128,12 @@ ui <- fluidPage(
         ),
         
         tabPanel("Download Report",
-                 radioButtons("format", "Document format", c("By team", "By floor", "By floor and team"),
+                 radioButtons("format",
+                              "Document format",
+                              c("By team",
+                                "By floor",
+                                "By floor and team",
+                                "By building"),
                               inline = TRUE),
                  downloadButton("download_button", "Generate report"),
                  actionButton("testButton", "test")
@@ -291,6 +302,7 @@ server <- function(input, output, session) {
     RV$filtered <- RV$df_sum %>%
       dplyr::filter(date >= input$date_range[1] & date <= input$date_range[2],
                     devicetype %in% input$desk_type,
+                    building %in% input$buildings,
                     floor %in% input$floors,
                     trimws(category_1) %in% l1Names,
                     trimws(category_2) %in% l2Names,
@@ -392,6 +404,10 @@ server <- function(input, output, session) {
   # Once it sees that RV$df_sum has updated, update the filter UI with metadata from new dataset
   observeEvent(RV$df_sum, {
     
+    # Get the list of buildings
+    
+    building_list <- unique(RV$df_sum$building) %>% sort()
+    
     # Get the list of floors
     floor_list <- unique(RV$df_sum$floor) %>% as.numeric() %>% sort()
     
@@ -412,6 +428,9 @@ server <- function(input, output, session) {
     date_list <- unique(RV$df_sum$date)
     
     # Update the UI
+    updatePickerInput(session, inputId = "buildings",
+                      choices = building_list,
+                      selected = building_list)
     updatePickerInput(session, inputId = "floors",
                       choices = floor_list,
                       selected = floor_list)
@@ -444,6 +463,7 @@ server <- function(input, output, session) {
   # Update the report if any of the filters have changed
   observeEvent({
     input$tree
+    input$buildings
     input$floors
     input$date_range
     input$desk_type
@@ -566,7 +586,8 @@ server <- function(input, output, session) {
         input$format, 
         "By team" = "word_report.Rmd",
         "By floor" = "word_report_floors.Rmd", 
-        "By floor and team" = "word_report_floors_teams.Rmd"
+        "By floor and team" = "word_report_floors_teams.Rmd",
+        "By building" = "word_report_building.Rmd"
       )
       
       src <- normalizePath(out_report)
