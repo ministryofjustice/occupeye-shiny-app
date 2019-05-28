@@ -14,6 +14,7 @@ library(s3tools)        # S3tools for getting stuff from S3
 library(reticulate)
 library(dbtools)
 
+
 # import other source code ------------------------------------------------
 
 
@@ -124,6 +125,7 @@ ui <- fluidPage(
                                   helpText("Select Department(s) and team(s)"),
                                   shinyTree("tree", checkbox = TRUE, search = TRUE)
                  )
+
                  
         ),
         
@@ -348,7 +350,7 @@ server <- function(input, output, session) {
     
     selected_survey_id <- surveys_hash[input$survey_name]
     RV$report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", prefix = glue("surveys/{selected_survey_id}"))
-    
+
     survey_reports <- RV$report_list %>% arrange(filename)
     survey_files <- gsub("\\.feather", "", survey_reports$filename)
     updateSelectInput(session, inputId = "raw_feather",
@@ -373,7 +375,7 @@ server <- function(input, output, session) {
     
     # Add a progress bar
     withProgress(message = paste0("Loading report ", input$raw_feather), {
-      
+
       # find the s3 path for the selected report
       feather_path <- RV$report_list %>% dplyr::filter(filename == paste0(input$raw_feather, ".feather"))
       
@@ -661,4 +663,6 @@ server <- function(input, output, session) {
 }  
 
 # launch the app
+
 shinyApp(ui = ui, server = server)
+
