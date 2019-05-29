@@ -370,3 +370,13 @@ get_peak_occupancy <- function(df_sum) {
     head(10)
 }
 
+ranked_desk_chart <- function(df_sum) {
+  
+  transformed_df_sum <- df_sum %>%
+    count(location, util_cat) %>%
+    mutate(location = forcats::fct_reorder2(location, util_cat, n, .desc = TRUE))
+  
+  ggplot(data = transformed_df_sum, mapping = aes(x = location, y = n, fill = util_cat)) +
+    geom_bar(position = "fill", stat = "identity")
+  
+}

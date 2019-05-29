@@ -11,6 +11,9 @@ library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
 library(glue)           # Interpreted string literals
 library(s3tools)        # S3tools for getting stuff from S3
+library(reticulate)
+library(dbtools)
+
 
 # import other source code ------------------------------------------------
 
@@ -33,7 +36,7 @@ device_types <- unique(temp_df$devicetype)
 floors <- unique(temp_df$floor)
 zones <- unique(temp_df$roomname)
 desks <- unique(temp_df$location)
-
+buildings <- unique(temp_df$building)
 
 
 # UI function -------------------------------------------------------------
@@ -44,85 +47,98 @@ ui <- fluidPage(
     sidebarPanel(
       tabsetPanel(
         tabPanel("Report config",
-          uiOutput("survey_name"),
-          uiOutput("raw_feather"),
+                 uiOutput("survey_name"),
+                 uiOutput("raw_feather"),
+                 
+                 
+                 dateRangeInput(inputId = "download_date_range",
+                                label = "Select date range to download",
+                                start = min(date_list),
+                                end = max(date_list),
+                                min = min(date_list),
+                                max = max(date_list)),
+                 
+                 selectInput(inputId = "start_time",
+                             label = "Start time:",
+                             choices = time_list,
+                             selected = "09:00"),
+                 
+                 selectInput(inputId = "end_time",
+                             label = "End time:",
+                             choices = time_list,
+                             selected = "17:00"),
+                 
+                 actionButton("loadCSV", "Load report"),
+                 
+                 actionButton("toggleFilter", "Show/hide report filters"),
+                 
+                 # Action buttons have an integer value that increments every time it's pressed.
+                 # Hence, for every even number of clicks, togglefilter's value is even
+                 # Also note that the test is a javascript expression, hence why it says "input.toggleFilter" rather than "input$toggleFilter"
+                 conditionalPanel("input.toggleFilter % 2 == 0",
+                                  dateRangeInput(inputId = "date_range",
+                                                 label = "Select sample date range",
+                                                 start = min(date_list),
+                                                 end = max(date_list),
+                                                 min = min(date_list),
+                                                 max = max(date_list)),
+                                  
+                                  pickerInput(inputId = "buildings",
+                                              label = "Pick building(s)",
+                                              choices = buildings,
+                                              options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
+                                              multiple = TRUE,
+                                              selected = buildings),
+                                  
+                                  pickerInput(inputId = "floors",
+                                              label = "Pick floor(s)",
+                                              choices = floors,
+                                              options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
+                                              multiple = TRUE,
+                                              selected = floors),
+                                  
+                                  pickerInput(inputId = "zones",
+                                              label = "Pick zone(s)",
+                                              choices = zones,
+                                              options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
+                                              multiple = TRUE,
+                                              selected = zones),
+                                  
+                                  pickerInput(inputId = "desk_type",
+                                              label = "Pick desk type(s)",
+                                              choices = device_types,
+                                              options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
+                                              multiple = TRUE,
+                                              selected = device_types),
+                                  
+                                  pickerInput(inputId = "desks",
+                                              label = "Pick desks(s)",
+                                              choices = desks,
+                                              options = list(`actions-box` = TRUE,
+                                                             `selected-text-format` = "count > 4",
+                                                             `live-search` = TRUE),
+                                              multiple = TRUE,
+                                              selected = desks),
+                                  
+                                  
+                                  
+                                  helpText("Select Department(s) and team(s)"),
+                                  shinyTree("tree", checkbox = TRUE, search = TRUE)
+                 )
 
-          
-          dateRangeInput(inputId = "download_date_range",
-                         label = "Select date range to download",
-                         start = min(date_list),
-                         end = max(date_list),
-                         min = min(date_list),
-                         max = max(date_list)),
-          
-          selectInput(inputId = "start_time",
-                      label = "Start time:",
-                      choices = time_list,
-                      selected = "09:00"),
-          
-          selectInput(inputId = "end_time",
-                      label = "End time:",
-                      choices = time_list,
-                      selected = "17:00"),
-          
-          actionButton("loadCSV", "Load report"),
-          
-          actionButton("toggleFilter", "Show/hide report filters"),
-          
-          # Action buttons have an integer value that increments every time it's pressed.
-          # Hence, for every even number of clicks, togglefilter's value is even
-          # Also note that the test is a javascript expression, hence why it says "input.toggleFilter" rather than "input$toggleFilter"
-          conditionalPanel("input.toggleFilter % 2 == 0",
-            dateRangeInput(inputId = "date_range",
-                           label = "Select sample date range",
-                           start = min(date_list),
-                           end = max(date_list),
-                           min = min(date_list),
-                           max = max(date_list)),
-            
-            
-            pickerInput(inputId = "desk_type",
-                        label = "Pick desk type(s)",
-                        choices = device_types,
-                        options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
-                        multiple = TRUE,
-                        selected = device_types),
-            
-            pickerInput(inputId = "floors",
-                        label = "Pick floor(s)",
-                        choices = floors,
-                        options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
-                        multiple = TRUE,
-                        selected = floors),
-            
-            pickerInput(inputId = "zones",
-                        label = "Pick zone(s)",
-                        choices = zones,
-                        options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
-                        multiple = TRUE,
-                        selected = zones),
-            
-            pickerInput(inputId = "desks",
-                        label = "Pick desks(s)",
-                        choices = desks,
-                        options = list(`actions-box` = TRUE,
-                                       `selected-text-format` = "count > 4",
-                                       `live-search` = TRUE),
-                        multiple = TRUE,
-                        selected = desks),
-            
-    
-            
-            helpText("Select Department(s) and team(s)"),
-            shinyTree("tree", checkbox = TRUE, search = TRUE)
-          )
                  
         ),
         
         tabPanel("Download Report",
-                 radioButtons("format", "Document format", c("By team", "By floor", "By floor and team"),
+                 radioButtons("format",
+                              "Document format",
+                              c("By team",
+                                "By floor",
+                                "By floor and team",
+                                "By building"),
                               inline = TRUE),
-                 downloadButton("download_button", "Generate report")
+                 downloadButton("download_button", "Generate report"),
+                 actionButton("testButton", "test")
         )
         
       )
@@ -131,34 +147,34 @@ ui <- fluidPage(
     mainPanel(
       tabsetPanel(
         tabPanel("Introduction",
-          fluidPage(
-            fluidRow(
-              column(8, includeMarkdown("intro.md"))
-            )
-          )
+                 fluidPage(
+                   fluidRow(
+                     column(8, includeMarkdown("intro.md"))
+                   )
+                 )
         ),
         tabPanel("Changelog",
-          fluidPage(
-            fluidRow(
-              column(8,includeMarkdown("changelog.md"))
-            )
-          )
+                 fluidPage(
+                   fluidRow(
+                     column(8,includeMarkdown("changelog.md"))
+                   )
+                 )
         ),
         tabPanel("Pivot table", rpivotTableOutput("myPivot")),
         tabPanel("Summary tables",
-          fluidPage(
-            fluidRow(
-               column(6, tableOutput(outputId = "recom_table")),
-               column(6, htmlOutput("peak_occupancy_text"),
-                      tableOutput(outputId = "peak_occupancy"))
-               ),
-            fluidRow(
-              column(4, tableOutput(outputId = "team_count")),
-              column(2, tableOutput(outputId = "desk_count")),
-              column(4, tableOutput(outputId = "team_desk_count"))
-              )
-            )
-          ),
+                 fluidPage(
+                   fluidRow(
+                     column(6, tableOutput(outputId = "recom_table")),
+                     column(6, htmlOutput("peak_occupancy_text"),
+                            tableOutput(outputId = "peak_occupancy"))
+                   ),
+                   fluidRow(
+                     column(4, tableOutput(outputId = "team_count")),
+                     column(2, tableOutput(outputId = "desk_count")),
+                     column(4, tableOutput(outputId = "team_desk_count"))
+                   )
+                 )
+        ),
         tabPanel("Smoothing", plotlyOutput(outputId = "smoothChart"),
                  numericInput(inputId = "smoothing_factor",
                               label = "Smoothing Factor",
@@ -194,7 +210,7 @@ ui <- fluidPage(
                  downloadButton("download_bad_observations"),
                  dataTableOutput(outputId = "bad_observations"))
       )
-        
+      
     )
   )
 )
@@ -228,8 +244,8 @@ server <- function(input, output, session) {
   
   output$survey_name <- renderUI({
     selectInput(inputId = "survey_name",
-              label = "Select OccupEye survey",
-              choices = active_surveys$surveyname)
+                label = "Select OccupEye survey",
+                choices = active_surveys$surveyname)
   })
   
   output$raw_feather <- renderUI({
@@ -253,7 +269,7 @@ server <- function(input, output, session) {
   update_filter <- function() {
     
     
-  # first, loop through the layers of the team selection tree to get the selected names at each level
+    # first, loop through the layers of the team selection tree to get the selected names at each level
     l1Names <- NULL
     l2Names <- NULL
     l3Names <- NULL
@@ -261,7 +277,7 @@ server <- function(input, output, session) {
       "None"
     } else{
       selected <- get_selected(input$tree, "slice")
-
+      
       
       for (x in selected) {
         l1Names <- c(l1Names, names(x))
@@ -288,6 +304,7 @@ server <- function(input, output, session) {
     RV$filtered <- RV$df_sum %>%
       dplyr::filter(date >= input$date_range[1] & date <= input$date_range[2],
                     devicetype %in% input$desk_type,
+                    building %in% input$buildings,
                     floor %in% input$floors,
                     trimws(category_1) %in% l1Names,
                     trimws(category_2) %in% l2Names,
@@ -330,7 +347,7 @@ server <- function(input, output, session) {
   # event observers -----------------------------------------------------
   
   observeEvent(input$survey_name, {
-
+    
     selected_survey_id <- surveys_hash[input$survey_name]
     RV$report_list <- s3tools::list_files_in_buckets("alpha-app-occupeye-automation", prefix = glue("surveys/{selected_survey_id}"))
 
@@ -380,7 +397,7 @@ server <- function(input, output, session) {
     # Then summarise the dataset
     withProgress(message = "summarising the dataset", {
       RV$df_sum <- get_df_sum(RV$data, input$start_time, input$end_time)
-    
+      
       # show dialog to show it's finished loading
       showModal(modalDialog(glue("{input$raw_feather} successfully loaded into the dashboard."), easyClose = TRUE))
     })
@@ -388,6 +405,10 @@ server <- function(input, output, session) {
   
   # Once it sees that RV$df_sum has updated, update the filter UI with metadata from new dataset
   observeEvent(RV$df_sum, {
+    
+    # Get the list of buildings
+    
+    building_list <- unique(RV$df_sum$building) %>% sort()
     
     # Get the list of floors
     floor_list <- unique(RV$df_sum$floor) %>% as.numeric() %>% sort()
@@ -399,7 +420,7 @@ server <- function(input, output, session) {
                              as.list)
     
     # Get list of zones
-  
+    
     zone_list <- unique(RV$df_sum$roomname) %>% sort()
     
     # Get list of desks
@@ -409,6 +430,9 @@ server <- function(input, output, session) {
     date_list <- unique(RV$df_sum$date)
     
     # Update the UI
+    updatePickerInput(session, inputId = "buildings",
+                      choices = building_list,
+                      selected = building_list)
     updatePickerInput(session, inputId = "floors",
                       choices = floor_list,
                       selected = floor_list)
@@ -423,7 +447,7 @@ server <- function(input, output, session) {
     updatePickerInput(session, inputId = "desks",
                       choices = desks_list,
                       selected = desks_list)
-
+    
     
     updateDateRangeInput(session, inputId = "date_range",
                          min = min(date_list, na.rm = TRUE),
@@ -441,18 +465,28 @@ server <- function(input, output, session) {
   # Update the report if any of the filters have changed
   observeEvent({
     input$tree
+    input$buildings
     input$floors
     input$date_range
     input$desk_type
     input$smoothing_factor
     input$zones
     input$desks
-    },
-    
-    {
-      RV$filtered <- update_filter()
-    }
+  },
+  
+  {
+    RV$filtered <- update_filter()
+  }
   )
+  
+  observeEvent({input$testButton}, {
+    withProgress(message = "Testing dbtools...", {
+      test_table <- dbtools::read_sql("select * from occupeye_app_db.surveys limit 10")
+      showModal(modalDialog(glue("If you're seeing this, dbtools is working: {nrow(test_table)}"), easyClose = TRUE))
+    })
+    
+    
+  })
   
   
   # Plots and table outputs -------------------------------------------------
@@ -496,7 +530,7 @@ server <- function(input, output, session) {
     
     output$smoothing_description <- renderText({
       paste("The graph shows the difference in implied desk utilisation under the assumption of full smoothing over the week and the assumption of imperfect smoothing. 
-    A smoothing factor of 0.5 represents the midpoint between current utilisation and full smoothing.",
+            A smoothing factor of 0.5 represents the midpoint between current utilisation and full smoothing.",
             get_smoothing_narrative(RV$filtered, input$smoothing_factor), sep = "<br/>")
     })
     
@@ -554,7 +588,8 @@ server <- function(input, output, session) {
         input$format, 
         "By team" = "word_report.Rmd",
         "By floor" = "word_report_floors.Rmd", 
-        "By floor and team" = "word_report_floors_teams.Rmd"
+        "By floor and team" = "word_report_floors_teams.Rmd",
+        "By building" = "word_report_building.Rmd"
       )
       
       src <- normalizePath(out_report)
@@ -628,4 +663,6 @@ server <- function(input, output, session) {
 }  
 
 # launch the app
+
 shinyApp(ui = ui, server = server)
+
