@@ -1,8 +1,12 @@
 FROM quay.io/mojanalytics/rshiny:3.5.1
-# FROM quay.io/mojanalytics/rshiny@sha256:4501e2af32f915aa2f2b652f07ff61d76d35c723843f3c4c1fe6e253d4463d7a
-SHELL ["/bin/bash", "-c"]
-ENV AWS_DEFAULT_REGION eu-west-1
+
+ENV PATH="/opt/shiny-server/bin:/opt/shiny-server/ext/node/bin:${PATH}"
+ENV SHINY_APP=/srv/shiny-server
+ENV NODE_ENV=production
+
 WORKDIR /srv/shiny-server
+
+# ENV SHINY_GAID <your google analytics token here>
 
 # Add environment file individually so that next install command
 # can be cached as an image layer separate from application code
@@ -10,6 +14,7 @@ ADD environment.yml environment.yml
 
 # Install packrat itself then packages from packrat.lock
 RUN conda env update --file environment.yml -n base
+RUN npm i -g ministryofjustice/analytics-platform-shiny-server#v0.0.3
 
 ## -----------------------------------------------------
 ## Uncomment if still using packrat alongside conda
@@ -21,7 +26,6 @@ RUN conda env update --file environment.yml -n base
 # Add shiny app code
 ADD . .
 
-# temporarily run this way until we can figure out how to run shiny-server in conda
-CMD R -e "library(shiny); runApp(host='0.0.0.0', port=80)"
-
-#CMD bash
+USER shiny
+CMD analytics-platform-shiny-server
+EXPOSE 9999

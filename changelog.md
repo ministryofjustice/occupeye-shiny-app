@@ -1,9 +1,12 @@
 ## Changelog
 
-### v0.10 - 2019-05-23
+### v0.11 - 2019-08-14
 
 - Changes data download method to using dbtools
 - Add admin tab for changing survey dropdown list
+
+### v0.10 - 2019-05-23
+
 - Add filter for buildings
 
 ### v0.9 - 2019-02-04

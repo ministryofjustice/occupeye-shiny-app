@@ -1,4 +1,3 @@
-
 # Library declarations ----------------------------------------------------
 
 library(ggplot2)
@@ -9,7 +8,7 @@ library(glue)
 
 
 get_prop_usage <- function(df_sum) {
-
+  
   df_sum %>%
     count(date, util_cat) %>%
     group_by(date) %>%
@@ -20,10 +19,10 @@ get_prop_usage <- function(df_sum) {
 get_max_capacity_days <- function(df_sum) {
   
   get_prop_usage(df_sum) %>% 
-    filter(util_cat != "Unused") %>% 
+    dplyr::filter(util_cat != "Unused") %>% 
     group_by(date) %>% 
     summarise(prop = sum(prop)) %>% 
-    filter(prop == 1) %>%
+    dplyr::filter(prop == 1) %>%
     .$date
 }
 
@@ -49,12 +48,12 @@ prop_daily_usage_chart <- function(df_sum) {
 }
 
 daily_usage_chart_narrative <- function(df_sum) {
-
+  
   if (nrow(df_sum) == 0) {
     narrative <- "There are no sensors in this filter. This may be an error."
   } else {
     
-    daily_unused <- get_prop_usage(df_sum) %>% filter(util_cat == "Unused")
+    daily_unused <- get_prop_usage(df_sum) %>% dplyr::filter(util_cat == "Unused")
     
     if (nrow(daily_unused) == 0) {
       av_unused <- 0
@@ -77,7 +76,7 @@ daily_usage_chart_narrative <- function(df_sum) {
 
 
 get_prop_usage_day <- function(df_sum) {
-
+  
   df_sum %>%
     mutate(day = weekdays(date)) %>%
     group_by(day, util_cat) %>%
@@ -92,13 +91,13 @@ weekday_usage_narrative <- function(df_sum) {
   prop_usage_day <- get_prop_usage_day(df_sum)
   
   daily_util <- prop_usage_day %>%
-                filter(util_cat %in% c("Effective utilisation", "Under utilised")) %>%
-                group_by(day) %>%
-                summarise(prop = sum(prop))
+    dplyr::filter(util_cat %in% c("Effective utilisation", "Under utilised")) %>%
+    group_by(day) %>%
+    summarise(prop = sum(prop))
   
-  top_day <- daily_util %>% filter(prop == max(prop)) %>% .$day
+  top_day <- daily_util %>% dplyr::filter(prop == max(prop)) %>% .$day
   
-  friday_util <- daily_util %>% filter(day == "Friday") %>% .$prop
+  friday_util <- daily_util %>% dplyr::filter(day == "Friday") %>% .$prop
   
   glue("The rate of unused desks varies over the working week with {top_day} being the busiest day on average. On average {percent(1-friday_util)} of desks are unused on Fridays.")
   
@@ -151,10 +150,10 @@ prop_desk_usage_chart <- function(df_sum) {
     scale_y_continuous(labels = scales::percent) +
     theme(legend.position = "right") +
     theme(plot.title = element_text(hjust = 0.5)) +
-
+    
     scale_fill_manual(values = c("Effective utilisation" = "coral2",
-                               "Under utilised" = "thistle3",
-                               "Unused" = "powderblue")) +
+                                 "Under utilised" = "thistle3",
+                                 "Unused" = "powderblue")) +
     theme(axis.text.x = element_text(angle = 25, hjust = 1, size = 10))
   
 }
@@ -225,7 +224,7 @@ get_smoothing_table <- function(df_sum, smoothing_factor) {
   cat_order <- c("Full Smoothing", "Current Utilisation", "Partial Smoothing")
   
   smoothing <- get_prop_usage_day(df_sum) %>%
-    filter(util_cat == "Unused") %>%
+    dplyr::filter(util_cat == "Unused") %>%
     mutate(current_utilisation = 1 - prop) %>%
     mutate(full_smoothing = mean(current_utilisation)) %>%
     mutate(partial_smoothing = (full_smoothing * smoothing_factor) + (current_utilisation * (1 - smoothing_factor))) %>%
@@ -244,8 +243,8 @@ get_smoothing_narrative <- function(df_sum, smoothing_factor) {
     dcast(day ~ variable) %>%
     mutate(diff = `Full Smoothing` - `Current Utilisation`)
   
-  top_diff <- smoothing_table_wide %>% filter(diff == max(diff)) %>% .$day
-  bottom_diff <- smoothing_table_wide %>% filter(diff == min(diff)) %>% .$day
+  top_diff <- smoothing_table_wide %>% dplyr::filter(diff == max(diff)) %>% .$day
+  bottom_diff <- smoothing_table_wide %>% dplyr::filter(diff == min(diff)) %>% .$day
   
   glue("Partial or full smoothing would have most impact on {bottom_diff}s, where fewer people would work in the office, and {top_diff}s, where more people would work in the office")
   
@@ -257,9 +256,9 @@ smoothing_chart <- function(df_sum, smoothing_factor) {
   weekdays <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
   
   cat_order <- c("Full Smoothing", "Current Utilisation", "Partial Smoothing")
-
+  
   smoothing <- get_smoothing_table(df_sum,smoothing_factor)
-
+  
   
   ggplot(smoothing,
          aes(x = day, y = value, fill = variable)) + 
@@ -361,7 +360,7 @@ get_peak_occupancy <- function(df_sum) {
   prop_usage <- get_prop_usage(df_sum)
   
   prop_usage %>% 
-    filter(util_cat != "Unused") %>%
+    dplyr::filter(util_cat != "Unused") %>%
     group_by(date) %>%
     summarise(prop = sum(prop)) %>%
     mutate(date = as.character(date), utilisation = percent(prop)) %>% 
