@@ -14,6 +14,7 @@ library(s3tools)        # S3tools for getting stuff from S3
 library(reticulate)
 library(dbtools)
 
+
 # import other source code ------------------------------------------------
 
 
@@ -55,6 +56,7 @@ ui <- fluidPage(
                                   helpText("Select Department(s) and team(s)"),
                                   shinyTree("tree", checkbox = TRUE, search = TRUE)
                  )
+
                  
         ),
         
@@ -414,10 +416,12 @@ server <- function(input, output, session) {
   
   observeEvent(input$survey_name, {
     
+
     selected_survey_id <- RV$surveys_hash[input$survey_name]
     
     start_date <- RV$active_surveys %>% dplyr::filter(survey_id == selected_survey_id) %>% pull(startdate)
     end_date <- RV$active_surveys %>% dplyr::filter(survey_id == selected_survey_id) %>% pull(enddate)
+
     
     dates_list <- seq(as.Date(start_date), min(as.Date(end_date), as.Date(today() - 1)), by = "day")
     updateDateRangeInput(session, inputId = "download_date_range",
@@ -439,6 +443,7 @@ server <- function(input, output, session) {
     RV$survey_name <- input$survey_name
     
     # Add a progress bar
+
     withProgress(message = paste0("Loading report ", input$survey_name), {
       start.time <- Sys.time()
       
@@ -447,6 +452,7 @@ server <- function(input, output, session) {
                         end_date = input$download_date_range[2])
       
       print(glue("executing query: {sql}"))
+
       
       # Download the minimal table, filtered by the download_date_range
       df_min <- dbtools::read_sql(sql)
@@ -755,4 +761,6 @@ server <- function(input, output, session) {
 }  
 
 # launch the app
+
 shinyApp(ui = ui, server = server)
+
