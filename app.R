@@ -56,7 +56,7 @@ ui <- fluidPage(
                                   helpText("Select Department(s) and team(s)"),
                                   shinyTree("tree", checkbox = TRUE, search = TRUE)
                  )
-
+                 
                  
         ),
         
@@ -167,24 +167,37 @@ server <- function(input, output, session) {
   
   
   # Initialise functions ------------------------------------------
-  # Downloads a sample dataset from S3, and uses it to initialise the UI fields.
   
-  sql <- get_df_sql(408)
   
+  
+  # Get the list of active survey
+  active_surveys_list <- s3tools::read_using(FUN = feather::read_feather, 
+                                             s3_path = "alpha-app-occupeye-automation/active surveys.feather") %>% 
+    .$surveyname %>% as.character()
+  
+  # Get the surveys table, and make a dictionary of survey names to their IDs. 
+  # So calling surveys_hash["survey_name"] returns its corresponding survey_id
+  surveys <- s3tools::read_using(readr::read_csv, "alpha-app-occupeye-automation/raw_data_v5/surveys/data.csv")
+  active_surveys <- surveys %>% dplyr::filter(name %in% active_surveys_list)
+  surveys_hash <- with(active_surveys[c("name", "survey_id")], setNames(survey_id, name))
+  initial_survey_id <- surveys_hash[[1]]
+  
+  
+  RV <- reactiveValues(surveys = surveys,
+                       active_surveys = active_surveys,
+                       active_surveys_list = active_surveys_list,
+                       surveys_hash = surveys_hash)
+  
+  sql <- get_df_sql(initial_survey_id, start_date = Sys.Date() %m-% months(1))
+  print(glue("sql: {sql}"))
   df_min <- dbtools::read_sql(sql)
-  print("this is df_min: ")
-  print(head(df_min))
   
-  sensors <- s3tools::read_using(readr::read_csv, glue("alpha-app-occupeye-automation/raw_data_v5/sensors/survey_id=408/data.csv")) %>%
+  sensors <- s3tools::read_using(readr::read_csv, glue("alpha-app-occupeye-automation/raw_data_v5/sensors/survey_id={initial_survey_id}/data.csv")) %>%
     mutate(surveydeviceid = as.character(surveydeviceid)) %>% # coerce surveydeviceid to char to maintain type integrity
     mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
               .vars = vars(roomname, location))
   
   temp_df <- get_full_df(df_min, sensors)
-  
-  print("this is temp_df before being pushed through get_df_sum: ")
-  print(head(temp_df))
-  print(str(temp_df))
   
   
   #temp_df <- s3tools::read_using(FUN = readr::read_csv, s3_path = "alpha-app-occupeye-automation/surveys/336/Unallocated.csv")
@@ -199,31 +212,10 @@ server <- function(input, output, session) {
   desks <- unique(temp_df$location)
   
   # Create and initialise RV, which is a collection of the reactive values
-  RV <- reactiveValues(data = temp_df,
-                       df_sum = temp_df_sum,
-                       filtered = temp_df_sum)
+  RV$data = temp_df
+  RV$df_sum = temp_df_sum
+  RV$filtered = temp_df_sum
   
-  # Get the list of active survey
-  RV$active_surveys_list <- s3tools::read_using(FUN = feather::read_feather, 
-                                                s3_path = "alpha-app-occupeye-automation/active surveys.feather") %>% 
-    .$surveyname %>% as.character()
-  
-  
-  # Get the surveys table, and make a dictionary of survey names to their IDs. 
-  # So calling surveys_hash["survey_name"] returns its corresponding survey_id
-  surveys <- s3tools::read_using(readr::read_csv, "alpha-app-occupeye-automation/raw_data_v5/surveys/data.csv")
-  
-  observe({
-    RV$active_surveys <- surveys %>% dplyr::filter(name %in% RV$active_surveys_list)
-  })
-  
-  observe({
-    RV$surveys_hash <- with(RV$active_surveys[c("name", "survey_id")], setNames(survey_id, name))
-  })
-  
-  observe({
-    selected_survey_id <- RV$surveys_hash[1]
-  })
   
   output$download_date_range <- renderUI({
     dateRangeInput(inputId = "download_date_range",
@@ -251,7 +243,8 @@ server <- function(input, output, session) {
   output$survey_name <- renderUI({
     selectInput(inputId = "survey_name",
                 label = "Select OccupEye survey",
-                choices = RV$active_surveys_list)
+                choices = RV$active_surveys_list,
+                selected = RV$active_surveys_list[1])
   })
   
   output$all_survey_names <- renderUI({
@@ -328,7 +321,6 @@ server <- function(input, output, session) {
                 selected = desks)
   })
   
-  print("render empty tree")
   # Initialise the team's shinyTree
   output$tree <- renderEmptyTree()
   
@@ -416,13 +408,15 @@ server <- function(input, output, session) {
   
   observeEvent(input$survey_name, {
     
-
+    print(input$survey_name)
+    print(RV$surveys_hash)
     selected_survey_id <- RV$surveys_hash[input$survey_name]
-    
+    print(glue("selected survey id: {selected_survey_id})"))
     start_date <- RV$active_surveys %>% dplyr::filter(survey_id == selected_survey_id) %>% pull(startdate)
     end_date <- RV$active_surveys %>% dplyr::filter(survey_id == selected_survey_id) %>% pull(enddate)
-
     
+    print(start_date)
+    print(end_date)
     dates_list <- seq(as.Date(start_date), min(as.Date(end_date), as.Date(today() - 1)), by = "day")
     updateDateRangeInput(session, inputId = "download_date_range",
                          min = min(dates_list, na.rm = TRUE),
@@ -443,7 +437,7 @@ server <- function(input, output, session) {
     RV$survey_name <- input$survey_name
     
     # Add a progress bar
-
+    
     withProgress(message = paste0("Loading report ", input$survey_name), {
       start.time <- Sys.time()
       
@@ -452,7 +446,7 @@ server <- function(input, output, session) {
                         end_date = input$download_date_range[2])
       
       print(glue("executing query: {sql}"))
-
+      
       
       # Download the minimal table, filtered by the download_date_range
       df_min <- dbtools::read_sql(sql)
