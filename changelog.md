@@ -1,9 +1,12 @@
 ## Changelog
 
-### v0.11 - 2019-08-14
+### v0.11 - 2019-09-09
 
 - Changes data download method to using dbtools
 - Add admin tab for changing survey dropdown list
+- Split recommendation tables into longstay and non-longstay
+- Add percentages to charts
+- remove plotly from charts
 
 ### v0.10 - 2019-05-23
 
