@@ -188,17 +188,18 @@ server <- function(input, output, session) {
                        active_surveys_list = active_surveys_list,
                        surveys_hash = surveys_hash)
   
-  sql <- get_df_sql(initial_survey_id, start_date = Sys.Date() %m-% months(1))
-  print(glue("sql: {sql}"))
-  df_min <- dbtools::read_sql(sql)
+  # sql <- get_df_sql(initial_survey_id, start_date = Sys.Date() %m-% months(1))
+  # print(glue("sql: {sql}"))
+  # df_min <- dbtools::read_sql(sql)
+  # 
+  # sensors <- s3tools::read_using(readr::read_csv, glue("alpha-app-occupeye-automation/raw_data_v5/sensors/survey_id={initial_survey_id}/data.csv")) %>%
+  #   mutate(surveydeviceid = as.character(surveydeviceid)) %>% # coerce surveydeviceid to char to maintain type integrity
+  #   mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
+  #             .vars = vars(roomname, location))
+  # 
+  # temp_df <- get_full_df(df_min, sensors)
   
-  sensors <- s3tools::read_using(readr::read_csv, glue("alpha-app-occupeye-automation/raw_data_v5/sensors/survey_id={initial_survey_id}/data.csv")) %>%
-    mutate(surveydeviceid = as.character(surveydeviceid)) %>% # coerce surveydeviceid to char to maintain type integrity
-    mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
-              .vars = vars(roomname, location))
-  
-  temp_df <- get_full_df(df_min, sensors)
-  
+  temp_df <- temp_df <- s3tools::read_using(FUN = readr::read_csv, s3_path = "alpha-app-occupeye-automation/surveys/336/Unallocated.csv")
   
   #temp_df <- s3tools::read_using(FUN = readr::read_csv, s3_path = "alpha-app-occupeye-automation/surveys/336/Unallocated.csv")
   temp_df_sum <- get_df_sum(temp_df, "09:00", "17:00")
