@@ -44,7 +44,10 @@ prop_daily_usage_chart <- function(df_sum) {
                                  "Under utilised" = "thistle3",
                                  "Unused" = "powderblue")) +
     theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 10)) +
-    geom_text(aes(label = scales::percent(prop)), position = position_fill(), vjust = 2)
+    geom_text(aes(label = scales::percent(prop, accuracy = 1, suffix = "")),
+              position = position_fill(),
+              vjust = 2,
+              size = 3)
   
 }
 
@@ -124,7 +127,7 @@ prop_weekday_usage_chart <- function(df_sum) {
                                  "Under utilised" = "thistle3",
                                  "Unused" = "powderblue")) +
     theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10)) +
-    geom_text(aes(label = scales::percent(prop)), position = position_fill(), vjust = 2)
+    geom_text(aes(label = scales::percent(prop, accuracy = 1)), position = position_fill(), vjust = 2)
   
   
 }
@@ -157,7 +160,7 @@ prop_desk_usage_chart <- function(df_sum) {
                                  "Under utilised" = "thistle3",
                                  "Unused" = "powderblue")) +
     theme(axis.text.x = element_text(angle = 25, hjust = 1, size = 10)) +
-    geom_text(aes(label = scales::percent(prop)), position = position_fill(), vjust = 2)
+    geom_text(aes(label = scales::percent(prop, accuracy = 1)), position = position_fill(), vjust = 2)
   
 }
 
@@ -187,7 +190,7 @@ prop_team_usage_chart <- function(df_sum) {
                                  "Under utilised" = "thistle3",
                                  "Unused" = "powderblue")) +
     theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10)) +
-    geom_text(aes(label = scales::percent(prop)), position = position_fill(), vjust = 2)
+    geom_text(aes(label = scales::percent(prop, accuracy = 1)), position = position_fill(), vjust = 2)
 }
 
 
@@ -217,7 +220,7 @@ prop_floor_usage_chart <- function(df_sum) {
                                  "Under utilised" = "thistle3",
                                  "Unused" = "powderblue")) +
     theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10)) +
-    geom_text(aes(label = scales::percent(prop)), position = position_fill(), vjust = 2)
+    geom_text(aes(label = scales::percent(prop, accuracy = 1)), position = position_fill(), vjust = 2)
   
   
 }
@@ -277,7 +280,7 @@ smoothing_chart <- function(df_sum, smoothing_factor) {
     coord_cartesian(ylim = c(0, 1)) + 
     labs(y="Desk Utilisation",fill="") + 
     scale_fill_brewer(palette = "Accent") +
-    geom_text(aes(label = scales::percent(value)), position = position_dodge(width = 0.9), vjust = 2)
+    geom_text(aes(label = scales::percent(value, accuracy = 1)), position = position_dodge(width = 0.9), vjust = 2)
   
 }
 
@@ -369,7 +372,7 @@ get_peak_occupancy <- function(df_sum) {
     dplyr::filter(util_cat != "Unused") %>%
     group_by(date) %>%
     summarise(prop = sum(prop)) %>%
-    mutate(date = as.character(date), utilisation = percent(prop)) %>% 
+    mutate(date = as.character(date), utilisation = percent(prop, accuracy = 1)) %>% 
     arrange(desc(prop)) %>%
     select(date, utilisation) %>%
     head(10)
