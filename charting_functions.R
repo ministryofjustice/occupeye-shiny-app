@@ -43,7 +43,8 @@ prop_daily_usage_chart <- function(df_sum) {
     scale_fill_manual(values = c("Effective utilisation" = "coral2",
                                  "Under utilised" = "thistle3",
                                  "Unused" = "powderblue")) +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 10))
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 10)) +
+    geom_text(aes(label = scales::percent(prop)), position = position_fill(), vjust = 2)
   
 }
 
@@ -122,7 +123,8 @@ prop_weekday_usage_chart <- function(df_sum) {
     scale_fill_manual(values = c("Effective utilisation" = "coral2",
                                  "Under utilised" = "thistle3",
                                  "Unused" = "powderblue")) +
-    theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10))
+    theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10)) +
+    geom_text(aes(label = scales::percent(prop)), position = position_fill(), vjust = 2)
   
   
 }
@@ -154,7 +156,8 @@ prop_desk_usage_chart <- function(df_sum) {
     scale_fill_manual(values = c("Effective utilisation" = "coral2",
                                  "Under utilised" = "thistle3",
                                  "Unused" = "powderblue")) +
-    theme(axis.text.x = element_text(angle = 25, hjust = 1, size = 10))
+    theme(axis.text.x = element_text(angle = 25, hjust = 1, size = 10)) +
+    geom_text(aes(label = scales::percent(prop)), position = position_fill(), vjust = 2)
   
 }
 
@@ -183,7 +186,8 @@ prop_team_usage_chart <- function(df_sum) {
     scale_fill_manual(values = c("Effective utilisation" = "coral2",
                                  "Under utilised" = "thistle3",
                                  "Unused" = "powderblue")) +
-    theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10))
+    theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10)) +
+    geom_text(aes(label = scales::percent(prop)), position = position_fill(), vjust = 2)
 }
 
 
@@ -212,7 +216,8 @@ prop_floor_usage_chart <- function(df_sum) {
     scale_fill_manual(values = c("Effective utilisation" = "coral2",
                                  "Under utilised" = "thistle3",
                                  "Unused" = "powderblue")) +
-    theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10))
+    theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10)) +
+    geom_text(aes(label = scales::percent(prop)), position = position_fill(), vjust = 2)
   
   
 }
@@ -271,7 +276,8 @@ smoothing_chart <- function(df_sum, smoothing_factor) {
     scale_y_continuous(expand = c(0, 0),labels = percent) +
     coord_cartesian(ylim = c(0, 1)) + 
     labs(y="Desk Utilisation",fill="") + 
-    scale_fill_brewer(palette = "Accent")
+    scale_fill_brewer(palette = "Accent") +
+    geom_text(aes(label = scales::percent(value)), position = position_dodge(width = 0.9), vjust = 2)
   
 }
 

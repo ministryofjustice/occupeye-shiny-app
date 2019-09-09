@@ -105,7 +105,7 @@ ui <- fluidPage(
                    )
                  )
         ),
-        tabPanel("Smoothing", plotlyOutput(outputId = "smoothChart"),
+        tabPanel("Smoothing", plotOutput(outputId = "smoothChart"),
                  numericInput(inputId = "smoothing_factor",
                               label = "Smoothing Factor",
                               min = 0,
@@ -114,18 +114,18 @@ ui <- fluidPage(
                               step = 0.1),
                  htmlOutput(outputId = "smoothing_description")),
         tabPanel("Daily usage",
-                 plotlyOutput(outputId = "dailyChart"),
+                 plotOutput(outputId = "dailyChart"),
                  htmlOutput(outputId = "daily_chart_narrative"),
                  includeMarkdown("chart_info.md")),
         tabPanel("Usage by weekday",
-                 plotlyOutput(outputId = "weekdayChart"),
+                 plotOutput(outputId = "weekdayChart"),
                  textOutput(outputId = "weekday_chart_narrative"),
                  includeMarkdown("chart_info.md")),
         tabPanel("Usage by desk type",
-                 plotlyOutput(outputId = "deskChart"),
+                 plotOutput(outputId = "deskChart"),
                  includeMarkdown("chart_info.md")),
         tabPanel("Usage by floor",
-                 plotlyOutput(outputId = "floorChart"),
+                 plotOutput(outputId = "floorChart"),
                  includeMarkdown("chart_info.md")),
         tabPanel("Summarised data",
                  downloadButton("download_summarised_data"),
@@ -616,7 +616,7 @@ server <- function(input, output, session) {
       isolate(get_peak_occupancy(RV$filtered))
     })
     
-    output$smoothChart <- renderPlotly({
+    output$smoothChart <- renderPlot({
       smoothing_chart(RV$filtered, input$smoothing_factor)
     })
     
@@ -630,7 +630,7 @@ server <- function(input, output, session) {
       daily_usage_chart_narrative(RV$filtered)
     })
     
-    output$dailyChart <- renderPlotly({
+    output$dailyChart <- renderPlot({
       isolate(prop_daily_usage_chart(RV$filtered))
     })
     
@@ -638,15 +638,15 @@ server <- function(input, output, session) {
       weekday_usage_narrative(RV$filtered)
     })
     
-    output$weekdayChart <- renderPlotly({
+    output$weekdayChart <- renderPlot({
       isolate(prop_weekday_usage_chart(RV$filtered))
     })
     
-    output$deskChart <- renderPlotly({
+    output$deskChart <- renderPlot({
       isolate(prop_desk_usage_chart(RV$filtered))
     })
     
-    output$floorChart <- renderPlotly({
+    output$floorChart <- renderPlot({
       isolate(prop_floor_usage_chart(RV$filtered))
     })
     
