@@ -44,7 +44,7 @@ A note on Multiple Occupancy: It is not possible within the main data to identif
 <tbody>
   <tr>
    <td style="text-align:left;"> Report Config </td>
-   <td style="text-align:left;"> Choose the report from the dropdown that you want to download. Currently the reports are saved as individual datasets grouped by team. For some of the smaller directorates, you can load the whole directorate, while other directorates are split into departments. </td>
+   <td style="text-align:left;"> Choose the report from the dropdown that you want to download. You can change the reports that appear in this shortlist in the admin tab. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Time Interval </td>
