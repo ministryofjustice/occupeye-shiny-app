@@ -143,7 +143,7 @@ ui <- fluidPage(
                  fluidPage(
                    fluidRow(
                      column(3,uiOutput('all_survey_names')),
-                     column(2,
+                     column(3,
                             actionButton(inputId = "add_survey_names",
                                          label = "Add survey(s) to list",
                                          icon = icon("arrow-right")),
@@ -409,8 +409,6 @@ server <- function(input, output, session) {
   
   observeEvent(input$survey_name, {
     
-    print(input$survey_name)
-    print(RV$surveys_hash)
     selected_survey_id <- RV$surveys_hash[input$survey_name]
     print(glue("selected survey id: {selected_survey_id})"))
     start_date <- RV$active_surveys %>% dplyr::filter(survey_id == selected_survey_id) %>% pull(startdate)
@@ -535,6 +533,8 @@ server <- function(input, output, session) {
   observeEvent(input$add_survey_names, {
     asl <- RV$active_surveys_list
     RV$active_surveys_list <- unique(c(input$all_survey_names, asl))
+    RV$active_surveys <- surveys %>% dplyr::filter(name %in% RV$active_surveys_list)
+    RV$surveys_hash <- with(RV$active_surveys[c("name", "survey_id")], setNames(survey_id, name))
     new_choices <- RV$active_surveys_list
     
     updateSelectInput(session = session, 
@@ -547,7 +547,8 @@ server <- function(input, output, session) {
     new_choices <- RV$active_surveys_list
     
     updateSelectInput(session = session, 
-                      inputId = "survey_name_admin", choices = new_choices)
+                      inputId = "survey_name_admin",
+                      choices = new_choices)
   })
   
   observeEvent(input$update_survey_names, {
@@ -589,6 +590,7 @@ server <- function(input, output, session) {
   # These functions generate the charts and tables in the report, only when the filter gets updated
   observeEvent(RV$filtered, {
     
+
     output$myPivot <- renderRpivotTable({
       rpivotTable(data = RV$filtered)
     })
