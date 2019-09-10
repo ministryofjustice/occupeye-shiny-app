@@ -31,8 +31,8 @@ Note: The following table of recommendations is based on data for the top-level 
 ```{r summary, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
 df_sum <- params$df_sum
 
-longstay_desks <- df_sum %>% filter(devicetype == "Longstay Desk")
-non_longstay_desks <- df_sum %>% filter(devicetype != "Longstay Desk")
+longstay_desks <- df_sum %>% dplyr::filter(devicetype == "Longstay Desk")
+non_longstay_desks <- df_sum %>% dplyr::filter(devicetype != "Longstay Desk")
 
 cat("### Recommendation table for longstay desks:")
 
@@ -58,7 +58,7 @@ building_list <- unique(df_sum$building)
 
 if(length(building_list) > 1) {
   for(my_building in building_list) {
-    building_df_sum <- df_sum %>% filter(building == my_building)
+    building_df_sum <- df_sum %>% dplyr::filter(building == my_building)
     cat('\n\n# Desk utilisation for building ',
         my_building,
         ' (',
@@ -73,7 +73,7 @@ if(length(building_list) > 1) {
     
     if(length(floor_list) > 1) {
       for(my_floor in floor_list) {
-        floor_df_sum <- building_df_sum %>% filter(floor == my_floor)
+        floor_df_sum <- building_df_sum %>% dplyr::filter(floor == my_floor)
         cat('\n\n## Desk utilisation for floor ',
             my_floor,
             ' (',
@@ -91,7 +91,7 @@ if(length(building_list) > 1) {
     team_list <- unique(building_df_sum$category_1)
     for(team in team_list) {
       if(!is.na(team)) {
-        cat1_df_sum <- building_df_sum %>% filter(category_1 == team)
+        cat1_df_sum <- building_df_sum %>% dplyr::filter(category_1 == team)
         
         if(length(team_list) > 1) {
           cat('\n\n## Desk utilisation for ',
@@ -107,7 +107,7 @@ if(length(building_list) > 1) {
         
         cat2s <- unique(cat1_df_sum$category_2)
         for(cat2 in cat2s) {
-          cat2_df_sum <- cat1_df_sum %>% filter(category_2 == cat2)
+          cat2_df_sum <- cat1_df_sum %>% dplyr::filter(category_2 == cat2)
           if(length(cat2s) > 1) {
             cat('\n\n## Desk utilisation for ',
                 team,
@@ -123,7 +123,7 @@ if(length(building_list) > 1) {
           
           cat3s <- unique(cat2_df_sum$category_3)
           for(cat3 in cat3s) {
-            cat3_df_sum <- cat2_df_sum %>% filter(category_3 == cat3)
+            cat3_df_sum <- cat2_df_sum %>% dplyr::filter(category_3 == cat3)
             if(length(cat3s) > 1) {
               cat('\n\n## Desk utilisation for ',
                   team,' - ',
