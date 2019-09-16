@@ -142,7 +142,7 @@ ui <- fluidPage(
         tabPanel("Admin",
                  fluidPage(
                    fluidRow(
-                     column(3,uiOutput('all_survey_names')),
+                     column(4,uiOutput('all_survey_names')),
                      column(3,
                             actionButton(inputId = "add_survey_names",
                                          label = "Add survey(s) to list",
@@ -151,7 +151,7 @@ ui <- fluidPage(
                                          label = "Remove survey(s) from list",
                                          icon = icon("arrow-left")),
                             actionButton("update_survey_names","Confirm list update")),
-                     column(3,uiOutput('survey_name_admin'))
+                     column(4,uiOutput('survey_name_admin'))
                    )
                  ))
       )
