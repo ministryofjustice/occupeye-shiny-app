@@ -12,16 +12,16 @@ hours_minutes_string_to_numeric <- function(hm_string) {
 }
 
 in_time_range <- function(datetime_column, start_time, end_time) {
-
+  
   between(dt_to_numeric(datetime_column),
           hours_minutes_string_to_numeric(start_time),
           hours_minutes_string_to_numeric(end_time) - 600) # 
-
+  
 }
 
 filter_time_range <- function(df, start_time, end_time) {
   df %>%
-    filter(in_time_range(obs_datetime, start_time, end_time))
+    dplyr::filter(in_time_range(obs_datetime, start_time, end_time))
 }
 
 fix_bad_sensor_observations <- function(df) {
@@ -32,7 +32,7 @@ fix_bad_sensor_observations <- function(df) {
 }
 
 add_is_used <- function(df, perc_util=0.15) {
-
+  
   f1 <- df$utilisation > perc_util
   df %>%
     mutate(in_use = f1)
@@ -43,11 +43,11 @@ add_util_category <- function(df) {
   level_order <- c("Unused", "Under utilised", "Effective utilisation")
   df %>%
     mutate(util_cat = case_when(in_use == FALSE  ~ "Unused",
-                          in_use == TRUE & utilisation < 0.5  ~ "Under utilised",
-                          in_use == TRUE & utilisation >= 0.5  ~ "Effective utilisation"
-                          ))  %>% # Convert in_use to a factor with levels in a specific order - this controls the order in which it appears in ggplot 
+                                in_use == TRUE & utilisation < 0.5  ~ "Under utilised",
+                                in_use == TRUE & utilisation >= 0.5  ~ "Effective utilisation"
+    ))  %>% # Convert in_use to a factor with levels in a specific order - this controls the order in which it appears in ggplot 
     mutate(util_cat = factor(util_cat, levels = level_order))
-
+  
 }
 
 remove_non_business_days <- function(df) {
@@ -55,8 +55,8 @@ remove_non_business_days <- function(df) {
   bank_holidays <- bank_holidays$`england-and-wales`$events
   
   df %>%
-    filter(!(date(obs_datetime) %in% as.Date(bank_holidays$date))) %>% 
-    filter(!(weekdays(date(obs_datetime)) %in% c("Saturday", "Sunday")))
+    dplyr::filter(!(date(obs_datetime) %in% as.Date(bank_holidays$date))) %>% 
+    dplyr::filter(!(weekdays(date(obs_datetime)) %in% c("Saturday", "Sunday")))
 }
 
 
@@ -94,7 +94,7 @@ get_summarised_data <- function(df) {
             location) %>%
     add_is_used() %>%
     add_util_category
-
+  
 }
 
 get_df_sum <- function(df, start_time = "09:00", end_time = "17:00") {
@@ -153,4 +153,3 @@ get_df_sql <- function(survey_id,
   glue(sql)
   
 }
-
