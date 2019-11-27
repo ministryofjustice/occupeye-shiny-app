@@ -10,7 +10,7 @@ library(glue)
 get_prop_usage <- function(df_sum) {
   
   df_sum %>%
-    count(date, util_cat) %>%
+    count(date, util_cat, .drop = F) %>%
     group_by(date) %>%
     mutate(prop = n / sum(n)) %>%
     ungroup(date)
@@ -28,7 +28,10 @@ get_max_capacity_days <- function(df_sum) {
 
 prop_daily_usage_chart <- function(df_sum) {
   
-  prop_usage <- get_prop_usage(df_sum)
+  prop_usage <- get_prop_usage(df_sum) %>%
+    mutate(prop_label = replace(round(prop * 100, digits = 0),
+                                prop <= 0.05,
+                                ""))
   
   ggplot(prop_usage,
          aes(x = date, y = prop, fill = util_cat)) +
@@ -44,7 +47,7 @@ prop_daily_usage_chart <- function(df_sum) {
                                  "Under utilised" = "thistle3",
                                  "Unused" = "powderblue")) +
     theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 10)) +
-    geom_text(aes(label = scales::percent(prop, accuracy = 1, suffix = "")),
+    geom_text(aes(label = prop_label),
               position = position_fill(),
               vjust = 2,
               size = 3)
@@ -136,7 +139,7 @@ prop_weekday_usage_chart <- function(df_sum) {
 get_prop_usage_type <- function(df_sum) {
   
   df_sum %>%
-    count(devicetype, util_cat) %>%
+    count(devicetype, util_cat, .drop = F) %>%
     group_by(devicetype) %>%
     mutate(prop = n / sum(n)) %>%
     ungroup(devicetype)
@@ -166,7 +169,7 @@ prop_desk_usage_chart <- function(df_sum) {
 
 get_prop_usage_team <- function(df_sum) {
   df_sum %>%
-    count(category_1, category_2, category_3, util_cat) %>%
+    count(category_1, category_2, category_3, util_cat, .drop = F) %>%
     group_by(category_1, category_2, category_3) %>%
     mutate(prop = n / sum(n)) %>%
     ungroup(category_1, category_2, category_3)
