@@ -442,7 +442,9 @@ server <- function(input, output, session) {
       
       sql <- get_df_sql(RV$surveys_hash[input$survey_name],
                         start_date = input$download_date_range[1], 
-                        end_date = input$download_date_range[2])
+                        end_date = input$download_date_range[2],
+                        start_time = input$start_time,
+                        end_time = input$end_time)
       
       print(glue("executing query: {sql}"))
       

@@ -119,7 +119,9 @@ get_df_sql <- function(survey_id,
                        category_3=NULL,
                        floor=NULL,
                        start_date = "2018-07-01",
-                       end_date = Sys.Date()) {
+                       end_date = Sys.Date(),
+                       start_time = "09:00",
+                       end_time = "17:00") {
   
   notnull <- function(x) ! is.null(x)
   
@@ -147,6 +149,7 @@ get_df_sql <- function(survey_id,
     {category_filter}
     and so.obs_datetime >= timestamp '{start_date} 00:00'
     and so.obs_datetime <= timestamp '{end_date} 23:50'
+    and CAST(so.obs_datetime AS TIME) between time '{start_time}' and time '{end_time}'
     
     "
   
