@@ -1,5 +1,5 @@
 
-# OccupEye data dashboard - v0.11
+# OccupEye data dashboard - v0.12
 
 
 ## Introduction
@@ -60,7 +60,7 @@ A note on Multiple Occupancy: It is not possible within the main data to identif
   </tr>
   <tr>
    <td style="text-align:left;"> Download reports </td>
-   <td style="text-align:left;"> Once you have configured the filters to your satisfaction, you can generate downloadable reports from the Download Reports tab. You can choose between an HTML-based slideshow, and a Microsoft Word report. These follow the format of the reports produced previously by ASD - first showing charts and tables for the whole dataset, then showing the daily charts for each team (if there are multiple teams selected). </td>
+   <td style="text-align:left;"> Once you have configured the filters to your satisfaction, you can generate downloadable reports from the Download Reports tab. You can choose different levels of breakdowns to report on, between teams, floors, both, or across buildings for surveys with multiple buildings. These will produce Microsoft Word reports branded with the MoJ brand template. These follow the format of the reports produced previously by DASD - first showing charts and tables for the whole dataset, then showing the daily charts for each team (if there are multiple teams selected). </td>
   </tr>
 </tbody>
 </table>

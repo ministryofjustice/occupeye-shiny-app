@@ -1,5 +1,9 @@
 ## Changelog
 
+### v0.12 - 2019-11-28
+
+- Filter initial data load by the selected time range
+
 ### v0.11 - 2019-09-09
 
 - Changes data download method to using dbtools
