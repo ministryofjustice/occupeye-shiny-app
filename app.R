@@ -211,7 +211,7 @@ server <- function(input, output, session) {
   # Get the list of active survey
   active_surveys_list <- s3tools::read_using(FUN = feather::read_feather, 
                                              s3_path = "alpha-app-occupeye-automation/active surveys.feather") %>% 
-    .$surveyname %>% as.character()
+    pull(surveyname) %>% as.character()
   
   # Get the surveys table, and make a dictionary of survey names to their IDs. 
   # So calling surveys_hash["survey_name"] returns its corresponding survey_id
@@ -219,6 +219,13 @@ server <- function(input, output, session) {
   active_surveys <- surveys %>% dplyr::filter(name %in% active_surveys_list)
   surveys_hash <- with(active_surveys[c("name", "survey_id")], setNames(survey_id, name))
   initial_survey_id <- surveys_hash[[1]]
+  
+  
+  invalid_surveys <- setdiff(active_surveys_list, surveys$name)
+  if(length(invalid_surveys) > 0) {
+    showModal(modalDialog(HTML(glue("The following surveys in the list active surveys appear to have been removed from the list of surveys.
+                               Consider reviewing the active surveys list in the Admin tab: <br> {paste(invalid_surveys, collapse = '<br>')}"))))
+  }
   
   
   RV <- reactiveValues(surveys = surveys,
@@ -712,9 +719,9 @@ server <- function(input, output, session) {
     
     
   })
-
-# NPS render functions ----------------------------------------------------
-
+  
+  # NPS render functions ----------------------------------------------------
+  
   
   interview_room_df <- reactive({
     RV$data %>% dplyr::filter(roomtype == "Meeting Room",
