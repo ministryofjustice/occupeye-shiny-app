@@ -287,10 +287,11 @@ server <- function(input, output, session) {
   })
   
   output$survey_name <- renderUI({
-    selectInput(inputId = "survey_name",
+    pickerInput(inputId = "survey_name",
                 label = "Select OccupEye survey",
                 choices = RV$active_surveys_list,
-                selected = RV$active_surveys_list[1])
+                selected = RV$active_surveys_list[1],
+                multiple = TRUE)
   })
   
   output$all_survey_names <- renderUI({
@@ -454,10 +455,10 @@ server <- function(input, output, session) {
   
   observeEvent(input$survey_name, {
     
-    selected_survey_id <- RV$surveys_hash[input$survey_name]
-    print(glue("selected survey id: {selected_survey_id})"))
-    start_date <- RV$active_surveys %>% dplyr::filter(survey_id == selected_survey_id) %>% pull(startdate)
-    end_date <- RV$active_surveys %>% dplyr::filter(survey_id == selected_survey_id) %>% pull(enddate)
+    selected_survey_ids <- RV$surveys_hash[input$survey_name]
+    print(glue("selected survey ids: {paste(selected_survey_ids, collapse = ', ')}"))
+    start_date <- RV$active_surveys %>% dplyr::filter(survey_id %in% selected_survey_ids) %>% pull(startdate) %>% min
+    end_date <- RV$active_surveys %>% dplyr::filter(survey_id %in% selected_survey_ids) %>% pull(enddate) %>% max
     
     print(start_date)
     print(end_date)
@@ -471,18 +472,21 @@ server <- function(input, output, session) {
   
   # When clicking the "load report" button...
   observeEvent(input$loadCSV, {
-    print(glue("Loading alpha-app-occupeye-automation/raw_data_v5/sensors/survey_id={RV$surveys_hash[input$survey_name]}/data.csv"))
-    sensors <- s3tools::read_using(readr::read_csv, glue("alpha-app-occupeye-automation/raw_data_v5/sensors/survey_id={RV$surveys_hash[input$survey_name]}/data.csv")) %>%
+    print(glue("Loading sensors for surveys {paste0(RV$surveys_hash[input$survey_name], collapse = ', ')}"))
+    
+    withProgress(message = "Loading sensor information for selected survey(s)...", {
+    sensors <- dbtools::read_sql(glue("select * from occupeye_app_db.sensors where survey_id in ({paste0(RV$surveys_hash[input$survey_name], collapse = ', ')})")) %>%
       mutate(surveydeviceid = as.character(surveydeviceid)) %>% # coerce surveydeviceid to char to maintain type integrity
       mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
                 .vars = vars(roomname, location))
+    })
     
     # Store the selected survey name to log what survey is currently loaded, in case the selection is changed in the dropdown later
     RV$survey_name <- input$survey_name
     
     # Add a progress bar
     
-    withProgress(message = paste0("Loading report ", input$survey_name), {
+    withProgress(message = paste0("Loading report ", paste0(input$survey_name, collapse = ", ")), {
       start.time <- Sys.time()
       
       sql <- get_df_sql(RV$surveys_hash[input$survey_name],
@@ -516,7 +520,7 @@ server <- function(input, output, session) {
       RV$df_sum <- get_df_sum(RV$data, input$start_time, input$end_time)
       
       # show dialog to show it's finished loading
-      showModal(modalDialog(glue("{input$survey_name} successfully loaded into the dashboard."), easyClose = TRUE))
+      showModal(modalDialog(glue("{paste0(input$survey_name, collapse = ', ')} successfully loaded into the dashboard."), easyClose = TRUE))
     })
   })
   
