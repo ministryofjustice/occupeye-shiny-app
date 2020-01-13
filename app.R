@@ -157,38 +157,71 @@ ui <- fluidPage(
                    )
                  )),
         tabPanel("NPS rooms",
-                 fluidPage(
-                   fluidRow(
-                     h1("Interview Rooms"),
-                     numericInput("interview_room_target",
-                                  "Set target occupancy",
-                                  min = 0,
-                                  max = 1,
-                                  step = 0.1,
-                                  value = 0.5),
-                     column(2,
-                            gaugeOutput("interview_room_count")
-                     ),
-                     column(2,
-                            gaugeOutput("interview_room_proposed_gauge")
-                     ),
-                     column(2,
-                            gaugeOutput("interview_room_target_gauge")
-                     ),
-                     column(2,
-                            gaugeOutput("interview_room_performance"))
+                 tabsetPanel(
+                   tabPanel("Group Rooms",
+                            fluidPage(
+                              fluidRow(
+                                h1("Group Rooms"),
+                                numericInput("group_room_target",
+                                             "Set target occupancy",
+                                             min = 0,
+                                             max = 1,
+                                             step = 0.1,
+                                             value = 0.6),
+                                column(2,
+                                       gaugeOutput("group_room_count")
+                                ),
+                                column(2,
+                                       gaugeOutput("group_room_proposed_gauge")
+                                ),
+                                column(2,
+                                       gaugeOutput("group_room_target_gauge")
+                                ),
+                                column(2,
+                                       gaugeOutput("group_room_performance"))
+                              ),
+                              fluidRow(
+                                plotOutput(outputId = "group_weekly_plot")
+                              )
+                            )
                    ),
-                   fluidRow(
-                     plotOutput(outputId = "interview_weekly_plot")
+                   tabPanel("Interview Rooms",
+                            fluidPage(
+                              fluidRow(
+                                h1("Interview Rooms"),
+                                numericInput("interview_room_target",
+                                             "Set target occupancy",
+                                             min = 0,
+                                             max = 1,
+                                             step = 0.1,
+                                             value = 0.5),
+                                column(2,
+                                       gaugeOutput("interview_room_count")
+                                ),
+                                column(2,
+                                       gaugeOutput("interview_room_proposed_gauge")
+                                ),
+                                column(2,
+                                       gaugeOutput("interview_room_target_gauge")
+                                ),
+                                column(2,
+                                       gaugeOutput("interview_room_performance"))
+                              ),
+                              fluidRow(
+                                plotOutput(outputId = "interview_weekly_plot")
+                              )
+                            )
                    )
                  )
+                 
                  
         ),
         tabPanel("NPS Resource needs",
                  fluidPage(
                    fluidRow(
                      numericInput(inputId = "fte", "Input FTE", value = 50),
-                     rHandsontableOutput("resource_output")
+                     rHandsontableOutput("resource_hot"),
+                     tableOutput("resource_table")
                    )
                  )
         )
@@ -475,10 +508,10 @@ server <- function(input, output, session) {
     print(glue("Loading sensors for surveys {paste0(RV$surveys_hash[input$survey_name], collapse = ', ')}"))
     
     withProgress(message = "Loading sensor information for selected survey(s)...", {
-    sensors <- dbtools::read_sql(glue("select * from occupeye_app_db.sensors where survey_id in ({paste0(RV$surveys_hash[input$survey_name], collapse = ', ')})")) %>%
-      mutate(surveydeviceid = as.character(surveydeviceid)) %>% # coerce surveydeviceid to char to maintain type integrity
-      mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
-                .vars = vars(roomname, location))
+      sensors <- dbtools::read_sql(glue("select * from occupeye_app_db.sensors where survey_id in ({paste0(RV$surveys_hash[input$survey_name], collapse = ', ')})")) %>%
+        mutate(surveydeviceid = as.character(surveydeviceid)) %>% # coerce surveydeviceid to char to maintain type integrity
+        mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
+                  .vars = vars(roomname, location))
     })
     
     # Store the selected survey name to log what survey is currently loaded, in case the selection is changed in the dropdown later
@@ -727,13 +760,22 @@ server <- function(input, output, session) {
   # NPS render functions ----------------------------------------------------
   
   
-  interview_room_df <- reactive({
-    RV$data %>% dplyr::filter(roomtype == "Meeting Room",
-                              devicetype != "Group Room")
+  group_room_df <- reactive({
+    RV$data %>%
+      dplyr::filter(devicetype == "Group Room") %>%
+      clean_and_mutate_raw_data() %>% 
+      remove_non_business_days()
   })
   
-  output$interview_room_count <- renderGauge({
-    my_count <- n_distinct(interview_room_df()$roomname)
+  interview_room_df <- reactive({
+    RV$data %>%
+      dplyr::filter(devicetype == "Interview Room") %>%
+      clean_and_mutate_raw_data() %>% 
+      remove_non_business_days()
+  })
+  
+  output$group_room_count <- renderGauge({
+    my_count <- n_distinct(group_room_df() %>% select(building, category_2, floor))
     
     gauge(value = my_count,
           min = 0,
@@ -741,10 +783,9 @@ server <- function(input, output, session) {
           label = "Number of Rooms")
   })
   
-  output$interview_room_target_gauge <- renderGauge({
+  output$group_room_target_gauge <- renderGauge({
     
-    
-    gauge(value = input$interview_room_target * 100,
+    gauge(value = input$group_room_target * 100,
           min = 0,
           max = 100,
           symbol = "%",
@@ -752,12 +793,12 @@ server <- function(input, output, session) {
     
   })
   
-  output$interview_room_proposed_gauge <- renderGauge({
-    my_count <- n_distinct(interview_room_df()$roomname)
+  output$group_room_proposed_gauge <- renderGauge({
+    my_count <- n_distinct(group_room_df() %>% select(building, category_2, floor))
     
-    average_occupancy <- mean(interview_room_df()$sensor_value, na.rm = T)
+    average_occupancy <- mean(group_room_df()$sensor_value, na.rm = T)
     
-    proposed_room_number = round(my_count * (average_occupancy / input$interview_room_target))
+    proposed_room_number = ceiling(my_count * (average_occupancy / input$group_room_target))
     
     diff <- proposed_room_number - my_count
     
@@ -771,22 +812,81 @@ server <- function(input, output, session) {
     
   })
   
-  output$interview_room_performance <- renderGauge({
+  output$group_room_performance <- renderGauge({
     
-    average_occupancy <- mean(interview_room_df()$sensor_value, na.rm = T)
+    average_occupancy <- mean(group_room_df()$sensor_value, na.rm = T)
     
     gauge(value = round(average_occupancy * 100), min = 0, max = 100, symbol = "%", label = "Actual Occupancy")
     
   })
   
-  output$interview_weekly_plot <- renderPlot({
-    interview_df_sum <- get_df_sum(interview_room_df())
-    prop_weekday_usage_chart(interview_df_sum)
+  output$group_weekly_plot <- renderPlot({
+    
+    weekday_usage_chart(group_room_df())
     
   })
   
-  output$resource_output <- renderRHandsontable({
-    df <- tribble(
+  output$interview_room_count <- renderGauge({
+    my_count <- n_distinct(interview_room_df() %>% select(building, category_2, floor))
+    
+    gauge(value = my_count,
+          min = 0,
+          max = my_count * 2,
+          label = "Number of Rooms")
+  })
+  
+  output$interview_room_target_gauge <- renderGauge({
+    
+    gauge(value = input$interview_room_target * 100,
+          min = 0,
+          max = 100,
+          symbol = "%",
+          label = "Target Occupancy")
+    
+  })
+  
+  output$interview_room_proposed_gauge <- renderGauge({
+    my_count <- n_distinct(interview_room_df() %>% select(building, category_2, floor))
+    
+    average_occupancy <- mean(interview_room_df()$sensor_value, na.rm = T)
+    
+    proposed_room_number = ceiling(my_count * (average_occupancy / input$group_room_target))
+    
+    diff <- proposed_room_number - my_count
+    
+    more_fewer <- case_when(proposed_room_number > my_count ~ glue("{abs(diff)} more rooms than current"),
+                            proposed_room_number < my_count ~ glue("{abs(diff)} fewer rooms than current"),
+                            proposed_room_number == my_count ~ "equal to current allocation")
+    
+    print(glue("my count: {my_count}; proposed_room_number: {proposed_room_number}; diff: {diff}; more_fewer: {more_fewer}"))
+    
+    gauge(value = proposed_room_number,
+          min = 0,
+          max = my_count * 2,
+          label = glue("Proposed number of rooms,\n {more_fewer}"))
+    
+  })
+  
+  output$interview_room_performance <- renderGauge({
+    
+    average_occupancy <- mean(interview_room_df()$sensor_value, na.rm = T)
+    
+    gauge(value = round(average_occupancy * 100),
+          min = 0,
+          max = 100,
+          symbol = "%",
+          label = "Actual Occupancy")
+    
+  })
+  
+  output$interview_weekly_plot <- renderPlot({
+    
+    weekday_usage_chart(interview_room_df())
+    
+  })
+  
+  get_resource_df <- function() {
+    tribble(
       ~resource_name, ~resource, ~per_fte,
       "Long Stay Desks", 1, 1.6,
       "Touchdown", 1, 20,
@@ -797,11 +897,22 @@ server <- function(input, output, session) {
       "Print & copy", 1, 100,
       "Lockers", 1, 1,
       "File Storage", 0.5, 1
-    ) %>% mutate(total_resource = input$fte * (resource/per_fte))
+    )
+  }
+  
+  
+  output$resource_hot <- renderRHandsontable({
     
+    rhandsontable(get_resource_df()) %>% hot_cols(format = "0")
     
-    rhandsontable(df)
   })
+  
+  output$resource_table <- renderTable({
+    hot_to_r(input$resource_hot) %>%
+      mutate(total_resource = round(input$fte * (resource/per_fte), 2)) %>%
+      mutate_all(as.character) # Easy way to remove unnecessary decimal points
+  })
+  
   
   # Download handler --------------------------------------------------------
   
