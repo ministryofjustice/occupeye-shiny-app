@@ -408,3 +408,25 @@ ranked_desk_chart <- function(df_sum) {
     geom_bar(position = "fill", stat = "identity")
   
 }
+
+
+nps_donut <- function(room_df, target_occupancy) {
+
+  mean_occupancy <- mean(room_df$sensor_value, na.rm=T)
+  
+  output <- data.frame(variable = c("Average Occupancy", "Target Occupancy"),
+                       value = c(mean_occupancy, target_occupancy))
+  
+  
+  total_rooms <- n_distinct(room_df$survey_device_id)
+  
+  recommended_rooms <- ceiling(total_rooms * (mean_occupancy / target_occupancy))
+  
+  ggplot(output, aes(x = 2, y = value, fill = variable)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    coord_polar("y", start = 0) +
+    ylim(c(0,1)) +
+    xlim(c(-2,2.5)) +
+    theme_void() +
+    annotate("text", label = glue("{scales::percent(target_occupancy)} \n {recommended_rooms} / {total_rooms}"), x = -2, y = 0)
+}

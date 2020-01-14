@@ -5,7 +5,7 @@ library(ggplot2)        # For plotting
 library(dplyr)          # For pipes data wrangling
 library(htmlwidgets)    # rpivotTable depends on it
 library(shinyWidgets)   # For pickerInput
-library(plotly)         # Makes ggplot interactive
+# library(plotly)         # Makes ggplot interactive
 library(shinyTree)      # for the category tree.
 library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
@@ -19,8 +19,9 @@ library(rhandsontable)
 
 # import other source code ------------------------------------------------
 
-
+print("source charting_functions")
 source("charting_functions.R")
+print("source data cleaning functions")
 source("data_cleaning_functions.R")
 
 
@@ -168,17 +169,7 @@ ui <- fluidPage(
                                              max = 1,
                                              step = 0.1,
                                              value = 0.6),
-                                column(2,
-                                       gaugeOutput("group_room_count")
-                                ),
-                                column(2,
-                                       gaugeOutput("group_room_proposed_gauge")
-                                ),
-                                column(2,
-                                       gaugeOutput("group_room_target_gauge")
-                                ),
-                                column(2,
-                                       gaugeOutput("group_room_performance"))
+                                plotOutput(outputId = "group_donut")
                               ),
                               fluidRow(
                                 plotOutput(outputId = "group_weekly_plot")
@@ -240,7 +231,7 @@ server <- function(input, output, session) {
   # Initialise functions ------------------------------------------
   
   
-  
+  print("Getting active surveys list")
   # Get the list of active survey
   active_surveys_list <- s3tools::read_using(FUN = feather::read_feather, 
                                              s3_path = "alpha-app-occupeye-automation/active surveys.feather") %>% 
@@ -297,6 +288,7 @@ server <- function(input, output, session) {
   
   
   output$download_date_range <- renderUI({
+    print("rendering download_date_range")
     dateRangeInput(inputId = "download_date_range",
                    label = "Select date range to download",
                    start = min(date_list),
@@ -306,6 +298,7 @@ server <- function(input, output, session) {
   })
   
   output$start_time <- renderUI({
+    print("render start time")
     selectInput(inputId = "start_time",
                 label = "Start time:",
                 choices = time_list,
@@ -313,6 +306,7 @@ server <- function(input, output, session) {
   })
   
   output$end_time <- renderUI({
+    print("render end time")
     selectInput(inputId = "end_time",
                 label = "End time:",
                 choices = time_list,
@@ -320,6 +314,7 @@ server <- function(input, output, session) {
   })
   
   output$survey_name <- renderUI({
+    print("render survey_name pickerinput")
     pickerInput(inputId = "survey_name",
                 label = "Select OccupEye survey",
                 choices = RV$active_surveys_list,
@@ -328,6 +323,7 @@ server <- function(input, output, session) {
   })
   
   output$all_survey_names <- renderUI({
+    print("render all_survey_names")
     selectInput(inputId = "all_survey_names",
                 label = "All surveys",
                 choices = surveys$name,
@@ -774,50 +770,8 @@ server <- function(input, output, session) {
       remove_non_business_days()
   })
   
-  output$group_room_count <- renderGauge({
-    my_count <- n_distinct(group_room_df() %>% select(building, category_2, floor))
-    
-    gauge(value = my_count,
-          min = 0,
-          max = my_count * 2,
-          label = "Number of Rooms")
-  })
-  
-  output$group_room_target_gauge <- renderGauge({
-    
-    gauge(value = input$group_room_target * 100,
-          min = 0,
-          max = 100,
-          symbol = "%",
-          label = "Target Occupancy")
-    
-  })
-  
-  output$group_room_proposed_gauge <- renderGauge({
-    my_count <- n_distinct(group_room_df() %>% select(building, category_2, floor))
-    
-    average_occupancy <- mean(group_room_df()$sensor_value, na.rm = T)
-    
-    proposed_room_number = ceiling(my_count * (average_occupancy / input$group_room_target))
-    
-    diff <- proposed_room_number - my_count
-    
-    more_fewer <- case_when(proposed_room_number > my_count ~ glue("{abs(diff)} more rooms than current"),
-                            proposed_room_number < my_count ~ glue("{abs(diff)} fewer rooms than current"),
-                            proposed_room_number == my_count ~ "equal to current allocation")
-    
-    print(glue("my count: {my_count}; proposed_room_number: {proposed_room_number}; diff: {diff}; more_fewer: {more_fewer}"))
-    
-    gauge(value = proposed_room_number, min = 0, max = my_count * 2, label = glue("Proposed number of rooms,\n {more_fewer}"))
-    
-  })
-  
-  output$group_room_performance <- renderGauge({
-    
-    average_occupancy <- mean(group_room_df()$sensor_value, na.rm = T)
-    
-    gauge(value = round(average_occupancy * 100), min = 0, max = 100, symbol = "%", label = "Actual Occupancy")
-    
+  output$group_donut <- renderPlot({
+    nps_donut(group_room_df(), input$group_occupancy_target)
   })
   
   output$group_weekly_plot <- renderPlot({
