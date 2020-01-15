@@ -32,6 +32,10 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       tabsetPanel(
+
+# Report Config -----------------------------------------------------------
+
+        
         tabPanel("Report config",
                  uiOutput("survey_name"),
                  uiOutput("download_date_range"),
@@ -62,6 +66,9 @@ ui <- fluidPage(
                  
                  
         ),
+
+# Download Report menu ----------------------------------------------------
+
         
         tabPanel("Download Report",
                  radioButtons(inputId = "format",
@@ -76,6 +83,9 @@ ui <- fluidPage(
         
       )
     ),
+
+# MainPanel ---------------------------------------------------------------
+
     
     mainPanel(
       tabsetPanel(
@@ -157,6 +167,11 @@ ui <- fluidPage(
                      column(4,uiOutput('survey_name_admin'))
                    )
                  )),
+        
+
+# NPS UI ------------------------------------------------------------------
+
+        
         tabPanel("NPS rooms",
                  tabsetPanel(
                    tabPanel("Group Rooms",
@@ -169,10 +184,12 @@ ui <- fluidPage(
                                              max = 1,
                                              step = 0.1,
                                              value = 0.6),
-                                plotOutput(outputId = "group_donut")
+                                plotOutput(outputId = "group_donut"),
+                                htmlOutput(outputId = "group_donut_narrative")
                               ),
                               fluidRow(
-                                plotOutput(outputId = "group_weekly_plot")
+                                plotOutput(outputId = "group_weekly_plot"),
+                                plotOutput(outputId = "group_room_distribution")
                               )
                             )
                    ),
@@ -210,7 +227,11 @@ ui <- fluidPage(
         tabPanel("NPS Resource needs",
                  fluidPage(
                    fluidRow(
-                     numericInput(inputId = "fte", "Input FTE", value = 50),
+                     numericInput(inputId = "fte",
+                                  "Input selected FTE",
+                                  value = 50,
+                                  min = 1),
+                     h4("Update/add to resource requirement ratios here:"),
                      rHandsontableOutput("resource_hot"),
                      tableOutput("resource_table")
                    )
@@ -771,13 +792,22 @@ server <- function(input, output, session) {
   })
   
   output$group_donut <- renderPlot({
-    nps_donut(group_room_df(), input$group_occupancy_target)
+    nps_donut(group_room_df(), input$group_room_target)
+  })
+  
+  output$group_donut_narrative <- renderText({
+    nps_donut_narrative(group_room_df(), input$group_room_target)
+    
   })
   
   output$group_weekly_plot <- renderPlot({
     
     weekday_usage_chart(group_room_df())
     
+  })
+  
+  output$group_room_distribution <- renderPlot({
+    concurrent_room_usage_chart(group_room_df())
   })
   
   output$interview_room_count <- renderGauge({
@@ -857,13 +887,14 @@ server <- function(input, output, session) {
   
   output$resource_hot <- renderRHandsontable({
     
-    rhandsontable(get_resource_df()) %>% hot_cols(format = "0")
+    rhandsontable(get_resource_df()) %>%
+      hot_cols(format = "0")
     
   })
   
   output$resource_table <- renderTable({
     hot_to_r(input$resource_hot) %>%
-      mutate(total_resource = round(input$fte * (resource/per_fte), 2)) %>%
+      mutate(total_resource = ceiling(input$fte * (resource/per_fte))) %>%
       mutate_all(as.character) # Easy way to remove unnecessary decimal points
   })
   

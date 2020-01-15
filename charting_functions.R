@@ -418,15 +418,75 @@ nps_donut <- function(room_df, target_occupancy) {
                        value = c(mean_occupancy, target_occupancy))
   
   
-  total_rooms <- n_distinct(room_df$survey_device_id)
+  mean_rooms <- room_df %>% 
+    group_by(obs_datetime) %>%
+    summarise(rooms_occupied = sum(sensor_value, na.rm = T)) %>%
+    pull(rooms_occupied) %>%
+    mean() %>%
+    ceiling()
+  
+  total_rooms <- n_distinct(room_df$surveydeviceid)
   
   recommended_rooms <- ceiling(total_rooms * (mean_occupancy / target_occupancy))
   
-  ggplot(output, aes(x = 2, y = value, fill = variable)) +
+  ggplot(output, aes(x = 5, y = value, fill = variable)) +
     geom_bar(stat = "identity", position = "dodge") +
     coord_polar("y", start = 0) +
     ylim(c(0,1)) +
-    xlim(c(-2,2.5)) +
+    xlim(c(0,5.5)) +
     theme_void() +
-    annotate("text", label = glue("{scales::percent(target_occupancy)} \n {recommended_rooms} / {total_rooms}"), x = -2, y = 0)
+    annotate("text",
+             label = glue("Average occupancy: {scales::percent(mean_occupancy)}
+                          On average {mean_rooms} / {total_rooms} are in use during work hours.
+                          You will need {recommended_rooms} rooms
+                          to achieve target occupancy"),
+             x = 0,
+             y = 0,
+             hjust = 0)
+}
+
+nps_donut_narrative <- function(room_df, target_occupancy) {
+  concurrent_rooms <- concurrent_room_table(room_df)
+  
+  top_usage <- concurrent_rooms %>%
+    dplyr::filter(rooms_occupied == max(rooms_occupied))
+  
+  weekday_average <- room_df %>%
+    mutate(day = weekdays(obs_datetime)) %>%
+    group_by(day) %>%
+    summarise(average_utilisation = mean(sensor_value, na.rm = T))
+  
+  mean_rooms <- room_df %>% 
+    group_by(obs_datetime) %>%
+    summarise(rooms_occupied = sum(sensor_value, na.rm = T)) %>%
+    pull(rooms_occupied) %>%
+    mean() %>%
+    ceiling()
+  
+  top_weekday <- weekday_average %>%
+    dplyr::filter(average_utilisation == max(average_utilisation))
+  
+  glue("<li>At peak {top_usage$rooms_occupied} were in use for a combined period of {top_usage$n * 10} minutes</li>
+       <li>{top_weekday$day} is the busiest day for {unique(room_df$devicetype}s</li>
+       <li>On average {mean_rooms} are in use at any one time")
+}
+
+concurrent_room_table <- function(room_df) {
+  room_df %>% 
+    group_by(obs_datetime) %>%
+    summarise(rooms_occupied = sum(sensor_value, na.rm = TRUE)) %>%
+    count(rooms_occupied) %>%
+    mutate(prop = prop.table(n))
+}
+
+concurrent_room_usage_chart <- function(room_df) {
+  room_count <- concurrent_room_table(room_df)
+  
+  ggplot(room_count, aes(x = rooms_occupied, y = prop)) +
+    geom_bar(stat = "identity") +
+    scale_x_continuous(breaks = room_count$rooms_occupied) +
+    xlab("Number of rooms occupied concurrently") +
+    ylab("proportion of time in sample") +
+    scale_y_continuous(labels = scales::percent)
+  
 }
