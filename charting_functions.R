@@ -135,23 +135,6 @@ prop_weekday_usage_chart <- function(df_sum) {
   
 }
 
-weekday_usage_chart <- function(df) {
-  # Just shows average utilisation per weekday
-  weekday <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
-  
-  weekday_average <- df %>%
-    mutate(day = weekdays(obs_datetime)) %>%
-    group_by(day) %>%
-    summarise(average_utilisation = mean(sensor_value, na.rm = T))
-  
-  ggplot(weekday_average,
-         aes(x = day, y = average_utilisation)) +
-    geom_bar(stat = "identity") +
-    scale_y_continuous(labels = scales::percent) +
-    scale_x_discrete(limits = weekday)
-  
-}
-
 
 get_prop_usage_type <- function(df_sum) {
   
@@ -409,6 +392,25 @@ ranked_desk_chart <- function(df_sum) {
   
 }
 
+
+# NPS charts --------------------------------------------------------------
+
+weekday_usage_chart <- function(df) {
+  # Just shows average utilisation per weekday
+  weekday <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+  
+  weekday_average <- df %>%
+    mutate(day = weekdays(obs_datetime)) %>%
+    group_by(day) %>%
+    summarise(average_utilisation = mean(sensor_value, na.rm = T))
+  
+  ggplot(weekday_average,
+         aes(x = day, y = average_utilisation)) +
+    geom_bar(stat = "identity") +
+    scale_y_continuous(labels = scales::percent) +
+    scale_x_discrete(limits = weekday)
+  
+}
 
 nps_donut <- function(room_df, target_occupancy) {
 
