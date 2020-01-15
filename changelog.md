@@ -1,5 +1,11 @@
 ## Changelog
 
+### v0.13 - 2020-01-15
+
+- Allow selection of multiple surveys
+- Error message if there are bad surveys in survey list
+- First draft of NPS charts
+
 ### v0.12 - 2019-11-28
 
 - Filter initial data load by the selected time range
