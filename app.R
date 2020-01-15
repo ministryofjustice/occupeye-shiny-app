@@ -184,8 +184,8 @@ ui <- fluidPage(
                                              max = 1,
                                              step = 0.1,
                                              value = 0.6),
-                                plotOutput(outputId = "group_donut"),
-                                htmlOutput(outputId = "group_donut_narrative")
+                                htmlOutput(outputId = "group_donut_narrative"),
+                                plotOutput(outputId = "group_donut")
                               ),
                               fluidRow(
                                 plotOutput(outputId = "group_weekly_plot"),
