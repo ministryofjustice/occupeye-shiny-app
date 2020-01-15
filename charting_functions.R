@@ -444,7 +444,7 @@ nps_donut <- function(room_df, target_occupancy) {
                           to achieve target occupancy"),
              x = 0,
              y = 0,
-             hjust = 0)
+             hjust = 0.5)
 }
 
 nps_donut_narrative <- function(room_df, target_occupancy) {
@@ -468,9 +468,9 @@ nps_donut_narrative <- function(room_df, target_occupancy) {
   top_weekday <- weekday_average %>%
     dplyr::filter(average_utilisation == max(average_utilisation))
   
-  glue("<li>At peak {top_usage$rooms_occupied} were in use for a combined period of {top_usage$n * 10} minutes</li>
-       <li>{top_weekday$day} is the busiest day for {unique(room_df$devicetype}s</li>
-       <li>On average {mean_rooms} are in use at any one time")
+  glue("<li>At peak {top_usage$rooms_occupied} rooms were in use for a combined period of {top_usage$n * 10} minutes</li>
+       <li>{top_weekday$day} is the busiest day for {unique(room_df$devicetype)}s</li>
+       <li>On average {mean_rooms} rooms are in use at any one time")
 }
 
 concurrent_room_table <- function(room_df) {
