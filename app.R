@@ -887,15 +887,20 @@ server <- function(input, output, session) {
   
   output$resource_hot <- renderRHandsontable({
     
-    rhandsontable(get_resource_df()) %>%
+    rhandsontable(get_resource_df() %>% mutate_all(as.character)) %>%
       hot_cols(format = "0")
     
   })
   
   output$resource_table <- renderTable({
-    hot_to_r(input$resource_hot) %>%
-      mutate(total_resource = ceiling(input$fte * (resource/per_fte))) %>%
+    if(is.null(input$resource_hot)) {
+      return(NULL)
+    }
+    else{
+      hot_to_r(input$resource_hot) %>%
+      mutate(total_resource = ceiling(input$fte * (make_numeric(resource)/make_numeric(per_fte)))) %>%
       mutate_all(as.character) # Easy way to remove unnecessary decimal points
+    }
   })
   
   

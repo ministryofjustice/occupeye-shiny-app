@@ -157,3 +157,6 @@ get_df_sql <- function(survey_ids,
   
 }
 
+make_numeric <- function(x) {
+  as.numeric(gsub("[^0-9.-]", "", x))
+}
