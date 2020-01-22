@@ -15,6 +15,8 @@ library(reticulate)
 library(dbtools)
 library(flexdashboard)
 library(rhandsontable)
+library(shinycssloaders)
+library(gridExtra)
 
 
 # import other source code ------------------------------------------------
@@ -32,9 +34,9 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       tabsetPanel(
-
-# Report Config -----------------------------------------------------------
-
+        
+        # Report Config -----------------------------------------------------------
+        
         
         tabPanel("Report config",
                  uiOutput("survey_name"),
@@ -57,18 +59,15 @@ ui <- fluidPage(
                                   uiOutput("zones"),
                                   uiOutput("desk_type"),
                                   uiOutput("desks"),
-                                  
-                                  
-                                  
                                   helpText("Select Department(s) and team(s)"),
                                   shinyTree("tree", checkbox = TRUE, search = TRUE)
                  )
                  
                  
         ),
-
-# Download Report menu ----------------------------------------------------
-
+        
+        # Download Report menu ----------------------------------------------------
+        
         
         tabPanel("Download Report",
                  radioButtons(inputId = "format",
@@ -83,9 +82,9 @@ ui <- fluidPage(
         
       )
     ),
-
-# MainPanel ---------------------------------------------------------------
-
+    
+    # MainPanel ---------------------------------------------------------------
+    
     
     mainPanel(
       tabsetPanel(
@@ -168,12 +167,36 @@ ui <- fluidPage(
                    )
                  )),
         
-
-# NPS UI ------------------------------------------------------------------
-
+        
+        # NPS UI ------------------------------------------------------------------
+        
         
         tabPanel("NPS rooms",
                  tabsetPanel(
+                   tabPanel("Selected rooms",
+                            fluidPage(
+                              fluidRow(
+                                h1("Filtered rooms"),
+                                p("This view shows analysis for the data with the filters applied"),
+                                numericInput("filtered_room_target",
+                                             "Set target occupancy",
+                                             min = 0,
+                                             max = 1,
+                                             step = 0.1,
+                                             value = 0.5),
+                                htmlOutput(outputId = "filtered_donut_narrative"),
+                                column(4,
+                                       plotOutput(outputId = "filtered_gauge", height = "300px") %>% withSpinner()
+                                ),
+                                column(6,
+                                       plotOutput(outputId = "filtered_waffle", height = "300px") %>% withSpinner()
+                                )),
+                              fluidRow(
+                                plotOutput(outputId = "filtered_weekly_plot"),
+                                plotOutput(outputId = "filtered_room_distribution")
+                              )
+                            )
+                   ),
                    tabPanel("Group Rooms",
                             fluidPage(
                               fluidRow(
@@ -559,7 +582,9 @@ server <- function(input, output, session) {
         rename(surveydeviceid = survey_device_id)
       
       # add the raw data for displaying on the raw data tab
-      RV$data <- df_full
+      RV$data <- df_full %>%
+        clean_and_mutate_raw_data() %>%
+        remove_non_business_days()
       
       # make the bad sensors analysis
       RV$bad_sensors <- get_bad_observations(RV$data)
@@ -759,7 +784,7 @@ server <- function(input, output, session) {
     })
     
     output$filtered <- renderDataTable({
-      RV$filtered
+      filtered_room_df()
     })
     
     output$raw_data <- renderDataTable({
@@ -776,23 +801,59 @@ server <- function(input, output, session) {
   
   # NPS render functions ----------------------------------------------------
   
+  filtered_room_df <- reactive({
+    
+    RV$data %>%
+      dplyr::filter(devicetype %in% unique(RV$filtered$devicetype),
+                    building %in% unique(RV$filtered$building),
+                    floor %in% unique(RV$filtered$floor),
+                    category_1 %in% unique(RV$filtered$category_1),
+                    category_2 %in% unique(RV$filtered$category_2),
+                    category_3 %in% unique(RV$filtered$category_3),
+                    roomname %in% unique(RV$filtered$roomname),
+                    location %in% unique(RV$filtered$location))
+  })
   
   group_room_df <- reactive({
     RV$data %>%
-      dplyr::filter(devicetype == "Group Room") %>%
-      clean_and_mutate_raw_data() %>% 
-      remove_non_business_days()
+      dplyr::filter(devicetype == "Group Room")
   })
   
   interview_room_df <- reactive({
     RV$data %>%
-      dplyr::filter(devicetype == "Interview Room") %>%
-      clean_and_mutate_raw_data() %>% 
-      remove_non_business_days()
+      dplyr::filter(devicetype == "Interview Room")
   })
   
+  output$filtered_gauge <- renderPlot({
+    vertical_gauge_chart(filtered_room_df(), input$filtered_room_target)
+    
+    
+  })
+  
+  output$filtered_waffle <- renderPlot({
+    room_waffle_chart(filtered_room_df(), input$filtered_room_target)
+  })
+  
+  output$filtered_donut_narrative <- renderText({
+    nps_donut_narrative(filtered_room_df(), input$filtered_room_target)
+    
+  })
+  
+  output$filtered_weekly_plot <- renderPlot({
+    
+    weekday_usage_chart(filtered_room_df())
+    
+  })
+  
+  output$filtered_room_distribution <- renderPlot({
+    concurrent_room_usage_chart(filtered_room_df())
+  })
+  
+  
+  
+  
   output$group_donut <- renderPlot({
-    nps_donut(group_room_df(), input$group_room_target)
+    vertical_gauge_chart(group_room_df(), input$group_room_target)
   })
   
   output$group_donut_narrative <- renderText({
@@ -898,8 +959,8 @@ server <- function(input, output, session) {
     }
     else{
       hot_to_r(input$resource_hot) %>%
-      mutate(total_resource = ceiling(input$fte * (make_numeric(resource)/make_numeric(per_fte)))) %>%
-      mutate_all(as.character) # Easy way to remove unnecessary decimal points
+        mutate(total_resource = ceiling(input$fte * (make_numeric(resource)/make_numeric(per_fte)))) %>%
+        mutate_all(as.character) # Easy way to remove unnecessary decimal points
     }
   })
   
