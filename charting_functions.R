@@ -408,7 +408,8 @@ weekday_usage_chart <- function(df) {
   ggplot(weekday_average,
          aes(x = day, y = average_utilisation)) +
     geom_bar(stat = "identity") +
-    scale_y_continuous(labels = scales::percent) +
+    scale_y_continuous(labels = scales::percent,
+                       limits = c(0,1)) +
     scale_x_discrete(limits = weekday)
   
 }
