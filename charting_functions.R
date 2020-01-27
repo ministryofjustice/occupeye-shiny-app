@@ -414,40 +414,6 @@ weekday_usage_chart <- function(df) {
   
 }
 
-nps_donut <- function(room_df, target_occupancy) {
-  
-  mean_occupancy <- mean(room_df$sensor_value, na.rm=T)
-  
-  output <- data.frame(variable = c("Average Occupancy", "Target Occupancy"),
-                       value = c(mean_occupancy, target_occupancy))
-  
-  
-  mean_rooms <- room_df %>% 
-    group_by(obs_datetime) %>%
-    summarise(rooms_occupied = sum(sensor_value, na.rm = T)) %>%
-    pull(rooms_occupied) %>%
-    mean() %>%
-    ceiling()
-  
-  total_rooms <- n_distinct(room_df$surveydeviceid)
-  
-  recommended_rooms <- ceiling(total_rooms * (mean_occupancy / target_occupancy))
-  
-  ggplot(output, aes(x = 5, y = value, fill = variable)) +
-    geom_bar(stat = "identity", position = "dodge") +
-    coord_polar("y", start = 0) +
-    ylim(c(0,1)) +
-    xlim(c(0,5.5)) +
-    theme_void() +
-    annotate("text",
-             label = glue("Average occupancy: {scales::percent(mean_occupancy)}
-                          On average {mean_rooms} / {total_rooms} are in use during work hours.
-                          You will need {recommended_rooms} rooms
-                          to achieve target occupancy"),
-             x = 0,
-             y = 0,
-             hjust = 0.5)
-}
 
 nps_donut_narrative <- function(room_df, target_occupancy) {
   concurrent_rooms <- concurrent_room_table(room_df)
@@ -598,7 +564,7 @@ room_waffle_chart <- function(room_df, target) {
 vertical_gauge_chart <- function(room_df, target) {
   # code adapted from https://pomvlad.blog/2018/05/03/gauges-ggplot2/
   # so some details are a bit redundant
-
+  
   df <- make_gauge_data(room_df, target)
   
   ggplot(df, aes(fill = group, ymax = percentage, ymin = 0, xmax = 2, xmin = 1)) +
@@ -628,3 +594,31 @@ vertical_gauge_chart <- function(room_df, target) {
     guides(fill = FALSE) +
     guides(colour=FALSE)
 }
+
+get_room_resource_requirements <- function(df,
+                                           group_room_target,
+                                           interview_room_target,
+                                           room_footage_hot) {
+  df %>%
+    group_by(devicetype) %>%
+    summarise("count" = n_distinct(surveydeviceid),
+              "occupancy" = mean(sensor_value, na.rm = T)) %>%
+    dplyr::filter(devicetype %in% c("Group Room",
+                                    "Interview Room")) %>%
+    mutate(target_occupancy = case_when(devicetype == "Group Room" ~group_room_target,
+                                        devicetype == "Interview Room" ~interview_room_target),
+           recommended_rooms = ceiling(count * (occupancy / target_occupancy))) %>%
+    left_join(room_footage_hot, by = c("devicetype" = "resource_name")) %>%
+    mutate(space_required = make_numeric(space_required),
+           total_space = space_required * recommended_rooms)
+  
+}
+
+get_fte_resource_requirements <- function(fte_resource_hot,
+                                          fte) {
+  fte_resource_hot %>%
+    mutate(total_resource = ceiling(fte * (make_numeric(resource)/make_numeric(per_fte))),
+           total_space = make_numeric(space_required) * total_resource) %>%
+    select(-resource, -per_fte)
+}
+  

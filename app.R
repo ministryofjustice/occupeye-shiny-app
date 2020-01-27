@@ -207,9 +207,12 @@ ui <- fluidPage(
                                              max = 1,
                                              step = 0.1,
                                              value = 0.6),
-                                htmlOutput(outputId = "group_donut_narrative"),
-                                plotOutput(outputId = "group_donut")
-                              ),
+                                column(4,
+                                       plotOutput(outputId = "group_gauge", height = "300px") %>% withSpinner()
+                                ),
+                                column(6,
+                                       plotOutput(outputId = "group_waffle", height = "300px") %>% withSpinner()
+                                )),
                               fluidRow(
                                 plotOutput(outputId = "group_weekly_plot"),
                                 plotOutput(outputId = "group_room_distribution")
@@ -226,20 +229,15 @@ ui <- fluidPage(
                                              max = 1,
                                              step = 0.1,
                                              value = 0.5),
-                                column(2,
-                                       gaugeOutput("interview_room_count")
+                                column(4,
+                                       plotOutput(outputId = "interview_gauge", height = "300px") %>% withSpinner()
                                 ),
-                                column(2,
-                                       gaugeOutput("interview_room_proposed_gauge")
-                                ),
-                                column(2,
-                                       gaugeOutput("interview_room_target_gauge")
-                                ),
-                                column(2,
-                                       gaugeOutput("interview_room_performance"))
-                              ),
+                                column(6,
+                                       plotOutput(outputId = "interview_waffle", height = "300px") %>% withSpinner()
+                                )),
                               fluidRow(
-                                plotOutput(outputId = "interview_weekly_plot")
+                                plotOutput(outputId = "interview_weekly_plot"),
+                                plotOutput(outputId = "interview_room_distribution")
                               )
                             )
                    )
@@ -248,20 +246,29 @@ ui <- fluidPage(
                  
         ),
         tabPanel("NPS Resource needs",
+                 
                  fluidPage(
                    fluidRow(
                      numericInput(inputId = "fte",
                                   "Input selected FTE",
                                   value = 50,
                                   min = 1),
-                     h4("Update/add to resource requirement ratios here:"),
-                     rHandsontableOutput("resource_hot"),
-                     tableOutput("resource_table")
-                   )
+                     column(4,
+                            h4("Update/add to resource requirement ratios here:"),
+                            rHandsontableOutput("resource_hot"),
+                            h4("Update square footage for rooms here:"),
+                            rHandsontableOutput("room_footage_hot"),
+                            h4("Update/add to additional fixed spaces here:"),
+                            rHandsontableOutput("fixed_footage_hot")),
+                     column(4,
+                            tableOutput("total_resource_table"),
+                            tableOutput("fte_resource_table"),
+                            tableOutput("current_resource_levels"),
+                            tableOutput("room_resource_requirements")))
                  )
         )
+        
       )
-      
     )
   )
 )
@@ -548,7 +555,7 @@ server <- function(input, output, session) {
     print(glue("Loading sensors for surveys {paste0(RV$surveys_hash[input$survey_name], collapse = ', ')}"))
     
     withProgress(message = "Loading sensor information for selected survey(s)...", {
-      sensors <- dbtools::read_sql(glue("select * from occupeye_app_db.sensors where survey_id in ({paste0(RV$surveys_hash[input$survey_name], collapse = ', ')})")) %>%
+      RV$sensors <- dbtools::read_sql(glue("select * from occupeye_app_db.sensors where survey_id in ({paste0(RV$surveys_hash[input$survey_name], collapse = ', ')})")) %>%
         mutate(surveydeviceid = as.character(surveydeviceid)) %>% # coerce surveydeviceid to char to maintain type integrity
         mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
                   .vars = vars(roomname, location))
@@ -578,7 +585,7 @@ server <- function(input, output, session) {
       diff <- end.time - start.time
       print(diff)
       # Add the other sensor metadata, dealing with the inconsistently named survey_device_id and surveydeviceid
-      df_full <- left_join(df_min, sensors, by = c("survey_device_id" = "surveydeviceid")) %>% 
+      df_full <- left_join(df_min, RV$sensors, by = c("survey_device_id" = "surveydeviceid")) %>% 
         rename(surveydeviceid = survey_device_id)
       
       # add the raw data for displaying on the raw data tab
@@ -932,38 +939,100 @@ server <- function(input, output, session) {
   
   get_resource_df <- function() {
     tribble(
-      ~resource_name, ~resource, ~per_fte,
-      "Long Stay Desks", 1, 1.6,
-      "Touchdown", 1, 20,
-      "Quiet/phone room", 1, 20,
-      "Open Meeting", 1, 30,
-      "Breakout", 1, 40,
-      "Tea point", 1, 50,
-      "Print & copy", 1, 100,
-      "Lockers", 1, 1,
-      "File Storage", 0.5, 1
+      ~resource_name, ~resource, ~per_fte, ~space_required,
+      "Long Stay Desks", 1, 1.6, 8,
+      "Touchdown", 1, 20, 10,
+      "Quiet/phone room", 1, 20, 5,
+      "Open Meeting", 1, 30, 20,
+      "Breakout", 1, 40, 20,
+      "Tea point", 1, 50, 5,
+      "Print & copy", 1, 100, 10,
+      "Lockers", 1, 1,1,
+      "File Storage", 0.5, 1,0
     )
   }
   
   
   output$resource_hot <- renderRHandsontable({
-    
-    rhandsontable(get_resource_df() %>% mutate_all(as.character)) %>%
+    resource_df <- get_resource_df() %>%
+      mutate_all(as.character)
+    rhandsontable(resource_df,
+                  colHeaders = snakecase::to_sentence_case(names(resource_df))) %>%
       hot_cols(format = "0")
     
   })
   
-  output$resource_table <- renderTable({
+  output$room_footage_hot <- renderRHandsontable({
+    df <- data.frame(resource_name = c("Group Room", "Interview Room"),
+                     space_required = c(22,9))
+    rhandsontable(df %>% mutate_all(as.character)) %>%
+      hot_cols(format = "0")
+    
+  })
+  
+  output$fixed_footage_hot <- renderRHandsontable({
+    df <- data.frame(resource_name = c("Reception", "Waiting room"),
+                     space_required = c(10, 15))
+    
+    rhandsontable(df %>% mutate_all(as.character)) %>%
+      hot_cols(format = "0")
+  })
+  
+  output$fte_resource_table <- renderTable({
+    
+    
+    
     if(is.null(input$resource_hot)) {
       return(NULL)
     }
     else{
-      hot_to_r(input$resource_hot) %>%
-        mutate(total_resource = ceiling(input$fte * (make_numeric(resource)/make_numeric(per_fte)))) %>%
-        mutate_all(as.character) # Easy way to remove unnecessary decimal points
+      get_fte_resource_requirements(hot_to_r(input$resource_hot),
+                                    input$fte)
     }
   })
   
+  output$current_resource_levels <- renderTable({
+    RV$data %>%
+      group_by(devicetype) %>%
+      summarise("count" = n_distinct(surveydeviceid),
+                "occupancy" = scales::percent(mean(sensor_value, na.rm = T)))
+  })
+  
+  output$room_resource_requirements <- renderTable({
+    get_room_resource_requirements(RV$data,
+                                   input$group_room_target,
+                                   input$interview_room_target,
+                                   hot_to_r(input$room_footage_hot))
+  })
+  
+  output$total_resource_table <- renderTable({
+    
+    room_resources <- get_room_resource_requirements(RV$data,
+                                                     input$group_room_target,
+                                                     input$interview_room_target,
+                                                     hot_to_r(input$room_footage_hot)) %>%
+      select(resource_name = devicetype,
+             total_resource = recommended_rooms,
+             space_required,
+             total_space) %>%
+      mutate_all(as.character)
+    
+    fte_resources <- get_fte_resource_requirements(hot_to_r(input$resource_hot),
+                                                   input$fte) %>% mutate_all(as.character)
+    
+    fixed_resources <- hot_to_r(input$fixed_footage_hot) %>%
+      mutate(total_resource = 1,
+             space_required = space_required,
+             total_space = space_required) %>% mutate_all(as.character)
+    
+    bind_rows(room_resources, fte_resources, fixed_resources) %>%
+      mutate(total_space = as.numeric(total_space)) %>%
+      janitor::adorn_totals()
+    
+    
+    
+    
+  })
   
   # Download handler --------------------------------------------------------
   
