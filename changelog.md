@@ -1,5 +1,11 @@
 ## Changelog
 
+### v0.14 - 2020-01-27
+
+- Revised room charts
+- Added room filter
+- Added lots of tables
+
 ### v0.13 - 2020-01-15
 
 - Allow selection of multiple surveys
