@@ -5,7 +5,7 @@ library(scales)
 library(dplyr)
 library(reshape2)
 library(glue)
-
+library(tidyr)
 
 
 get_prop_usage <- function(df_sum) {
