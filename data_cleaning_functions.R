@@ -27,7 +27,7 @@ filter_time_range <- function(df, start_time, end_time) {
 fix_bad_sensor_observations <- function(df) {
   # Set any observation which is not 1 or 0 to null
   bad_rows <- !(df$sensor_value %in% c(1, 0))
-  df[bad_rows, "obs_datetime"] <- NA
+  df[bad_rows, "sensor_value"] <- NA
   df
 }
 
@@ -113,6 +113,17 @@ get_full_df <- function(df, sensors) {
   left_join(df, sensors, by = c("survey_device_id" = "surveydeviceid")) %>% rename(surveydeviceid = survey_device_id)
 }
 
+get_bad_observations <- function(df) {
+  df %>%
+    dplyr::filter(!sensor_value %in% c(1, 0)) %>%
+    mutate(obs_date = date(obs_datetime)) %>%
+    group_by(obs_date, sensor_value, surveydeviceid, hardwareid, sensorid, location) %>% 
+    summarise(count = n())
+  
+}
+
+
+
 get_df_sql <- function(survey_ids,
                        category_1=NULL,
                        category_2=NULL,
@@ -160,3 +171,4 @@ get_df_sql <- function(survey_ids,
 make_numeric <- function(x) {
   as.numeric(gsub("[^0-9.-]", "", x))
 }
+
