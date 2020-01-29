@@ -319,9 +319,13 @@ server <- function(input, output, session) {
   # 
   # temp_df <- get_full_df(df_min, sensors)
   
-  temp_df <- temp_df <- s3tools::read_using(FUN = readr::read_csv, s3_path = "alpha-app-occupeye-automation/surveys/336/Unallocated.csv")
+  temp_df <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/temp_df.feather")
+    
+  
   
   #temp_df <- s3tools::read_using(FUN = readr::read_csv, s3_path = "alpha-app-occupeye-automation/surveys/336/Unallocated.csv")
+    
+
   temp_df_sum <- get_df_sum(temp_df, "09:00", "17:00")
   time_list <- unique(strftime(temp_df$obs_datetime, format = "%H:%M"))
   date_list <- unique(lubridate::date(temp_df$obs_datetime))
@@ -336,7 +340,7 @@ server <- function(input, output, session) {
   RV$data = temp_df
   RV$df_sum = temp_df_sum
   RV$filtered = temp_df_sum
-  
+  RV$bad_sensors = get_bad_observations(temp_df)
   
   output$download_date_range <- renderUI({
     print("rendering download_date_range")
@@ -462,8 +466,9 @@ server <- function(input, output, session) {
     l2Names <- NULL
     l3Names <- NULL
     if (is.null(input$tree)){
-      "None"
+      tree_initialised <-FALSE
     } else{
+      tree_initialised <- TRUE
       selected <- get_selected(input$tree, "slice")
       
       
@@ -493,11 +498,17 @@ server <- function(input, output, session) {
                     devicetype %in% input$desk_type,
                     building %in% input$buildings,
                     floor %in% input$floors,
-                    trimws(category_1) %in% l1Names,
-                    trimws(category_2) %in% l2Names,
-                    trimws(category_3) %in% l3Names,
                     roomname %in% input$zones,
                     location %in% input$desks)
+    
+    if(tree_initialised) {
+      
+      RV$filtered <- RV$filtered %>%
+        dplyr::filter(trimws(category_1) %in% l1Names,
+                      trimws(category_2) %in% l2Names,
+                      trimws(category_3) %in% l3Names)
+    }
+    
   }
   
   
@@ -522,14 +533,6 @@ server <- function(input, output, session) {
     RV$team_tree <- lapply(cat3split, lapply, lapply, function(x) x <- structure(names(x), stselected = TRUE))
   }
   
-  get_bad_observations <- function(df) {
-    df %>%
-      dplyr::filter(!sensor_value %in% c(1, 0)) %>%
-      mutate(obs_date = date(obs_datetime)) %>%
-      group_by(obs_date, sensor_value, surveydeviceid, hardwareid, sensorid, location) %>% 
-      summarise(count = n())
-    
-  }
   
   # event observers -----------------------------------------------------
   
@@ -593,6 +596,10 @@ server <- function(input, output, session) {
         clean_and_mutate_raw_data() %>%
         remove_non_business_days()
       
+      feather::write_feather(RV$data, "temp_df.feather")
+      
+      s3tools::write_file_to_s3("temp_df.feather",s3_path = "alpha-app-occupeye-automation/temp_df.feather", overwrite = T)
+      
       # make the bad sensors analysis
       RV$bad_sensors <- get_bad_observations(RV$data)
     })
@@ -608,7 +615,7 @@ server <- function(input, output, session) {
   
   # Once it sees that RV$df_sum has updated, update the filter UI with metadata from new dataset
   observeEvent(RV$df_sum, {
-    
+    print("Updating RV$df_sum")
     # Get the list of buildings
     building_list <- unique(RV$df_sum$building) %>% sort()
     
@@ -656,6 +663,8 @@ server <- function(input, output, session) {
                          max = max(date_list, na.rm = TRUE),
                          start = min(date_list, na.rm = TRUE),
                          end = max(date_list, na.rm = TRUE))
+    
+    print("Updating Tree")
     
     updateTree(session, "tree", data = get_team_tree())
     
@@ -722,7 +731,7 @@ server <- function(input, output, session) {
   
   # These functions generate the charts and tables in the report, only when the filter gets updated
   observeEvent(RV$filtered, {
-    
+    print("Observing RV$filtered")
     
     output$myPivot <- renderRpivotTable({
       rpivotTable(data = RV$filtered)
@@ -809,8 +818,8 @@ server <- function(input, output, session) {
   # NPS render functions ----------------------------------------------------
   
   filtered_room_df <- reactive({
-    
-    RV$data %>%
+    print("Filtering filtered_room_df")
+    df <- RV$data %>%
       dplyr::filter(devicetype %in% unique(RV$filtered$devicetype),
                     building %in% unique(RV$filtered$building),
                     floor %in% unique(RV$filtered$floor),
@@ -819,6 +828,7 @@ server <- function(input, output, session) {
                     category_3 %in% unique(RV$filtered$category_3),
                     roomname %in% unique(RV$filtered$roomname),
                     location %in% unique(RV$filtered$location))
+    df
   })
   
   group_room_df <- reactive({
