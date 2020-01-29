@@ -6,7 +6,7 @@ library(dplyr)
 library(reshape2)
 library(glue)
 library(tidyr)
-
+library(waffle)
 
 get_prop_usage <- function(df_sum) {
   
