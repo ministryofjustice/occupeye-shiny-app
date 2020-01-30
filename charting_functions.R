@@ -407,10 +407,12 @@ weekday_usage_chart <- function(df) {
   
   ggplot(weekday_average,
          aes(x = day, y = average_utilisation)) +
-    geom_bar(stat = "identity") +
+    geom_bar(stat = "identity", fill = "coral2") +
     scale_y_continuous(labels = scales::percent,
                        limits = c(0,1)) +
-    scale_x_discrete(limits = weekday)
+    scale_x_discrete(limits = weekday) +
+    theme_minimal() +
+    ggtitle("Average occupancy by weekday")
   
 }
 
@@ -453,11 +455,13 @@ concurrent_room_usage_chart <- function(room_df) {
   room_count <- concurrent_room_table(room_df)
   
   ggplot(room_count, aes(x = rooms_occupied, y = prop)) +
-    geom_bar(stat = "identity") +
+    geom_bar(stat = "identity", fill = "coral2") +
     scale_x_continuous(breaks = room_count$rooms_occupied) +
     xlab("Number of rooms occupied concurrently") +
     ylab("proportion of time in sample") +
-    scale_y_continuous(labels = scales::percent, limits = c(0,1))
+    scale_y_continuous(labels = scales::percent, limits = c(0,1)) +
+    theme_minimal() +
+    ggtitle("Concurrent use distribution")
   
 }
 
@@ -474,8 +478,11 @@ time_of_day_bar <- function(room_df) {
     group_by(weekday, time_of_day) %>%
     summarise(occupied = mean(sensor_value, na.rm = T))
   
-  chart <- ggplot(data, aes(x = hm(time_of_day), y = occupied)) +
-    geom_step(stat = "identity", position = "identity", alpha = 0.5) +
+  ggplot(data,
+         aes(x = hm(time_of_day),
+             y = occupied)) +
+    geom_step(stat = "identity",
+              position = "identity", alpha = 0.5) +
     facet_wrap(~factor(weekday, levels = weekdays), nrow = 5) +
     geom_hline(aes(yintercept = mean(occupied))) +
     geom_hline(aes(yintercept = max(occupied))) +
@@ -486,7 +493,6 @@ time_of_day_bar <- function(room_df) {
     theme(axis.title.y = element_blank(),
           legend.title = element_blank())
   
-  chart
 }
 
 make_gauge_data <- function(room_df,target) {
@@ -495,9 +501,8 @@ make_gauge_data <- function(room_df,target) {
   total_rooms <- n_distinct(room_df$surveydeviceid)
   
   tribble(
-    ~variable, ~percentage, ~group, ~label, ~title,
-    "1. Target occupancy", target, "green", scales::percent(target), "Target occupancy",
-    "2. Actual occupancy", mean_occupancy, "green", scales::percent(mean_occupancy), "Average occupancy"
+    ~variable, ~occupancy, ~label, ~title,
+   "Actual occupancy", mean_occupancy, scales::percent(mean_occupancy), "Average \n occupancy"
   )
 }
 
@@ -542,11 +547,16 @@ make_waffle_data <- function(room_df, target) {
 room_waffle_chart <- function(room_df, target) {
   df <- make_waffle_data(room_df, target)
   
-  ggplot(df, aes(fill = variable, values = value)) +
+  total_rooms <- n_distinct(room_df$surveydeviceid)
+  
+  ggplot(df,
+         aes(fill = variable,
+             values = value)) +
     geom_waffle(color = "white", flip = T, n_rows = 5, size = 1) +
     geom_text(aes(label = case_when(variable == "figure" ~as.character(value),
                                     T ~""),
-                  x = 3, y = 0)) +
+                  x = min(3, ceiling(total_rooms / 2)),
+                  y = 0)) +
     facet_wrap(~label,
                strip.position = "top",
                labeller = label_wrap_gen(width = 12),
@@ -567,28 +577,41 @@ vertical_gauge_chart <- function(room_df, target) {
   
   df <- make_gauge_data(room_df, target)
   
-  ggplot(df, aes(fill = group, ymax = percentage, ymin = 0, xmax = 2, xmin = 1)) +
-    geom_rect(aes(ymax=1, ymin=0, xmax=2, xmin=1), fill ="#f0f0f0", colour = "#000000") +
-    geom_rect() + 
+  
+  ggplot(df) +
+    geom_rect(aes(ymax=1,
+                  ymin=0,
+                  xmax=2,
+                  xmin=1),
+              fill ="#f0f0f0",
+              colour = "#000000") +
+    geom_rect(aes(ymax = occupancy,
+                  ymin = 0,
+                  xmax = 2,
+                  xmin = 1),
+              colour = "#000000",
+              fill = "coral2") +
+    geom_rect(aes(ymax = target,
+                  ymin = 0,
+                  xmax = 2,
+                  xmin = 1),
+              colour = "#000000",
+              alpha = 0) +
     geom_text(aes(x = 1.5, y = 0.1,
                   label = label),
               colour = "#FFFFFF",
               size = 6.5,
               family = "Poppins SemiBold") +
-    geom_text(aes(x = 1.5,
-                  y = -0.1,
-                  label=title),
-              family="Poppins Light",
-              size = 4.2) + 
-    facet_wrap(~variable) +
+    geom_text(aes(x = 2.5,
+                  y = occupancy,
+                  label = title),
+              size = 4.2) +
+    geom_text(aes(x = 0.5,
+                  y = target),
+              label = "Target \n occupancy",
+              size = 4.2) +
     theme_void() +
-    scale_fill_manual(values = c("red"="#C9146C",
-                                 "orange"="#DA9112",
-                                 "green"="#129188")) +
-    scale_colour_manual(values = c("red"="#C9146C",
-                                   "orange"="#DA9112",
-                                   "green"="#129188")) +
-    scale_x_continuous(limits = c(0.5,2.5)) +
+    scale_x_continuous(limits = c(0,4)) +
     theme(strip.background = element_blank(),
           strip.text.x = element_blank()) +
     guides(fill = FALSE) +
@@ -620,5 +643,12 @@ get_fte_resource_requirements <- function(fte_resource_hot,
     mutate(total_resource = ceiling(fte * (make_numeric(resource)/make_numeric(per_fte))),
            total_space = make_numeric(space_required) * total_resource) %>%
     select(-resource, -per_fte)
+}
+
+error_chart <- function(message) {
+  
+  ggplot() + 
+    annotate("text", x = 4, y = 25, size=8, label = message) +
+    theme_void()
 }
   
