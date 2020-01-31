@@ -859,13 +859,19 @@ server <- function(input, output, session) {
   })
   
   output$group_gauge <- renderPlot({
-    vertical_gauge_chart(group_room_df(), input$group_room_target)
+    if(nrow(group_room_df()) > 0){vertical_gauge_chart(group_room_df(),
+                                   input$group_room_target)
+    } else {
+      error_chart(" ")
+    }
     
     
   })
   
   output$group_waffle <- renderPlot({
-    room_waffle_chart(group_room_df(), input$group_room_target)
+    if(nrow(group_room_df()) > 0) {room_waffle_chart(group_room_df(),
+                                input$group_room_target)
+      } else {error_chart("There are no Group Rooms in this survey.")}
   })
   
   output$group_donut_narrative <- renderText({
@@ -874,9 +880,9 @@ server <- function(input, output, session) {
   })
   
   output$group_weekly_plot <- renderPlot({
-    
+    if(nrow(group_room_df()) > 0) {
     weekday_usage_chart(group_room_df())
-    
+    } else(error_chart(" "))
   })
   
   output$group_room_distribution <- renderPlot({
@@ -911,216 +917,216 @@ server <- function(input, output, session) {
       )
     )
   })
-
-output$interview_gauge <- renderPlot({
-  vertical_gauge_chart(interview_room_df(), input$interview_room_target)
   
-  
-})
-
-output$interview_waffle <- renderPlot({
-  room_waffle_chart(interview_room_df(), input$interview_room_target)
-})
-
-output$interview_donut_narrative <- renderText({
-  nps_donut_narrative(interview_room_df(), input$interview_room_target)
-  
-})
-
-output$interview_weekly_plot <- renderPlot({
-  
-  weekday_usage_chart(interview_room_df())
-  
-})
-
-output$interview_room_distribution <- renderPlot({
-  concurrent_room_usage_chart(interview_room_df())
-})
-
-get_resource_df <- function() {
-  tribble(
-    ~resource_name, ~resource, ~per_fte, ~space_required,
-    "Long Stay Desks", 1, 1.6, 8,
-    "Touchdown", 1, 20, 10,
-    "Quiet/phone room", 1, 20, 5,
-    "Open Meeting", 1, 30, 20,
-    "Breakout", 1, 40, 20,
-    "Tea point", 1, 50, 5,
-    "Print & copy", 1, 100, 10,
-    "Lockers", 1, 1,1,
-    "File Storage", 0.5, 1,0
-  )
-}
-
-
-output$resource_hot <- renderRHandsontable({
-  resource_df <- get_resource_df() %>%
-    mutate_all(as.character)
-  rhandsontable(resource_df,
-                colHeaders = snakecase::to_sentence_case(names(resource_df))) %>%
-    hot_cols(format = "0")
-  
-})
-
-output$room_footage_hot <- renderRHandsontable({
-  df <- data.frame(resource_name = c("Group Room", "Interview Room"),
-                   space_required = c(22,9))
-  rhandsontable(df %>% mutate_all(as.character)) %>%
-    hot_cols(format = "0")
-  
-})
-
-output$fixed_footage_hot <- renderRHandsontable({
-  df <- data.frame(resource_name = c("Reception", "Waiting room"),
-                   space_required = c(10, 15))
-  
-  rhandsontable(df %>% mutate_all(as.character)) %>%
-    hot_cols(format = "0")
-})
-
-output$fte_resource_table <- renderTable({
-  
-  
-  
-  if(is.null(input$resource_hot)) {
-    return(NULL)
-  }
-  else{
-    get_fte_resource_requirements(hot_to_r(input$resource_hot),
-                                  input$fte)
-  }
-})
-
-output$current_resource_levels <- renderTable({
-  RV$data %>%
-    group_by(devicetype) %>%
-    summarise("count" = n_distinct(surveydeviceid),
-              "occupancy" = scales::percent(mean(sensor_value, na.rm = T)))
-})
-
-output$room_resource_requirements <- renderTable({
-  get_room_resource_requirements(RV$data,
-                                 input$group_room_target,
-                                 input$interview_room_target,
-                                 hot_to_r(input$room_footage_hot))
-})
-
-output$total_resource_table <- renderTable({
-  req(RV$data,
-      input$group_room_target,
-      input$interview_room_target,
-      input$room_footage_hot)
-  room_resources <- get_room_resource_requirements(RV$data,
-                                                   input$group_room_target,
-                                                   input$interview_room_target,
-                                                   hot_to_r(input$room_footage_hot)) %>%
-    select(resource_name = devicetype,
-           total_resource = recommended_rooms,
-           space_required,
-           total_space) %>%
-    mutate_all(as.character)
-  
-  fte_resources <- get_fte_resource_requirements(hot_to_r(input$resource_hot),
-                                                 input$fte) %>% mutate_all(as.character)
-  
-  fixed_resources <- hot_to_r(input$fixed_footage_hot) %>%
-    mutate(total_resource = 1,
-           space_required = space_required,
-           total_space = space_required) %>% mutate_all(as.character)
-  
-  bind_rows(room_resources, fte_resources, fixed_resources) %>%
-    mutate(total_space = as.numeric(total_space)) %>%
-    janitor::adorn_totals()
-  
-  
-  
-  
-})
-
-# Download handler --------------------------------------------------------
-
-# Functions for handling the report download  
-output$download_button <- downloadHandler(
-  filename = "my-report.docx",
-  
-  content = function(file) {
+  output$interview_gauge <- renderPlot({
+    vertical_gauge_chart(interview_room_df(), input$interview_room_target)
     
-    out_report <- switch(
-      input$format, 
-      "By team" = "word_report.Rmd",
-      "By floor" = "word_report_floors.Rmd", 
-      "By floor and team" = "word_report_floors_teams.Rmd",
-      "By building" = "word_report_building.Rmd"
+    
+  })
+  
+  output$interview_waffle <- renderPlot({
+    room_waffle_chart(interview_room_df(), input$interview_room_target)
+  })
+  
+  output$interview_donut_narrative <- renderText({
+    nps_donut_narrative(interview_room_df(), input$interview_room_target)
+    
+  })
+  
+  output$interview_weekly_plot <- renderPlot({
+    
+    weekday_usage_chart(interview_room_df())
+    
+  })
+  
+  output$interview_room_distribution <- renderPlot({
+    concurrent_room_usage_chart(interview_room_df())
+  })
+  
+  get_resource_df <- function() {
+    tribble(
+      ~resource_name, ~resource, ~per_fte, ~space_required,
+      "Long Stay Desks", 1, 1.6, 8,
+      "Touchdown", 1, 20, 10,
+      "Quiet/phone room", 1, 20, 5,
+      "Open Meeting", 1, 30, 20,
+      "Breakout", 1, 40, 20,
+      "Tea point", 1, 50, 5,
+      "Print & copy", 1, 100, 10,
+      "Lockers", 1, 1,1,
+      "File Storage", 0.5, 1,0
     )
-    
-    src <- normalizePath(out_report)
-    
-    # temporarily switch to the temp dir, in case you do not have write
-    # permission to the current working directory
-    owd <- setwd(tempdir())
-    on.exit(setwd(owd))
-    file.copy(src, out_report, overwrite = TRUE)
-    
-    
-    # Downlaods a template for the word report.
-    # Note - this has a specially modified style, in which Heading 5 has been adapted into a line break.
-    # See here: https://scriptsandstatistics.wordpress.com/2015/12/18/rmarkdown-how-to-inserts-page-breaks-in-a-ms-word-document/
-    word_report_reference <- s3tools::download_file_from_s3("alpha-app-occupeye-automation/occupeye-report-reference.dotx",
-                                                            "occupeye-report-reference.dotx",
-                                                            overwrite = TRUE)
-    
-    # Generate report, with progress bar
-    withProgress(message = "Generating report...", {
-      out <- rmarkdown::render(out_report, 
-                               params = list(start_date = input$date_range[1],
-                                             end_date = input$date_range[2], 
-                                             df_sum = RV$filtered,
-                                             survey_name = RV$survey_name))
-      file.rename(out, file)
-    })
-    
   }
   
-)
-
-# Download handlers for the different datasets -------------------
-
-output$download_summarised_data <- downloadHandler(
-  filename = "summarised data.csv",
-  content = function(file) {
-    write.csv(RV$df_sum, file, row.names = FALSE)
-  }
-)
-
-output$download_filtered_data <- downloadHandler(
-  filename = "filtered data.csv",
-  content = function(file) {
-    write.csv(RV$filtered, file, row.names = FALSE)
-  }
-)
-
-output$download_raw_data <- downloadHandler(
-  filename = "raw data.csv",
-  content = function(file) {
-    write.csv(RV$data, file, row.names = FALSE)
-  }
-)
-
-output$download_bad_observations <- downloadHandler(
-  filename = "bad data.csv",
-  content = function(file) {
-    write.csv(RV$bad_sensors, file, row.names = FALSE)
-  }
-)
-
-
-# change to TRUE when deployed
-
-# refreshes connection when grey screened
-
-session$allowReconnect(TRUE)
-
-
+  
+  output$resource_hot <- renderRHandsontable({
+    resource_df <- get_resource_df() %>%
+      mutate_all(as.character)
+    rhandsontable(resource_df,
+                  colHeaders = snakecase::to_sentence_case(names(resource_df))) %>%
+      hot_cols(format = "0")
+    
+  })
+  
+  output$room_footage_hot <- renderRHandsontable({
+    df <- data.frame(resource_name = c("Group Room", "Interview Room"),
+                     space_required = c(22,9))
+    rhandsontable(df %>% mutate_all(as.character)) %>%
+      hot_cols(format = "0")
+    
+  })
+  
+  output$fixed_footage_hot <- renderRHandsontable({
+    df <- data.frame(resource_name = c("Reception", "Waiting room"),
+                     space_required = c(10, 15))
+    
+    rhandsontable(df %>% mutate_all(as.character)) %>%
+      hot_cols(format = "0")
+  })
+  
+  output$fte_resource_table <- renderTable({
+    
+    
+    
+    if(is.null(input$resource_hot)) {
+      return(NULL)
+    }
+    else{
+      get_fte_resource_requirements(hot_to_r(input$resource_hot),
+                                    input$fte)
+    }
+  })
+  
+  output$current_resource_levels <- renderTable({
+    RV$data %>%
+      group_by(devicetype) %>%
+      summarise("count" = n_distinct(surveydeviceid),
+                "occupancy" = scales::percent(mean(sensor_value, na.rm = T)))
+  })
+  
+  output$room_resource_requirements <- renderTable({
+    get_room_resource_requirements(RV$data,
+                                   input$group_room_target,
+                                   input$interview_room_target,
+                                   hot_to_r(input$room_footage_hot))
+  })
+  
+  output$total_resource_table <- renderTable({
+    req(RV$data,
+        input$group_room_target,
+        input$interview_room_target,
+        input$room_footage_hot)
+    room_resources <- get_room_resource_requirements(RV$data,
+                                                     input$group_room_target,
+                                                     input$interview_room_target,
+                                                     hot_to_r(input$room_footage_hot)) %>%
+      select(resource_name = devicetype,
+             total_resource = recommended_rooms,
+             space_required,
+             total_space) %>%
+      mutate_all(as.character)
+    
+    fte_resources <- get_fte_resource_requirements(hot_to_r(input$resource_hot),
+                                                   input$fte) %>% mutate_all(as.character)
+    
+    fixed_resources <- hot_to_r(input$fixed_footage_hot) %>%
+      mutate(total_resource = 1,
+             space_required = space_required,
+             total_space = space_required) %>% mutate_all(as.character)
+    
+    bind_rows(room_resources, fte_resources, fixed_resources) %>%
+      mutate(total_space = as.numeric(total_space)) %>%
+      janitor::adorn_totals()
+    
+    
+    
+    
+  })
+  
+  # Download handler --------------------------------------------------------
+  
+  # Functions for handling the report download  
+  output$download_button <- downloadHandler(
+    filename = "my-report.docx",
+    
+    content = function(file) {
+      
+      out_report <- switch(
+        input$format, 
+        "By team" = "word_report.Rmd",
+        "By floor" = "word_report_floors.Rmd", 
+        "By floor and team" = "word_report_floors_teams.Rmd",
+        "By building" = "word_report_building.Rmd"
+      )
+      
+      src <- normalizePath(out_report)
+      
+      # temporarily switch to the temp dir, in case you do not have write
+      # permission to the current working directory
+      owd <- setwd(tempdir())
+      on.exit(setwd(owd))
+      file.copy(src, out_report, overwrite = TRUE)
+      
+      
+      # Downlaods a template for the word report.
+      # Note - this has a specially modified style, in which Heading 5 has been adapted into a line break.
+      # See here: https://scriptsandstatistics.wordpress.com/2015/12/18/rmarkdown-how-to-inserts-page-breaks-in-a-ms-word-document/
+      word_report_reference <- s3tools::download_file_from_s3("alpha-app-occupeye-automation/occupeye-report-reference.dotx",
+                                                              "occupeye-report-reference.dotx",
+                                                              overwrite = TRUE)
+      
+      # Generate report, with progress bar
+      withProgress(message = "Generating report...", {
+        out <- rmarkdown::render(out_report, 
+                                 params = list(start_date = input$date_range[1],
+                                               end_date = input$date_range[2], 
+                                               df_sum = RV$filtered,
+                                               survey_name = RV$survey_name))
+        file.rename(out, file)
+      })
+      
+    }
+    
+  )
+  
+  # Download handlers for the different datasets -------------------
+  
+  output$download_summarised_data <- downloadHandler(
+    filename = "summarised data.csv",
+    content = function(file) {
+      write.csv(RV$df_sum, file, row.names = FALSE)
+    }
+  )
+  
+  output$download_filtered_data <- downloadHandler(
+    filename = "filtered data.csv",
+    content = function(file) {
+      write.csv(RV$filtered, file, row.names = FALSE)
+    }
+  )
+  
+  output$download_raw_data <- downloadHandler(
+    filename = "raw data.csv",
+    content = function(file) {
+      write.csv(RV$data, file, row.names = FALSE)
+    }
+  )
+  
+  output$download_bad_observations <- downloadHandler(
+    filename = "bad data.csv",
+    content = function(file) {
+      write.csv(RV$bad_sensors, file, row.names = FALSE)
+    }
+  )
+  
+  
+  # change to TRUE when deployed
+  
+  # refreshes connection when grey screened
+  
+  session$allowReconnect(TRUE)
+  
+  
 }  
 
 # launch the app
