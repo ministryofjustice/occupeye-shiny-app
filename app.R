@@ -198,9 +198,21 @@ ui <- fluidPage(
                             )
                    ),
                    tabPanel("Group Rooms",
+                            numericInput("group_room_target",
+                                         "Set target occupancy",
+                                         min = 0,
+                                         max = 1,
+                                         step = 0.1,
+                                         value = 0.6),
                             uiOutput("group_room_ui")
                    ),
                    tabPanel("Interview Rooms",
+                            numericInput("interview_room_target",
+                                         "Set target occupancy",
+                                         min = 0,
+                                         max = 1,
+                                         step = 0.1,
+                                         value = 0.6),
                             uiOutput("interview_room_ui")
                    )
                  )
@@ -212,21 +224,28 @@ ui <- fluidPage(
                  fluidPage(
                    fluidRow(
                      numericInput(inputId = "fte",
-                                  "Input selected FTE",
+                                  label = "Input FTE",
                                   value = 50,
                                   min = 1),
+                     numericInput(inputId = "space_per_fte",
+                                  label = HTML("Input space required per FTE (m<sup>2</sup>)"),
+                                  value = 8),
                      column(4,
                             h4("Update/add to resource requirement ratios here:"),
                             rHandsontableOutput("resource_hot"),
-                            h4("Update square footage for rooms here:"),
+                            h4("Update area requirements for rooms here:"),
                             rHandsontableOutput("room_footage_hot"),
-                            h4("Update/add to additional fixed spaces here:"),
-                            rHandsontableOutput("fixed_footage_hot")),
+                            h4("Update/add to anciliary spaces here:"),
+                            rHandsontableOutput("anciliary_space_hot")),
                      column(4,
-                            tableOutput("total_resource_table"),
+                            tableOutput("room_resource_requirements"),
+                            tableOutput("anciliary_space_requirements"),
                             tableOutput("fte_resource_table"),
-                            tableOutput("current_resource_levels"),
-                            tableOutput("room_resource_requirements")))
+                            tableOutput("fte_resource_breakdown_table"),
+                            tableOutput("total_resource_table"),
+                            tableOutput("current_resource_levels")
+                     )
+                   )
                  )
         )
         
@@ -281,11 +300,11 @@ server <- function(input, output, session) {
   # 
   # temp_df <- get_full_df(df_min, sensors)
   
-  temp_df <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/temp_df.feather")
+  #temp_df <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/temp_df.feather")
   
   
   
-  #temp_df <- s3tools::read_using(FUN = readr::read_csv, s3_path = "alpha-app-occupeye-automation/surveys/336/Unallocated.csv")
+  temp_df <- s3tools::read_using(FUN = readr::read_csv, s3_path = "alpha-app-occupeye-automation/surveys/336/Unallocated.csv")
   
   
   temp_df_sum <- get_df_sum(temp_df, "09:00", "17:00")
@@ -609,7 +628,7 @@ server <- function(input, output, session) {
                       selected = floor_list)
     updatePickerInput(session, inputId = "desk_type",
                       choices = desk_type_list,
-                      selected = desk_type_list$`Desk Setting`)
+                      selected = desk_type_list$`Meeting Room`)
     
     updatePickerInput(session, inputId = "zones",
                       choices = zone_list,
@@ -782,24 +801,24 @@ server <- function(input, output, session) {
   filtered_room_df <- reactive({
     print("Filtering filtered_room_df")
     df <- RV$data %>%
-      dplyr::filter(devicetype %in% unique(RV$filtered$devicetype),
-                    building %in% unique(RV$filtered$building),
-                    floor %in% unique(RV$filtered$floor),
-                    category_1 %in% unique(RV$filtered$category_1),
-                    category_2 %in% unique(RV$filtered$category_2),
-                    category_3 %in% unique(RV$filtered$category_3),
-                    roomname %in% unique(RV$filtered$roomname),
-                    location %in% unique(RV$filtered$location))
+      dplyr::filter(devicetype %in% input$desk_type,
+                    building %in% input$buildings,
+                    floor %in% input$floors,
+                    roomname %in% input$zones,
+                    location %in% input$desks,
+                    category_1 %in% RV$l1Names,
+                    category_2 %in% RV$l2Names,
+                    category_3 %in% RV$l3Names)
     df
   })
   
   group_room_df <- reactive({
-    RV$data %>%
+    filtered_room_df() %>%
       dplyr::filter(devicetype == "Group Room")
   })
   
   interview_room_df <- reactive({
-    RV$data %>%
+    filtered_room_df() %>%
       dplyr::filter(devicetype == "Interview Room")
   })
   
@@ -828,9 +847,6 @@ server <- function(input, output, session) {
     concurrent_room_usage_chart(filtered_room_df())
   })
   
-  output$has_group_rooms <- reactive({
-    nrow(group_room_df()) > 0
-  })
   
   
   output$group_room_ui <- renderUI({
@@ -838,12 +854,6 @@ server <- function(input, output, session) {
       
       fluidRow(
         h1("Group Rooms"),
-        numericInput("group_room_target",
-                     "Set target occupancy",
-                     min = 0,
-                     max = 1,
-                     step = 0.1,
-                     value = 0.6),
         column(4,
                plotOutput(outputId = "group_gauge", height = "300px") %>% withSpinner()
         ),
@@ -860,7 +870,7 @@ server <- function(input, output, session) {
   
   output$group_gauge <- renderPlot({
     if(nrow(group_room_df()) > 0){vertical_gauge_chart(group_room_df(),
-                                   input$group_room_target)
+                                                       input$group_room_target)
     } else {
       error_chart(" ")
     }
@@ -870,8 +880,8 @@ server <- function(input, output, session) {
   
   output$group_waffle <- renderPlot({
     if(nrow(group_room_df()) > 0) {room_waffle_chart(group_room_df(),
-                                input$group_room_target)
-      } else {error_chart("There are no Group Rooms in this survey.")}
+                                                     input$group_room_target)
+    } else {error_chart("There are no Group Rooms in this survey.")}
   })
   
   output$group_donut_narrative <- renderText({
@@ -881,30 +891,20 @@ server <- function(input, output, session) {
   
   output$group_weekly_plot <- renderPlot({
     if(nrow(group_room_df()) > 0) {
-    weekday_usage_chart(group_room_df())
+      weekday_usage_chart(group_room_df())
     } else(error_chart(" "))
   })
   
   output$group_room_distribution <- renderPlot({
-    concurrent_room_usage_chart(group_room_df())
-  })
-  
-  output$has_interview_rooms <- reactive({
-    nrow(interview_room_df()) > 0
+    if(nrow(group_room_df()) > 0) {
+      concurrent_room_usage_chart(group_room_df())
+    } else(error_chart(" "))
   })
   
   output$interview_room_ui <- renderUI({
     fluidPage(
-      
       fluidRow(
         h1("Interview Rooms"),
-        numericInput("interview_room_target",
-                     "Set target occupancy",
-                     min = 0,
-                     max = 1,
-                     step = 0.1,
-                     value = 0.5),
-        
         column(4,
                plotOutput(outputId = "interview_gauge", height = "300px") %>% withSpinner()
         ),
@@ -919,13 +919,17 @@ server <- function(input, output, session) {
   })
   
   output$interview_gauge <- renderPlot({
-    vertical_gauge_chart(interview_room_df(), input$interview_room_target)
-    
+    if(nrow(interview_room_df() > 0)) {
+      vertical_gauge_chart(interview_room_df(), input$interview_room_target)
+    } else(error_chart(" "))
     
   })
   
   output$interview_waffle <- renderPlot({
-    room_waffle_chart(interview_room_df(), input$interview_room_target)
+    if(nrow(interview_room_df()) > 0) {
+      room_waffle_chart(interview_room_df(),
+                        input$interview_room_target)
+    } else(error_chart("There are no interview rooms in this selection"))
   })
   
   output$interview_donut_narrative <- renderText({
@@ -934,27 +938,31 @@ server <- function(input, output, session) {
   })
   
   output$interview_weekly_plot <- renderPlot({
-    
-    weekday_usage_chart(interview_room_df())
-    
+    if(nrow(interview_room_df()) > 0) {
+      
+      weekday_usage_chart(interview_room_df())
+    } else(error_chart(" "))
   })
   
   output$interview_room_distribution <- renderPlot({
-    concurrent_room_usage_chart(interview_room_df())
+    if(nrow(interview_room_df()) > 0) {
+      concurrent_room_usage_chart(interview_room_df())
+    } else(error_chart(" "))
   })
   
+  # probably should shift this to an s3 file rather than hard-coding.
   get_resource_df <- function() {
     tribble(
-      ~resource_name, ~resource, ~per_fte, ~space_required,
-      "Long Stay Desks", 1, 1.6, 8,
-      "Touchdown", 1, 20, 10,
-      "Quiet/phone room", 1, 20, 5,
-      "Open Meeting", 1, 30, 20,
-      "Breakout", 1, 40, 20,
-      "Tea point", 1, 50, 5,
-      "Print & copy", 1, 100, 10,
-      "Lockers", 1, 1,1,
-      "File Storage", 0.5, 1,0
+      ~resource_name, ~resource, ~per_fte,
+      "Long Stay Desks", 1, 1.6,
+      "Touchdown", 1, 20,
+      "Quiet/phone room", 1, 20,
+      "Open Meeting", 1, 30,
+      "Breakout", 1, 40,
+      "Tea point", 1, 50,
+      "Print & copy", 1, 100,
+      "Lockers", 1, 1,
+      "File Storage", 0.5, 1
     )
   }
   
@@ -976,8 +984,9 @@ server <- function(input, output, session) {
     
   })
   
-  output$fixed_footage_hot <- renderRHandsontable({
+  output$anciliary_space_hot <- renderRHandsontable({
     df <- data.frame(resource_name = c("Reception", "Waiting room"),
+                     qty = c(1, 1),
                      space_required = c(10, 15))
     
     rhandsontable(df %>% mutate_all(as.character)) %>%
@@ -986,55 +995,85 @@ server <- function(input, output, session) {
   
   output$fte_resource_table <- renderTable({
     
-    
-    
     if(is.null(input$resource_hot)) {
       return(NULL)
     }
     else{
-      get_fte_resource_requirements(hot_to_r(input$resource_hot),
-                                    input$fte)
+      get_fte_resource_requirements(input$fte, input$space_per_fte)
     }
-  })
+  },
+  caption = "Staff side total space",
+  caption.placement = "top")
+  
+  output$fte_resource_breakdown_table <- renderTable({
+    if(is.null(input$resource_hot)) {
+      return(NULL)
+    }
+    else{
+      get_staff_accommodation_requirements(hot_to_r(input$resource_hot),
+                                           input$fte)
+    }
+  },
+  caption = "Within which we propose to provide",
+  caption.placement = "top")
   
   output$current_resource_levels <- renderTable({
     RV$data %>%
       group_by(devicetype) %>%
       summarise("count" = n_distinct(surveydeviceid),
                 "occupancy" = scales::percent(mean(sensor_value, na.rm = T)))
-  })
+  },
+  caption = "Current resource usage",
+  caption.placement = "top")
   
   output$room_resource_requirements <- renderTable({
-    get_room_resource_requirements(RV$data,
-                                   input$group_room_target,
-                                   input$interview_room_target,
-                                   hot_to_r(input$room_footage_hot))
-  })
+    
+    if(is.null(input$room_footage_hot)) {
+      return(NULL)
+    } else{
+      get_room_resource_requirements(RV$data,
+                                     input$group_room_target,
+                                     input$interview_room_target,
+                                     hot_to_r(input$room_footage_hot))
+    }
+  },
+  caption = "Service user space",
+  caption.placement = "top")
+  
+  
+  output$anciliary_space_requirements <- renderTable({
+    hot_to_r(input$anciliary_space_hot) %>%
+      mutate(total_space = make_numeric(qty) * make_numeric(space_required))
+    
+  },
+  caption = "Anciliary space requirements",
+  caption.placement = "top")
+  
   
   output$total_resource_table <- renderTable({
-    req(RV$data,
-        input$group_room_target,
-        input$interview_room_target,
-        input$room_footage_hot)
+    shiny::req(RV$data,
+               input$group_room_target,
+               input$interview_room_target,
+               input$room_footage_hot)
     room_resources <- get_room_resource_requirements(RV$data,
                                                      input$group_room_target,
                                                      input$interview_room_target,
                                                      hot_to_r(input$room_footage_hot)) %>%
       select(resource_name = devicetype,
-             total_resource = recommended_rooms,
+             qty = recommended_rooms,
              space_required,
              total_space) %>%
       mutate_all(as.character)
     
-    fte_resources <- get_fte_resource_requirements(hot_to_r(input$resource_hot),
-                                                   input$fte) %>% mutate_all(as.character)
+    fte_resources <- get_fte_resource_requirements(input$fte,
+                                                   input$space_per_fte) %>%
+      mutate_all(as.character)
     
-    fixed_resources <- hot_to_r(input$fixed_footage_hot) %>%
-      mutate(total_resource = 1,
-             space_required = space_required,
-             total_space = space_required) %>% mutate_all(as.character)
+    anciliary_resources <- hot_to_r(input$anciliary_space_hot) %>%
+      mutate(total_space = make_numeric(qty) * make_numeric(space_required)) %>%
+      mutate_all(as.character)
     
-    bind_rows(room_resources, fte_resources, fixed_resources) %>%
+    bind_rows(room_resources, fte_resources, anciliary_resources) %>%
       mutate(total_space = as.numeric(total_space)) %>%
       janitor::adorn_totals()
     
