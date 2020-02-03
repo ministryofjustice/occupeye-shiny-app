@@ -637,11 +637,17 @@ get_room_resource_requirements <- function(df,
   
 }
 
-get_fte_resource_requirements <- function(fte_resource_hot,
-                                          fte) {
-  fte_resource_hot %>%
-    mutate(total_resource = ceiling(fte * (make_numeric(resource)/make_numeric(per_fte))),
-           total_space = make_numeric(space_required) * total_resource) %>%
+get_fte_resource_requirements <- function(fte, space_per_fte) {
+  data.frame(resource_name = "Staff total space",
+             qty = fte,
+             space_required = space_per_fte,
+             total_space = space_per_fte * fte)
+}
+
+get_staff_accommodation_requirements <- function(resource_hot, fte) {
+  resource_hot %>%
+    mutate(resource_per_fte_ratio = paste(resource, per_fte, sep = ":"),
+           qty = ceiling(fte * make_numeric(resource) / make_numeric(per_fte))) %>%
     select(-resource, -per_fte)
 }
 
