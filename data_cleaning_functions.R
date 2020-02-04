@@ -1,5 +1,6 @@
 library(dplyr)
 library(lubridate)
+library(snakecase)
 
 dt_to_numeric <- function(dt) {
   3600 * hour(dt) + 60 * minute(dt) + second(dt)
@@ -172,3 +173,7 @@ make_numeric <- function(x) {
   as.numeric(gsub("[^0-9.-]", "", x))
 }
 
+convert_fields_to_sentence_case <- function(df) {
+  names(df) <- snakecase::to_sentence_case(names(df))
+  df
+}
