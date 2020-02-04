@@ -950,22 +950,6 @@ server <- function(input, output, session) {
     } else(error_chart(" "))
   })
   
-  # probably should shift this to an s3 file rather than hard-coding.
-  get_resource_df <- function() {
-    tribble(
-      ~resource_name, ~resource, ~per_fte,
-      "Long Stay Desks", 8, 10,
-      "Touchdown", 1, 20,
-      "Quiet/phone room", 1, 20,
-      "Open Meeting", 1, 30,
-      "Breakout", 1, 40,
-      "Tea point", 1, 50,
-      "Print & copy", 1, 100,
-      "Lockers", 1, 1,
-      "File Storage", 0.5, 1
-    )
-  }
-  
   
   output$resource_hot <- renderRHandsontable({
     resource_df <- get_resource_df() %>%
