@@ -1,5 +1,15 @@
 ## Changelog
 
+### v0.15 - 2020-02-04
+
+- Revised the tables to use the correct calculations of space
+- All three charting tabs now update with the filters as per request
+- Now the filter defaults to selecting the meeting rooms, rather than desk settings, when downloading the app
+- Combined the actual/target occupancy gauges into a single gauge
+- The app once again loads with a dummy dataset on load, as my previous method caused some issues.
+- Made the charts a bit more colourful
+
+
 ### v0.14 - 2020-01-27
 
 - Revised room charts
