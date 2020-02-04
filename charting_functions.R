@@ -439,7 +439,7 @@ nps_donut_narrative <- function(room_df, target_occupancy) {
     dplyr::filter(average_utilisation == max(average_utilisation))
   
   glue("<li>At peak {top_usage$rooms_occupied} rooms were in use for a combined period of {top_usage$n * 10} minutes</li>
-       <li>{top_weekday$day} is the busiest day for {unique(room_df$devicetype)}s</li>
+       <li>{top_weekday$day} is the busiest day for selected room types ({paste(unique(room_df$devicetype), collapse = 's; ')})</li>
        <li>On average {mean_rooms} rooms are in use at any one time")
 }
 
@@ -506,6 +506,57 @@ make_gauge_data <- function(room_df,target) {
   )
 }
 
+vertical_gauge_chart <- function(room_df, target) {
+  # code adapted from https://pomvlad.blog/2018/05/03/gauges-ggplot2/
+  # so some details are a bit redundant
+  
+  df <- make_gauge_data(room_df, target)
+  
+  
+  ggplot(df) +
+    geom_rect(aes(ymax=1,
+                  ymin=0,
+                  xmax=2,
+                  xmin=1),
+              fill ="#f0f0f0",
+              colour = "#000000") +
+    geom_rect(aes(ymax = occupancy,
+                  ymin = 0,
+                  xmax = 2,
+                  xmin = 1.5),
+              colour = "#000000",
+              fill = "coral2") +
+    geom_rect(aes(ymax = target,
+                  ymin = 0,
+                  xmax = 1.5,
+                  xmin = 1),
+              colour = "#000000",
+              fill = "sandybrown") +
+    geom_text(aes(x = 1.75, y = 0.1,
+                  label = label),
+              colour = "black",
+              size = 4.5,
+              family = "Poppins SemiBold") +
+    geom_text(aes(x = 1.25, y = 0.1,
+                  label = scales::percent(target)),
+              colour = "black",
+              size = 4.5,
+              family = "Poppins SemiBold") +
+    geom_text(aes(x = 2.5,
+                  y = occupancy,
+                  label = title),
+              size = 4.2) +
+    geom_text(aes(x = 0.5,
+                  y = target),
+              label = "Target \n occupancy",
+              size = 4.2) +
+    theme_void() +
+    scale_x_continuous(limits = c(0,4)) +
+    theme(strip.background = element_blank(),
+          strip.text.x = element_blank()) +
+    guides(fill = FALSE) +
+    guides(colour=FALSE)
+}
 
 make_waffle_data <- function(room_df, target) {
   total_rooms <- n_distinct(room_df$surveydeviceid)
@@ -556,7 +607,9 @@ room_waffle_chart <- function(room_df, target) {
     geom_text(aes(label = case_when(variable == "figure" ~as.character(value),
                                     T ~""),
                   x = min(3, ceiling(total_rooms / 2)),
-                  y = 0)) +
+                  y = 0,
+                  size = 2),
+              vjust = "inward") +
     facet_wrap(~label,
                strip.position = "top",
                labeller = label_wrap_gen(width = 12),
@@ -570,53 +623,6 @@ room_waffle_chart <- function(room_df, target) {
   
 }
 
-
-vertical_gauge_chart <- function(room_df, target) {
-  # code adapted from https://pomvlad.blog/2018/05/03/gauges-ggplot2/
-  # so some details are a bit redundant
-  
-  df <- make_gauge_data(room_df, target)
-  
-  
-  ggplot(df) +
-    geom_rect(aes(ymax=1,
-                  ymin=0,
-                  xmax=2,
-                  xmin=1),
-              fill ="#f0f0f0",
-              colour = "#000000") +
-    geom_rect(aes(ymax = occupancy,
-                  ymin = 0,
-                  xmax = 2,
-                  xmin = 1),
-              colour = "#000000",
-              fill = "coral2") +
-    geom_rect(aes(ymax = target,
-                  ymin = 0,
-                  xmax = 2,
-                  xmin = 1),
-              colour = "#000000",
-              alpha = 0) +
-    geom_text(aes(x = 1.5, y = 0.1,
-                  label = label),
-              colour = "#FFFFFF",
-              size = 6.5,
-              family = "Poppins SemiBold") +
-    geom_text(aes(x = 2.5,
-                  y = occupancy,
-                  label = title),
-              size = 4.2) +
-    geom_text(aes(x = 0.5,
-                  y = target),
-              label = "Target \n occupancy",
-              size = 4.2) +
-    theme_void() +
-    scale_x_continuous(limits = c(0,4)) +
-    theme(strip.background = element_blank(),
-          strip.text.x = element_blank()) +
-    guides(fill = FALSE) +
-    guides(colour=FALSE)
-}
 
 get_room_resource_requirements <- function(df,
                                            group_room_target,
