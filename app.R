@@ -954,7 +954,7 @@ server <- function(input, output, session) {
   get_resource_df <- function() {
     tribble(
       ~resource_name, ~resource, ~per_fte,
-      "Long Stay Desks", 1, 1.6,
+      "Long Stay Desks", 8, 10,
       "Touchdown", 1, 20,
       "Quiet/phone room", 1, 20,
       "Open Meeting", 1, 30,
