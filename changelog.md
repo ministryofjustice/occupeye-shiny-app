@@ -1,5 +1,11 @@
 ## Changelog
 
+### v0.16 - 2020-02-05
+
+- Fix bottleneck due to na.rm = TRUE
+- Add first downloadable report draft
+- minor chart tweaks
+
 ### v0.15 - 2020-02-04
 
 - Revised the tables to use the correct calculations of space
