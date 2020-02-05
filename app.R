@@ -304,8 +304,7 @@ server <- function(input, output, session) {
   temp_df <- s3tools::read_using(FUN = feather::read_feather,
                                  s3_path = "alpha-app-occupeye-automation/temp_df.feather")
   temp_df_sensors <- s3tools::read_using(FUN = feather::read_feather,
-                                         s3_path = "alpha-app-occupeye-automation/temp_df_sensors.feather") %>%
-    rename(survey_device_id = surveydeviceid)
+                                         s3_path = "alpha-app-occupeye-automation/temp_df_sensors.feather")
   
   
   #temp_df <- s3tools::read_using(FUN = readr::read_csv, s3_path = "alpha-app-occupeye-automation/surveys/336/Unallocated.csv")
@@ -587,13 +586,13 @@ server <- function(input, output, session) {
         clean_and_mutate_raw_data() %>%
         remove_non_business_days()
       
-      # feather::write_feather(temp_df, "temp_df.feather")
+      # feather::write_feather(df_min, "temp_df.feather")
       # 
       # s3tools::write_file_to_s3("temp_df.feather",s3_path = "alpha-app-occupeye-automation/temp_df.feather", overwrite = T)
       # 
       # feather::write_feather(RV$sensors, "temp_df_sensors.feather")
-      # s3tools::write_file_to_s3("temp_df_sensors", "alpha-app-occupeye-automation/temp_df_sensors.feather", overwrite = T)
-      
+      # s3tools::write_file_to_s3("temp_df_sensors.feather", "alpha-app-occupeye-automation/temp_df_sensors.feather", overwrite = T)
+
       
       # make the bad sensors analysis
       RV$bad_sensors <- get_bad_observations(RV$data)
