@@ -213,7 +213,7 @@ ui <- fluidPage(
                                          min = 0,
                                          max = 1,
                                          step = 0.1,
-                                         value = 0.6),
+                                         value = 0.5),
                             uiOutput("interview_room_ui")
                    )
                  )
