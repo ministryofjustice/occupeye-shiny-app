@@ -77,7 +77,8 @@ ui <- fluidPage(
                                           "By floor and team",
                                           "By building"),
                               inline = FALSE),
-                 downloadButton("download_button", "Generate report")
+                 downloadButton("download_button", "Generate report"),
+                 downloadButton("nps_download_button", "Generate NPS report")
         )
         
       )
@@ -300,28 +301,37 @@ server <- function(input, output, session) {
   # 
   # temp_df <- get_full_df(df_min, sensors)
   
-  #temp_df <- s3tools::read_using(FUN = feather::read_feather, s3_path = "alpha-app-occupeye-automation/temp_df.feather")
+  temp_df <- s3tools::read_using(FUN = feather::read_feather,
+                                 s3_path = "alpha-app-occupeye-automation/temp_df.feather")
+  temp_df_sensors <- s3tools::read_using(FUN = feather::read_feather,
+                                         s3_path = "alpha-app-occupeye-automation/temp_df_sensors.feather") %>%
+    rename(survey_device_id = surveydeviceid)
   
   
+  #temp_df <- s3tools::read_using(FUN = readr::read_csv, s3_path = "alpha-app-occupeye-automation/surveys/336/Unallocated.csv")
   
-  temp_df <- s3tools::read_using(FUN = readr::read_csv, s3_path = "alpha-app-occupeye-automation/surveys/336/Unallocated.csv")
-  
-  
-  temp_df_sum <- get_df_sum(temp_df, "09:00", "17:00")
-  time_list <- unique(strftime(temp_df$obs_datetime, format = "%H:%M"))
+  print("Do all the temp_df_bits")
+  temp_df_sum <- get_df_sum(temp_df,
+                            temp_df_sensors,
+                            "09:00",
+                            "17:00")
+  time_list <- unique(strftime(temp_df$obs_datetime,
+                               format = "%H:%M"))
   date_list <- unique(lubridate::date(temp_df$obs_datetime))
-  buildings <- unique(temp_df$building)
-  room_types <- unique(temp_df$roomtype)
-  device_types <- unique(temp_df$devicetype)
-  floors <- unique(temp_df$floor)
-  zones <- unique(temp_df$roomname)
-  desks <- unique(temp_df$location)
+  buildings <- unique(temp_df_sensors$building)
+  room_types <- unique(temp_df_sensors$roomtype)
+  device_types <- unique(temp_df_sensors$devicetype)
+  floors <- unique(temp_df_sensors$floor)
+  zones <- unique(temp_df_sensors$roomname)
+  desks <- unique(temp_df_sensors$location)
   
+  
+  print("Make RV initial values")
   # Create and initialise RV, which is a collection of the reactive values
-  RV$data = temp_df
+  RV$data = get_full_df(temp_df, temp_df_sensors)
   RV$df_sum = temp_df_sum
   RV$filtered = temp_df_sum
-  RV$bad_sensors = get_bad_observations(temp_df)
+  RV$bad_sensors = get_bad_observations(get_full_df(temp_df, temp_df_sensors))
   
   output$download_date_range <- renderUI({
     print("rendering download_date_range")
@@ -540,7 +550,8 @@ server <- function(input, output, session) {
     
     withProgress(message = "Loading sensor information for selected survey(s)...", {
       RV$sensors <- dbtools::read_sql(glue("select * from occupeye_app_db.sensors where survey_id in ({paste0(RV$surveys_hash[input$survey_name], collapse = ', ')})")) %>%
-        mutate(surveydeviceid = as.character(surveydeviceid)) %>% # coerce surveydeviceid to char to maintain type integrity
+        rename(survey_device_id = surveydeviceid) %>%
+        mutate(survey_device_id = as.character(survey_device_id)) %>% # coerce surveydeviceid to char to maintain type integrity
         mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
                   .vars = vars(roomname, location))
     })
@@ -569,17 +580,20 @@ server <- function(input, output, session) {
       diff <- end.time - start.time
       print(diff)
       # Add the other sensor metadata, dealing with the inconsistently named survey_device_id and surveydeviceid
-      df_full <- left_join(df_min, RV$sensors, by = c("survey_device_id" = "surveydeviceid")) %>% 
-        rename(surveydeviceid = survey_device_id)
+      df_full <- get_full_df(df_min, RV$sensors)
       
       # add the raw data for displaying on the raw data tab
       RV$data <- df_full %>%
         clean_and_mutate_raw_data() %>%
         remove_non_business_days()
       
-      feather::write_feather(RV$data, "temp_df.feather")
+      # feather::write_feather(temp_df, "temp_df.feather")
+      # 
+      # s3tools::write_file_to_s3("temp_df.feather",s3_path = "alpha-app-occupeye-automation/temp_df.feather", overwrite = T)
+      # 
+      # feather::write_feather(RV$sensors, "temp_df_sensors.feather")
+      # s3tools::write_file_to_s3("temp_df_sensors", "alpha-app-occupeye-automation/temp_df_sensors.feather", overwrite = T)
       
-      s3tools::write_file_to_s3("temp_df.feather",s3_path = "alpha-app-occupeye-automation/temp_df.feather", overwrite = T)
       
       # make the bad sensors analysis
       RV$bad_sensors <- get_bad_observations(RV$data)
@@ -587,7 +601,10 @@ server <- function(input, output, session) {
     
     # Then summarise the dataset
     withProgress(message = "summarising the dataset", {
-      RV$df_sum <- get_df_sum(RV$data, input$start_time, input$end_time)
+      RV$df_sum <- get_df_sum(RV$data,
+                              RV$sensors,
+                              input$start_time,
+                              input$end_time)
       
       # show dialog to show it's finished loading
       showModal(modalDialog(glue("{paste0(input$survey_name, collapse = ', ')} successfully loaded into the dashboard."), easyClose = TRUE))
@@ -801,7 +818,8 @@ server <- function(input, output, session) {
   filtered_room_df <- reactive({
     print("Filtering filtered_room_df")
     df <- RV$data %>%
-      dplyr::filter(devicetype %in% input$desk_type,
+      dplyr::filter(!is.na(sensor_value),
+                    devicetype %in% input$desk_type,
                     building %in% input$buildings,
                     floor %in% input$floors,
                     roomname %in% input$zones,
@@ -961,9 +979,9 @@ server <- function(input, output, session) {
   })
   
   output$room_footage_hot <- renderRHandsontable({
-    df <- data.frame(resource_name = c("Group Room", "Interview Room"),
+    room_footage_hot <- data.frame(resource_name = c("Group Room", "Interview Room"),
                      space_required = c(22,9))
-    rhandsontable(df %>% mutate_all(as.character)) %>%
+    rhandsontable(room_footage_hot %>% mutate_all(as.character)) %>%
       hot_cols(format = "0")
     
   })
@@ -983,11 +1001,16 @@ server <- function(input, output, session) {
       return(NULL)
     }
     else{
-      get_fte_resource_requirements(input$fte, input$space_per_fte)
+      get_fte_resource_requirements(input$fte,
+                                    input$space_per_fte) %>%
+        convert_fields_to_sentence_case()
     }
   },
   caption = "Staff side total space",
   caption.placement = "top")
+  
+  
+  
   
   output$fte_resource_breakdown_table <- renderTable({
     if(is.null(input$resource_hot)) {
@@ -995,7 +1018,8 @@ server <- function(input, output, session) {
     }
     else{
       get_staff_accommodation_requirements(hot_to_r(input$resource_hot),
-                                           input$fte)
+                                           input$fte) %>%
+        convert_fields_to_sentence_case()
     }
   },
   caption = "Within which we propose to provide",
@@ -1003,9 +1027,11 @@ server <- function(input, output, session) {
   
   output$current_resource_levels <- renderTable({
     RV$data %>%
+      dplyr::filter(!is.na(sensor_value)) %>%
       group_by(devicetype) %>%
-      summarise("count" = n_distinct(surveydeviceid),
-                "occupancy" = scales::percent(mean(sensor_value, na.rm = T)))
+      summarise("count" = n_distinct(survey_device_id),
+                "occupancy" = scales::percent(mean(sensor_value))) %>%
+      convert_fields_to_sentence_case()
   },
   caption = "Current resource usage",
   caption.placement = "top")
@@ -1018,7 +1044,8 @@ server <- function(input, output, session) {
       get_room_resource_requirements(RV$data,
                                      input$group_room_target,
                                      input$interview_room_target,
-                                     hot_to_r(input$room_footage_hot))
+                                     hot_to_r(input$room_footage_hot)) %>%
+        convert_fields_to_sentence_case()
     }
   },
   caption = "Service user space",
@@ -1027,7 +1054,8 @@ server <- function(input, output, session) {
   
   output$anciliary_space_requirements <- renderTable({
     hot_to_r(input$anciliary_space_hot) %>%
-      mutate(total_space = make_numeric(qty) * make_numeric(space_required))
+      mutate(total_space = make_numeric(qty) * make_numeric(space_required)) %>%
+      convert_fields_to_sentence_case()
     
   },
   caption = "Anciliary space requirements",
@@ -1059,9 +1087,8 @@ server <- function(input, output, session) {
     
     bind_rows(room_resources, fte_resources, anciliary_resources) %>%
       mutate(total_space = as.numeric(total_space)) %>%
-      janitor::adorn_totals()
-    
-    
+      janitor::adorn_totals() %>%
+      convert_fields_to_sentence_case()
     
     
   })
@@ -1108,6 +1135,51 @@ server <- function(input, output, session) {
         file.rename(out, file)
       })
       
+    }
+    
+  )
+  
+  output$nps_download_button <- downloadHandler(
+    
+    filename = "nps report.docx",
+    
+    content <- function(file) {
+      out_report <- "nps_report.rmd"
+      
+      src <- normalizePath(out_report)
+      
+      # temporarily switch to the temp dir, in case you do not have write
+      # permission to the current working directory
+      owd <- setwd(tempdir())
+      on.exit(setwd(owd))
+      file.copy(src, out_report, overwrite = TRUE)
+      
+      
+      # Downlaods a template for the word report.
+      # Note - this has a specially modified style, in which Heading 5 has been adapted into a line break.
+      # See here: https://scriptsandstatistics.wordpress.com/2015/12/18/rmarkdown-how-to-inserts-page-breaks-in-a-ms-word-document/
+      word_report_reference <- s3tools::download_file_from_s3("alpha-app-occupeye-automation/occupeye-report-reference.dotx",
+                                                              "occupeye-report-reference.dotx",
+                                                              overwrite = TRUE)
+      # Generate report, with progress bar
+      withProgress(message = "Generating report...", {
+
+        out <- rmarkdown::render(out_report, 
+                                 params = list(start_date = input$date_range[1],
+                                               end_date = input$date_range[2],
+                                               survey_name = RV$survey_name,
+                                               raw_data = RV$data,
+                                               group_room_df = group_room_df(),
+                                               group_target = input$group_room_target,
+                                               interview_room_df = interview_room_df(),
+                                               interview_target = input$interview_room_target,
+                                               room_footage_hot = hot_to_r(input$room_footage_hot),
+                                               fte = input$fte,
+                                               space_per_fte = input$space_per_fte
+                                 )
+        )
+        file.rename(out, file)
+      })
     }
     
   )

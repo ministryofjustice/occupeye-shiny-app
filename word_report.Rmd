@@ -60,7 +60,7 @@ for(team in team_list) {
     cat1_df_sum <- df_sum %>% dplyr::filter(category_1 == team)
     
     if(length(team_list) > 1) {
-      cat('\n\n## Desk utilisation for ',team,' (',n_distinct(cat1_df_sum$surveydeviceid),' sensors) \n\n',sep="")
+      cat('\n\n## Desk utilisation for ',team,' (',n_distinct(cat1_df_sum$survey_device_id),' sensors) \n\n',sep="")
       print(prop_daily_usage_chart(cat1_df_sum))
       cat(paste0("\n\n ",daily_usage_chart_narrative(cat1_df_sum)))
     }
@@ -69,7 +69,7 @@ for(team in team_list) {
     for(cat2 in cat2s) {
       cat2_df_sum <- cat1_df_sum %>% dplyr::filter(category_2 == cat2)
       if(length(cat2s) > 1) {
-        cat('\n\n## Desk utilisation for ',team," - ",cat2,' (',n_distinct(cat2_df_sum$surveydeviceid),' sensors) \n\n',sep="")
+        cat('\n\n## Desk utilisation for ',team," - ",cat2,' (',n_distinct(cat2_df_sum$survey_device_id),' sensors) \n\n',sep="")
         print(prop_daily_usage_chart(cat2_df_sum))
         cat(paste0("\n\n ",daily_usage_chart_narrative(cat2_df_sum)))
       }
@@ -78,7 +78,7 @@ for(team in team_list) {
       for(cat3 in cat3s) {
         cat3_df_sum <- cat2_df_sum %>% dplyr::filter(category_3 == cat3)
         if(length(cat3s) > 1) {
-          cat('\n\n## Desk utilisation for ',team,' - ',cat2,' - ',cat3,' (',n_distinct(cat3_df_sum$surveydeviceid),' sensors) \n\n',sep="")
+          cat('\n\n## Desk utilisation for ',team,' - ',cat2,' - ',cat3,' (',n_distinct(cat3_df_sum$survey_device_id),' sensors) \n\n',sep="")
           print(prop_daily_usage_chart(cat3_df_sum))
           cat(paste0("\n\n ",daily_usage_chart_narrative(cat3_df_sum)))
         }

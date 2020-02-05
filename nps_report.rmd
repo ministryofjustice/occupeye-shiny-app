@@ -1,0 +1,75 @@
+---
+date:  "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  word_document:
+    toc: true
+    reference_docx: occupeye-report-reference.dotx
+
+params:
+  start_date: NULL
+  end_date: NULL
+  survey_name: NULL
+  raw_data: NULL
+  group_room_df: NULL
+  group_target: NULL
+  interview_room_df: NULL
+  interview_target: NULL
+  room_footage_hot: NULL
+  fte: NULL
+  space_per_fte: NULL
+  
+  
+  
+title: "`r paste0('NPS Building report, ', params$survey_name)`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+##### line break
+
+# NPS recommendation report for `r params$survey_name`, from `r params$start_date` to `r params$end_date`
+
+## Space requirements
+
+```{r space_requirements, echo=FALSE, results='asis'}
+get_room_resource_requirements(params$raw_data,
+                               params$group_target,
+                               params$interview_target,
+                               params$room_footage_hot) %>%
+  convert_fields_to_sentence_case() %>%
+  knitr::kable()
+
+get_fte_resource_requirements(params$fte,
+                              params$space_per_fte) %>%
+  convert_fields_to_sentence_case() %>%
+  knitr::kable()
+
+
+```
+
+## Group Rooms
+
+```{r group_room_charts, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
+if(nrow(params$group_room_df) > 0) {
+  print(vertical_gauge_chart(params$group_room_df, params$group_target))
+  print(room_waffle_chart(params$group_room_df, params$group_target))
+  print(weekday_usage_chart(params$group_room_df))
+  print(concurrent_room_usage_chart(params$group_room_df))
+}
+
+```
+
+## Interview Rooms
+
+```{r interview_room_charts, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
+if(nrow(params$interview_room_df) > 0) {
+  print(vertical_gauge_chart(params$interview_room_df, params$interview_target))
+  print(room_waffle_chart(params$interview_room_df, params$interview_target))
+  print(weekday_usage_chart(params$interview_room_df))
+  print(concurrent_room_usage_chart(params$interview_room_df))
+}
+
+```
+

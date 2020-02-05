@@ -291,7 +291,7 @@ smoothing_chart <- function(df_sum, smoothing_factor) {
 
 allocation_strategy_table <- function(df_sum) {
   
-  current_allocation <- n_distinct(df_sum$surveydeviceid)
+  current_allocation <- n_distinct(df_sum$survey_device_id)
   
   prop_usage <- prop.table(table(df_sum$date, df_sum$util_cat), 1)
   prop_usage_day <- prop.table(table(weekdays(df_sum$date), df_sum$util_cat), 1)
@@ -350,7 +350,7 @@ allocation_strategy_table <- function(df_sum) {
 desks_by_desk_type <- function(df_sum) {
   df_sum %>%
     group_by(devicetype) %>%
-    summarise(sensors = n_distinct(surveydeviceid)) %>%
+    summarise(sensors = n_distinct(survey_device_id)) %>%
     rename("Desk Type" = devicetype)
   
 }
@@ -358,14 +358,14 @@ desks_by_desk_type <- function(df_sum) {
 desks_by_team <- function(df_sum) {
   df_sum %>%
     group_by(category_1, category_2, category_3) %>%
-    summarise(sensors = n_distinct(surveydeviceid)) %>%
+    summarise(sensors = n_distinct(survey_device_id)) %>%
     rename("Directorate" = category_1, "Department" = category_2, "Team" = category_3)
 }
 
 desks_by_desk_type_and_team <- function(df_sum) {
   df_sum %>%
     group_by(category_3, devicetype) %>%
-    summarise(sensors = n_distinct(surveydeviceid)) %>%
+    summarise(sensors = n_distinct(survey_device_id)) %>%
     rename("Desk Type" = devicetype, "team" = category_3)
 }
 
@@ -426,11 +426,11 @@ nps_donut_narrative <- function(room_df, target_occupancy) {
   weekday_average <- room_df %>%
     mutate(day = weekdays(obs_datetime)) %>%
     group_by(day) %>%
-    summarise(average_utilisation = mean(sensor_value, na.rm = T))
+    summarise(average_utilisation = mean(sensor_value))
   
   mean_rooms <- room_df %>% 
     group_by(obs_datetime) %>%
-    summarise(rooms_occupied = sum(sensor_value, na.rm = T)) %>%
+    summarise(rooms_occupied = sum(sensor_value)) %>%
     pull(rooms_occupied) %>%
     mean() %>%
     ceiling()
@@ -446,7 +446,7 @@ nps_donut_narrative <- function(room_df, target_occupancy) {
 concurrent_room_table <- function(room_df) {
   room_df %>% 
     group_by(obs_datetime) %>%
-    summarise(rooms_occupied = sum(sensor_value, na.rm = TRUE)) %>%
+    summarise(rooms_occupied = sum(sensor_value)) %>%
     count(rooms_occupied) %>%
     mutate(prop = prop.table(n))
 }
@@ -476,7 +476,7 @@ time_of_day_bar <- function(room_df) {
     mutate(time_of_day = strftime(obs_datetime, format="%H:%M"),
            weekday = weekdays(obs_datetime)) %>%
     group_by(weekday, time_of_day) %>%
-    summarise(occupied = mean(sensor_value, na.rm = T))
+    summarise(occupied = mean(sensor_value))
   
   ggplot(data,
          aes(x = hm(time_of_day),
@@ -496,9 +496,9 @@ time_of_day_bar <- function(room_df) {
 }
 
 make_gauge_data <- function(room_df,target) {
-  mean_occupancy <- mean(room_df$sensor_value, na.rm=T)
+  mean_occupancy <- mean(room_df$sensor_value)
   
-  total_rooms <- n_distinct(room_df$surveydeviceid)
+  total_rooms <- n_distinct(room_df$survey_device_id)
   
   tribble(
     ~variable, ~occupancy, ~label, ~title,
@@ -559,22 +559,22 @@ vertical_gauge_chart <- function(room_df, target) {
 }
 
 make_waffle_data <- function(room_df, target) {
-  total_rooms <- n_distinct(room_df$surveydeviceid)
+  total_rooms <- n_distinct(room_df$survey_device_id)
   
   mean_rooms <- room_df %>% 
     group_by(obs_datetime) %>%
-    summarise(rooms_occupied = sum(sensor_value, na.rm = T)) %>%
+    summarise(rooms_occupied = sum(sensor_value)) %>%
     pull(rooms_occupied) %>%
     mean() %>%
     ceiling()
   
   peak_rooms <- room_df %>% 
     group_by(obs_datetime) %>%
-    summarise(rooms_occupied = sum(sensor_value, na.rm = T)) %>%
+    summarise(rooms_occupied = sum(sensor_value)) %>%
     pull(rooms_occupied) %>%
     max()
   
-  mean_occupancy <- mean(room_df$sensor_value, na.rm=T)
+  mean_occupancy <- mean(room_df$sensor_value)
   recommended_rooms <- ceiling(total_rooms * (mean_occupancy/target))
   
   background_dummy <- max(total_rooms, recommended_rooms)
@@ -598,7 +598,7 @@ make_waffle_data <- function(room_df, target) {
 room_waffle_chart <- function(room_df, target) {
   df <- make_waffle_data(room_df, target)
   
-  total_rooms <- n_distinct(room_df$surveydeviceid)
+  total_rooms <- n_distinct(room_df$survey_device_id)
   
   ggplot(df,
          aes(fill = variable,
@@ -630,7 +630,7 @@ get_room_resource_requirements <- function(df,
                                            room_footage_hot) {
   df %>%
     group_by(devicetype) %>%
-    summarise("count" = n_distinct(surveydeviceid),
+    summarise("count" = n_distinct(survey_device_id),
               "occupancy" = mean(sensor_value, na.rm = T)) %>%
     dplyr::filter(devicetype %in% c("Group Room",
                                     "Interview Room")) %>%

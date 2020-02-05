@@ -69,36 +69,21 @@ clean_and_mutate_raw_data <- function(df) {
 get_summarised_data <- function(df) {
   
   df %>%
+    dplyr::filter(!is.na(sensor_value)) %>%
     group_by(date = date(obs_datetime),
-             surveydeviceid, 
-             roomtype, 
-             devicetype,
-             building,
-             category_1, 
-             category_2,
-             category_3, 
-             floor,
-             roomname,
-             location) %>%
-    summarise(utilisation = mean(sensor_value, rm.na = TRUE),
-              count_na = sum(is.na(sensor_value))) %>%  
+             survey_device_id) %>%
+    summarise(utilisation = mean(sensor_value)) %>%  
     ungroup(date,
-            surveydeviceid, 
-            roomtype, 
-            devicetype,
-            building,
-            category_1, 
-            category_2, 
-            category_3, 
-            floor,
-            roomname,
-            location) %>%
+            survey_device_id) %>%
     add_is_used() %>%
-    add_util_category
+    add_util_category()
   
 }
 
-get_df_sum <- function(df, start_time = "09:00", end_time = "17:00") {
+get_df_sum <- function(df,
+                       sensors,
+                       start_time = "09:00",
+                       end_time = "17:00") {
   
   
   df2 <- df %>% 
@@ -107,18 +92,24 @@ get_df_sum <- function(df, start_time = "09:00", end_time = "17:00") {
     remove_non_business_days()
   
   
-  df_sum <- get_summarised_data(df2)
+  get_summarised_data(df2) %>%
+    get_full_df(sensors)
 }
 
 get_full_df <- function(df, sensors) {
-  left_join(df, sensors, by = c("survey_device_id" = "surveydeviceid")) %>% rename(surveydeviceid = survey_device_id)
+  left_join(df, sensors, by = c("survey_device_id"))
 }
 
 get_bad_observations <- function(df) {
   df %>%
     dplyr::filter(!sensor_value %in% c(1, 0)) %>%
     mutate(obs_date = date(obs_datetime)) %>%
-    group_by(obs_date, sensor_value, surveydeviceid, hardwareid, sensorid, location) %>% 
+    group_by(obs_date,
+             sensor_value,
+             survey_device_id,
+             hardwareid,
+             sensorid,
+             location) %>% 
     summarise(count = n())
   
 }
