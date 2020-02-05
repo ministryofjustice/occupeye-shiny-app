@@ -592,7 +592,7 @@ server <- function(input, output, session) {
       # 
       # feather::write_feather(RV$sensors, "temp_df_sensors.feather")
       # s3tools::write_file_to_s3("temp_df_sensors.feather", "alpha-app-occupeye-automation/temp_df_sensors.feather", overwrite = T)
-
+      
       
       # make the bad sensors analysis
       RV$bad_sensors <- get_bad_observations(RV$data)
@@ -979,7 +979,7 @@ server <- function(input, output, session) {
   
   output$room_footage_hot <- renderRHandsontable({
     room_footage_hot <- data.frame(resource_name = c("Group Room", "Interview Room"),
-                     space_required = c(22,9))
+                                   space_required = c(22,9))
     rhandsontable(room_footage_hot %>% mutate_all(as.character)) %>%
       hot_cols(format = "0")
     
@@ -1052,10 +1052,13 @@ server <- function(input, output, session) {
   
   
   output$anciliary_space_requirements <- renderTable({
-    hot_to_r(input$anciliary_space_hot) %>%
-      mutate(total_space = make_numeric(qty) * make_numeric(space_required)) %>%
-      convert_fields_to_sentence_case()
-    
+    if(is.null(input$anciliary_space_hot)) {
+      return(NULL)
+    } else {
+      hot_to_r(input$anciliary_space_hot) %>%
+        mutate(total_space = make_numeric(qty) * make_numeric(space_required)) %>%
+        convert_fields_to_sentence_case()
+    }
   },
   caption = "Anciliary space requirements",
   caption.placement = "top")
@@ -1162,7 +1165,7 @@ server <- function(input, output, session) {
                                                               overwrite = TRUE)
       # Generate report, with progress bar
       withProgress(message = "Generating report...", {
-
+        
         out <- rmarkdown::render(out_report, 
                                  params = list(start_date = input$date_range[1],
                                                end_date = input$date_range[2],
