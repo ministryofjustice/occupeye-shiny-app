@@ -152,7 +152,8 @@ get_df_sql <- function(survey_ids,
     {category_filter}
     and so.obs_datetime >= timestamp '{start_date} 00:00'
     and so.obs_datetime <= timestamp '{end_date} 23:50'
-    and CAST(so.obs_datetime AS TIME) between time '{start_time}' and time '{end_time}'
+    and CAST(so.obs_datetime AS TIME) >= time '{start_time}' 
+    and CAST(so.obs_datetime AS TIME) < time '{end_time}'
     
     "
   
