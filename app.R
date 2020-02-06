@@ -13,7 +13,6 @@ library(glue)           # Interpreted string literals
 library(s3tools)        # S3tools for getting stuff from S3
 library(reticulate)
 library(dbtools)
-library(flexdashboard)
 library(rhandsontable)
 library(shinycssloaders)
 library(gridExtra)
@@ -544,69 +543,77 @@ server <- function(input, output, session) {
   
   # When clicking the "load report" button...
   observeEvent(input$loadCSV, {
-    print(glue("Loading sensors for surveys {paste0(RV$surveys_hash[input$survey_name], collapse = ', ')}"))
-    
-    withProgress(message = "Loading sensor information for selected survey(s)...", {
-      RV$sensors <- dbtools::read_sql(glue("select * from occupeye_app_db.sensors where survey_id in ({paste0(RV$surveys_hash[input$survey_name], collapse = ', ')})")) %>%
-        rename(survey_device_id = surveydeviceid) %>%
-        mutate(survey_device_id = as.character(survey_device_id)) %>% # coerce surveydeviceid to char to maintain type integrity
-        mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
-                  .vars = vars(roomname, location))
-    })
-    
-    # Store the selected survey name to log what survey is currently loaded, in case the selection is changed in the dropdown later
-    RV$survey_name <- input$survey_name
-    
-    # Add a progress bar
-    
-    withProgress(message = paste0("Loading report ", paste0(input$survey_name, collapse = ", ")), {
-      start.time <- Sys.time()
+    if(input$start_time == input$end_time) {
+      sendSweetAlert(session,
+                     title = "Warning!",
+                     text = "The end time is the same as the start time. Choose a different time window.",
+                     type = "warning")
+    } else {
       
-      sql <- get_df_sql(RV$surveys_hash[input$survey_name],
-                        start_date = input$download_date_range[1], 
-                        end_date = input$download_date_range[2],
-                        start_time = input$start_time,
-                        end_time = input$end_time)
+      print(glue("Loading sensors for surveys {paste0(RV$surveys_hash[input$survey_name], collapse = ', ')}"))
       
-      print(glue("executing query: {sql}"))
+      withProgress(message = "Loading sensor information for selected survey(s)...", {
+        RV$sensors <- dbtools::read_sql(glue("select * from occupeye_app_db.sensors where survey_id in ({paste0(RV$surveys_hash[input$survey_name], collapse = ', ')})")) %>%
+          rename(survey_device_id = surveydeviceid) %>%
+          mutate(survey_device_id = as.character(survey_device_id)) %>% # coerce surveydeviceid to char to maintain type integrity
+          mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
+                    .vars = vars(roomname, location))
+      })
       
+      # Store the selected survey name to log what survey is currently loaded, in case the selection is changed in the dropdown later
+      RV$survey_name <- input$survey_name
       
-      # Download the minimal table, filtered by the download_date_range
-      df_min <- dbtools::read_sql(sql)
+      # Add a progress bar
       
-      end.time <- Sys.time()
-      diff <- end.time - start.time
-      print(diff)
-      # Add the other sensor metadata, dealing with the inconsistently named survey_device_id and surveydeviceid
-      df_full <- get_full_df(df_min, RV$sensors)
+      withProgress(message = paste0("Loading report ", paste0(input$survey_name, collapse = ", ")), {
+        start.time <- Sys.time()
+        
+        sql <- get_df_sql(RV$surveys_hash[input$survey_name],
+                          start_date = input$download_date_range[1], 
+                          end_date = input$download_date_range[2],
+                          start_time = input$start_time,
+                          end_time = input$end_time)
+        
+        print(glue("executing query: {sql}"))
+        
+        
+        # Download the minimal table, filtered by the download_date_range
+        df_min <- dbtools::read_sql(sql)
+        
+        end.time <- Sys.time()
+        diff <- end.time - start.time
+        print(diff)
+        # Add the other sensor metadata, dealing with the inconsistently named survey_device_id and surveydeviceid
+        df_full <- get_full_df(df_min, RV$sensors)
+        
+        # add the raw data for displaying on the raw data tab
+        RV$data <- df_full %>%
+          clean_and_mutate_raw_data() %>%
+          remove_non_business_days()
+        
+        # feather::write_feather(df_min, "temp_df.feather")
+        # 
+        # s3tools::write_file_to_s3("temp_df.feather",s3_path = "alpha-app-occupeye-automation/temp_df.feather", overwrite = T)
+        # 
+        # feather::write_feather(RV$sensors, "temp_df_sensors.feather")
+        # s3tools::write_file_to_s3("temp_df_sensors.feather", "alpha-app-occupeye-automation/temp_df_sensors.feather", overwrite = T)
+        
+        
+        # make the bad sensors analysis
+        RV$bad_sensors <- get_bad_observations(RV$data)
+      })
       
-      # add the raw data for displaying on the raw data tab
-      RV$data <- df_full %>%
-        clean_and_mutate_raw_data() %>%
-        remove_non_business_days()
-      
-      # feather::write_feather(df_min, "temp_df.feather")
-      # 
-      # s3tools::write_file_to_s3("temp_df.feather",s3_path = "alpha-app-occupeye-automation/temp_df.feather", overwrite = T)
-      # 
-      # feather::write_feather(RV$sensors, "temp_df_sensors.feather")
-      # s3tools::write_file_to_s3("temp_df_sensors.feather", "alpha-app-occupeye-automation/temp_df_sensors.feather", overwrite = T)
-      
-      
-      # make the bad sensors analysis
-      RV$bad_sensors <- get_bad_observations(RV$data)
-    })
-    
-    # Then summarise the dataset
-    withProgress(message = "summarising the dataset", {
-      RV$df_sum <- get_df_sum(RV$data,
-                              RV$sensors,
-                              input$start_time,
-                              input$end_time)
-      
-      # show dialog to show it's finished loading
-      showModal(modalDialog(glue("{paste0(input$survey_name, collapse = ', ')} successfully loaded into the dashboard."), easyClose = TRUE))
-    })
+      # Then summarise the dataset
+      withProgress(message = "summarising the dataset", {
+        RV$df_sum <- get_df_sum(RV$data,
+                                RV$sensors,
+                                input$start_time,
+                                input$end_time)
+        
+        # show dialog to show it's finished loading
+        showModal(modalDialog(glue("{paste0(input$survey_name, collapse = ', ')} successfully loaded into the dashboard."), easyClose = TRUE))
+      })
+    }
   })
   
   # Once it sees that RV$df_sum has updated, update the filter UI with metadata from new dataset
