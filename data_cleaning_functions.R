@@ -169,3 +169,12 @@ convert_fields_to_sentence_case <- function(df) {
   names(df) <- snakecase::to_sentence_case(names(df))
   df
 }
+
+get_time_list <- function() {
+  # Makes sequence of times for date picker input
+  
+  seq(from = ISOdatetime(2019, 1, 1, 0, 0, 0),
+      to = ISOdatetime(2019, 1, 1, 23, 50, 0),
+      by = "10 mins") %>%
+    strftime("%H:%M")
+}

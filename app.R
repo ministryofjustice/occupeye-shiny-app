@@ -314,8 +314,7 @@ server <- function(input, output, session) {
                             temp_df_sensors,
                             "09:00",
                             "17:00")
-  time_list <- unique(strftime(temp_df$obs_datetime,
-                               format = "%H:%M"))
+  time_list <- get_time_list()
   date_list <- unique(lubridate::date(temp_df$obs_datetime))
   buildings <- unique(temp_df_sensors$building)
   room_types <- unique(temp_df_sensors$roomtype)
