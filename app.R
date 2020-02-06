@@ -1031,7 +1031,7 @@ server <- function(input, output, session) {
   caption.placement = "top")
   
   output$current_resource_levels <- renderTable({
-    RV$data %>%
+    filtered_room_df() %>%
       dplyr::filter(!is.na(sensor_value)) %>%
       group_by(devicetype) %>%
       summarise("count" = n_distinct(survey_device_id),
@@ -1046,7 +1046,7 @@ server <- function(input, output, session) {
     if(is.null(input$room_footage_hot)) {
       return(NULL)
     } else{
-      get_room_resource_requirements(RV$data,
+      get_room_resource_requirements(filtered_room_df(),
                                      input$group_room_target,
                                      input$interview_room_target,
                                      hot_to_r(input$room_footage_hot)) %>%
@@ -1071,11 +1071,11 @@ server <- function(input, output, session) {
   
   
   output$total_resource_table <- renderTable({
-    shiny::req(RV$data,
+    shiny::req(filtered_room_df(),
                input$group_room_target,
                input$interview_room_target,
                input$room_footage_hot)
-    room_resources <- get_room_resource_requirements(RV$data,
+    room_resources <- get_room_resource_requirements(filtered_room_df(),
                                                      input$group_room_target,
                                                      input$interview_room_target,
                                                      hot_to_r(input$room_footage_hot)) %>%
