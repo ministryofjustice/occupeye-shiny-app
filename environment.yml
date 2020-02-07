@@ -185,8 +185,9 @@ dependencies:
   - r-extrafontdb=1.0=r351h6115d3f_1001
   - r-fansi=0.4.0=r351h96ca727_1000
   - r-fasttime=1.0_2=r35hcdcec82_1
-  - r-feather=0.3.3=r351h0357c0b_0
+  - r-feather=0.3.5=r35h0357c0b_0
   - r-flexdashboard=0.5.1.1=r35h6115d3f_1001
+  - r-flextable=0.5.6=r35h6115d3f_0
   - r-forcats=0.4.0=r351h6115d3f_0
   - r-forecast=8.9=r35h0357c0b_0
   - r-formatr=1.5=r351h6115d3f_1001
@@ -194,6 +195,7 @@ dependencies:
   - r-fracdiff=1.4_2=r35hcdcec82_1003
   - r-fs=1.2.6=r351h29659fb_1000
   - r-fuzzyjoin=0.1.4=r351_1001
+  - r-gdtools=0.1.7=r351hb4b2023_1000
   - r-generics=0.0.2=r351h6115d3f_1001
   - r-geosphere=1.5_7=r351h96ca727_1001
   - r-ggplot2=3.1.0=r351h6115d3f_1000
@@ -244,9 +246,11 @@ dependencies:
   - r-mvtnorm=1.0_10=r351h9bbef5b_0
   - r-nlme=3.1_137=r351ha65eedd_1000
   - r-nnet=7.3_12=r35hcdcec82_1003
+  - r-officer=0.3.6=r35h0357c0b_0
   - r-openssl=1.4=r35h9c8475f_0
   - r-openxlsx=4.1.2=r35h0357c0b_0
   - r-packrat=0.5.0=r351h6115d3f_1000
+  - r-pander=0.6.3=r35h0357c0b_1
   - r-parsedate=1.2.0=r35hcdcec82_1
   - r-pillar=1.4.2=r35h6115d3f_2
   - r-pingr=1.1.2=r35hcdcec82_1001
@@ -334,6 +338,7 @@ dependencies:
   - r-urca=1.3_0=r35h9bbef5b_1004
   - r-usethis=1.4.0=r351h6115d3f_1000
   - r-utf8=1.1.4=r351h96ca727_1000
+  - r-uuid=0.1_2=r35hcdcec82_1002
   - r-vctrs=0.1.0=r351h96ca727_1000
   - r-viridis=0.5.1=r35h6115d3f_1003
   - r-viridislite=0.3.0=r351h6115d3f_1001
@@ -390,7 +395,7 @@ dependencies:
   - pip:
     - fsspec==0.6.2
     - jpype1==0.6.3
-    - numpy==1.18.1
+    - numpy==1.15.4
     - pydbtools==1.0.3
     - s3fs==0.4.0
 
