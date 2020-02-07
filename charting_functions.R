@@ -411,6 +411,7 @@ weekday_usage_chart <- function(df) {
     scale_y_continuous(labels = scales::percent,
                        limits = c(0,1)) +
     scale_x_discrete(limits = weekday) +
+    ylab("Average Occupancy") +
     theme_minimal() +
     ggtitle("Average occupancy by weekday")
   
@@ -502,11 +503,13 @@ make_gauge_data <- function(room_df,target) {
   
   tribble(
     ~variable, ~occupancy, ~label, ~title,
-   "Actual occupancy", mean_occupancy, scales::percent(mean_occupancy), "Average \n occupancy"
+   "Actual occupancy", mean_occupancy, scales::percent(mean_occupancy, accuracy = 1), "Average \n occupancy"
   )
 }
 
-vertical_gauge_chart <- function(room_df, target) {
+vertical_gauge_chart <- function(room_df,
+                                 target,
+                                 scaling_factor = 1) {
   # code adapted from https://pomvlad.blog/2018/05/03/gauges-ggplot2/
   # so some details are a bit redundant
   
@@ -535,21 +538,22 @@ vertical_gauge_chart <- function(room_df, target) {
     geom_text(aes(x = 1.75, y = 0.1,
                   label = label),
               colour = "black",
-              size = 4.5,
+              size = 4.5 * scaling_factor,
               family = "Poppins SemiBold") +
     geom_text(aes(x = 1.25, y = 0.1,
-                  label = scales::percent(target)),
+                  label = scales::percent(target,
+                                          accuracy = 1)),
               colour = "black",
-              size = 4.5,
+              size = 4.5 * scaling_factor,
               family = "Poppins SemiBold") +
     geom_text(aes(x = 2.5,
                   y = occupancy,
                   label = title),
-              size = 4.2) +
+              size = 4.2 * scaling_factor) +
     geom_text(aes(x = 0.5,
                   y = target),
               label = "Target \n occupancy",
-              size = 4.2) +
+              size = 4.2 * scaling_factor) +
     theme_void() +
     scale_x_continuous(limits = c(0,4)) +
     theme(strip.background = element_blank(),
@@ -595,7 +599,7 @@ make_waffle_data <- function(room_df, target) {
   
 }
 
-room_waffle_chart <- function(room_df, target) {
+room_waffle_chart <- function(room_df, target, scaling_factor = 1) {
   df <- make_waffle_data(room_df, target)
   
   total_rooms <- n_distinct(room_df$survey_device_id)
@@ -607,19 +611,22 @@ room_waffle_chart <- function(room_df, target) {
     geom_text(aes(label = case_when(variable == "figure" ~as.character(value),
                                     T ~""),
                   x = min(3, ceiling(total_rooms / 2)),
-                  y = 0,
-                  size = 2),
-              vjust = "inward") +
+                  y = -0.1),
+              vjust = "inward",
+              size = 5 * scaling_factor) +
     facet_wrap(~label,
                strip.position = "top",
                labeller = label_wrap_gen(width = 12),
                nrow = 1) +
     theme_minimal() +
     theme_enhance_waffle() +
+    labs(x = NULL,
+         y = NULL) +
     scale_fill_manual(values = c("#f0f0f0", "coral2")) +
     coord_equal() +
-    theme(legend.position = "none",
-          strip.text = element_text(size = 11))
+    theme(panel.grid = element_blank(),
+          legend.position = "none",
+          strip.text = element_text(size = 11 * scaling_factor))
   
 }
 
@@ -645,7 +652,7 @@ get_room_resource_requirements <- function(df,
 
 get_fte_resource_requirements <- function(fte, space_per_fte) {
   data.frame(resource_name = "Staff total space",
-             qty = fte,
+             FTE = fte,
              space_required = space_per_fte,
              total_space = space_per_fte * fte)
 }
@@ -655,6 +662,39 @@ get_staff_accommodation_requirements <- function(resource_hot, fte) {
     mutate(resource_per_fte_ratio = paste(resource, per_fte, sep = ":"),
            qty = ceiling(fte * make_numeric(resource) / make_numeric(per_fte))) %>%
     select(-resource, -per_fte)
+}
+
+get_total_space_table <- function(filtered_room_df,
+                                  group_room_target,
+                                  interview_room_target,
+                                  room_footage_hot,
+                                  fte,
+                                  space_per_fte,
+                                  ancillary_space_hot) {
+  
+  room_resources <- get_room_resource_requirements(filtered_room_df,
+                                                   group_room_target,
+                                                   interview_room_target,
+                                                   room_footage_hot) %>%
+    select(resource_name = devicetype,
+           qty = recommended_rooms,
+           space_required,
+           total_space) %>%
+    mutate_all(as.character)
+  
+  fte_resources <- get_fte_resource_requirements(fte,
+                                                 space_per_fte) %>%
+    mutate_all(as.character) %>%
+    rename(qty = FTE)
+  
+  ancillary_resources <- ancillary_space_hot %>%
+    mutate(total_space = make_numeric(qty) * make_numeric(space_required)) %>%
+    mutate_all(as.character)
+  
+  bind_rows(room_resources, fte_resources, ancillary_resources) %>%
+    mutate(total_space = as.numeric(total_space)) %>%
+    janitor::adorn_totals() %>%
+    convert_fields_to_sentence_case()
 }
 
 error_chart <- function(message) {

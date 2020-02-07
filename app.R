@@ -11,11 +11,12 @@ library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
 library(glue)           # Interpreted string literals
 library(s3tools)        # S3tools for getting stuff from S3
-library(reticulate)
-library(dbtools)
-library(rhandsontable)
-library(shinycssloaders)
-library(gridExtra)
+library(reticulate)     # For dbtools
+library(dbtools)        # For getting data
+library(rhandsontable)  # For NPS resource tables
+library(shinycssloaders)# Loaders for charts
+library(gridExtra)      # Arrange charts
+library(pander)
 
 
 # import other source code ------------------------------------------------
@@ -235,11 +236,11 @@ ui <- fluidPage(
                             rHandsontableOutput("resource_hot"),
                             h4("Update area requirements for rooms here:"),
                             rHandsontableOutput("room_footage_hot"),
-                            h4("Update/add to anciliary spaces here:"),
-                            rHandsontableOutput("anciliary_space_hot")),
+                            h4("Update/add to ancillary spaces here:"),
+                            rHandsontableOutput("ancillary_space_hot")),
                      column(4,
                             tableOutput("room_resource_requirements"),
-                            tableOutput("anciliary_space_requirements"),
+                            tableOutput("ancillary_space_requirements"),
                             tableOutput("fte_resource_table"),
                             tableOutput("fte_resource_breakdown_table"),
                             tableOutput("total_resource_table"),
@@ -991,7 +992,7 @@ server <- function(input, output, session) {
     
   })
   
-  output$anciliary_space_hot <- renderRHandsontable({
+  output$ancillary_space_hot <- renderRHandsontable({
     df <- data.frame(resource_name = c("Reception", "Waiting room"),
                      qty = c(1, 1),
                      space_required = c(10, 15))
@@ -1008,7 +1009,8 @@ server <- function(input, output, session) {
     else{
       get_fte_resource_requirements(input$fte,
                                     input$space_per_fte) %>%
-        convert_fields_to_sentence_case()
+        convert_fields_to_sentence_case() %>%
+        rename(FTE = Fte)
     }
   },
   caption = "Staff side total space",
@@ -1057,16 +1059,16 @@ server <- function(input, output, session) {
   caption.placement = "top")
   
   
-  output$anciliary_space_requirements <- renderTable({
-    if(is.null(input$anciliary_space_hot)) {
+  output$ancillary_space_requirements <- renderTable({
+    if(is.null(input$ancillary_space_hot)) {
       return(NULL)
     } else {
-      hot_to_r(input$anciliary_space_hot) %>%
+      hot_to_r(input$ancillary_space_hot) %>%
         mutate(total_space = make_numeric(qty) * make_numeric(space_required)) %>%
         convert_fields_to_sentence_case()
     }
   },
-  caption = "Anciliary space requirements",
+  caption = "ancillary space requirements",
   caption.placement = "top")
   
   
@@ -1074,29 +1076,16 @@ server <- function(input, output, session) {
     shiny::req(filtered_room_df(),
                input$group_room_target,
                input$interview_room_target,
-               input$room_footage_hot)
-    room_resources <- get_room_resource_requirements(filtered_room_df(),
-                                                     input$group_room_target,
-                                                     input$interview_room_target,
-                                                     hot_to_r(input$room_footage_hot)) %>%
-      select(resource_name = devicetype,
-             qty = recommended_rooms,
-             space_required,
-             total_space) %>%
-      mutate_all(as.character)
+               input$room_footage_hot,
+               input$ancillary_space_hot)
     
-    fte_resources <- get_fte_resource_requirements(input$fte,
-                                                   input$space_per_fte) %>%
-      mutate_all(as.character)
-    
-    anciliary_resources <- hot_to_r(input$anciliary_space_hot) %>%
-      mutate(total_space = make_numeric(qty) * make_numeric(space_required)) %>%
-      mutate_all(as.character)
-    
-    bind_rows(room_resources, fte_resources, anciliary_resources) %>%
-      mutate(total_space = as.numeric(total_space)) %>%
-      janitor::adorn_totals() %>%
-      convert_fields_to_sentence_case()
+    get_total_space_table(filtered_room_df = filtered_room_df(),
+                          group_room_target = input$group_room_target,
+                          interview_room_target = input$interview_room_target,
+                          room_footage_hot = hot_to_r(input$room_footage_hot),
+                          fte = input$fte,
+                          space_per_fte = input$space_per_fte,
+                          ancillary_space_hot = hot_to_r(input$ancillary_space_hot))
     
     
   })
@@ -1166,8 +1155,8 @@ server <- function(input, output, session) {
       # Downlaods a template for the word report.
       # Note - this has a specially modified style, in which Heading 5 has been adapted into a line break.
       # See here: https://scriptsandstatistics.wordpress.com/2015/12/18/rmarkdown-how-to-inserts-page-breaks-in-a-ms-word-document/
-      word_report_reference <- s3tools::download_file_from_s3("alpha-app-occupeye-automation/occupeye-report-reference.dotx",
-                                                              "occupeye-report-reference.dotx",
+      word_report_reference <- s3tools::download_file_from_s3("alpha-app-occupeye-automation/Probation occupancy report template.dotx",
+                                                              "Probation occupancy report template.dotx",
                                                               overwrite = TRUE)
       # Generate report, with progress bar
       withProgress(message = "Generating report...", {
@@ -1175,15 +1164,17 @@ server <- function(input, output, session) {
         out <- rmarkdown::render(out_report, 
                                  params = list(start_date = input$date_range[1],
                                                end_date = input$date_range[2],
-                                               survey_name = RV$survey_name,
-                                               raw_data = RV$data,
+                                               survey_name = input$survey_name,
+                                               raw_data = filtered_room_df(),
                                                group_room_df = group_room_df(),
-                                               group_target = input$group_room_target,
+                                               group_room_target = input$group_room_target,
                                                interview_room_df = interview_room_df(),
-                                               interview_target = input$interview_room_target,
+                                               interview_room_target = input$interview_room_target,
                                                room_footage_hot = hot_to_r(input$room_footage_hot),
                                                fte = input$fte,
-                                               space_per_fte = input$space_per_fte
+                                               space_per_fte = input$space_per_fte,
+                                               resource_hot = hot_to_r(input$resource_hot),
+                                               ancillary_space_hot = hot_to_r(input$ancillary_space_hot)
                                  )
         )
         file.rename(out, file)
