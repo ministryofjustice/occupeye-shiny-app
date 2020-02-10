@@ -642,6 +642,13 @@ server <- function(input, output, session) {
     # get new list of dates
     date_list <- unique(RV$df_sum$date)
     
+    selected_desk_types <- if(sum(str_detect(input$survey_name,
+                                             "NPS")) > 0) {
+      desk_type_list$`Meeting Room`
+    } else{desk_type_list$`Desk Setting`}
+    
+    
+    
     # Update the UI
     updatePickerInput(session, inputId = "buildings",
                       choices = building_list,
@@ -651,7 +658,7 @@ server <- function(input, output, session) {
                       selected = floor_list)
     updatePickerInput(session, inputId = "desk_type",
                       choices = desk_type_list,
-                      selected = desk_type_list$`Meeting Room`)
+                      selected = selected_desk_types)
     
     updatePickerInput(session, inputId = "zones",
                       choices = zone_list,
