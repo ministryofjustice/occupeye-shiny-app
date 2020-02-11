@@ -70,7 +70,15 @@ Additional precautions are required in secure interview rooms including fixed ta
 
 The design guide contains the full specification, however, briefly, the rooms will have the following features:
 
-**insert Furniture and Technology here**
+```{r interview room image, echo=FALSE}
+interview_room_image <- download_file_from_s3("alpha-app-occupeye-automation/interview room image.PNG",
+                      "interview room image.PNG",
+                      overwrite = TRUE)
+knitr::include_graphics(interview_room_image)
+
+```
+
+\newline
 
 ## Survey results
 
@@ -111,7 +119,13 @@ The rooms should be largely neutral with the addition of some vibrant accents to
 
 The design guide contains the full specification, however, briefly, the rooms will have the following features:
 
-**Insert images here**
+```{r group room image, echo=FALSE}
+group_room_image <- download_file_from_s3("alpha-app-occupeye-automation/group room image.PNG",
+                      "group room image.PNG",
+                      overwrite = TRUE)
+knitr::include_graphics(group_room_image, dpi = 600)
+
+```
 
 \newline
 
@@ -153,9 +167,16 @@ The exact size and number of these facilities will vary due to the design and si
 
 Within the reception and waiting areas it’s envisaged that the following would be provided:
 
-**Insert images here**
+```{r ancillary room image, echo=FALSE}
+ancillary_room_image <- download_file_from_s3("alpha-app-occupeye-automation/interview room image.PNG",
+                      "ancillary room image.PNG",
+                      overwrite = TRUE)
+knitr::include_graphics(ancillary_room_image)
 
+```
 
+\newline
+\newline
 
 ```{r service_user_space, echo=FALSE, results='asis'}
 
@@ -163,7 +184,8 @@ get_room_resource_requirements(params$raw_data,
                                params$group_room_target,
                                params$interview_room_target,
                                params$room_footage_hot) %>%
-  mutate(occupancy = scales::percent(occupancy, accuracy = 1)) %>%
+  mutate(occupancy = scales::percent(occupancy, accuracy = 1),
+         target = scales::percent(target, accuracy = 1)) %>%
   rename(room = devicetype) %>%
   convert_fields_to_sentence_case() %>%
   flextable::flextable()  %>%
