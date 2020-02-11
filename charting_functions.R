@@ -641,9 +641,9 @@ get_room_resource_requirements <- function(df,
               "occupancy" = mean(sensor_value, na.rm = T)) %>%
     dplyr::filter(devicetype %in% c("Group Room",
                                     "Interview Room")) %>%
-    mutate(target_occupancy = case_when(devicetype == "Group Room" ~group_room_target,
+    mutate(target = case_when(devicetype == "Group Room" ~group_room_target,
                                         devicetype == "Interview Room" ~interview_room_target),
-           recommended_rooms = ceiling(count * (occupancy / target_occupancy))) %>%
+           recommended_rooms = ceiling(count * (occupancy / target))) %>%
     left_join(room_footage_hot, by = c("devicetype" = "resource_name")) %>%
     mutate(space_required = make_numeric(space_required),
            total_space = space_required * recommended_rooms)
