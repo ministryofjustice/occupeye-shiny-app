@@ -16,7 +16,8 @@ library(dbtools)        # For getting data
 library(rhandsontable)  # For NPS resource tables
 library(shinycssloaders)# Loaders for charts
 library(gridExtra)      # Arrange charts
-library(pander)
+library(flextable)      # Flextable
+library(stringr)        # For string_detect
 
 
 # import other source code ------------------------------------------------
