@@ -1,5 +1,11 @@
 ## Changelog
 
+### v0.17 - 2020-02-11
+
+- Match report to NPS template
+- Select meeting rooms by default if NPS, Desk Settings otherwise
+- Better error handling
+
 ### v0.16 - 2020-02-05
 
 - Fix bottleneck due to na.rm = TRUE
