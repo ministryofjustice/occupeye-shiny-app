@@ -198,7 +198,7 @@ room_resource_requirements <- get_room_resource_requirements(params$raw_data,
   width(j = c(2,4,7), width = 0.51) %>%
   width(j = 5, width = 1) %>%
   set_caption("Room resource requirements")
-
+  
 get_ancillary_resource_requirements(params$ancillary_space_hot,
                                     room_resource_requirements,
                                     params$circulation_factor) %>%
@@ -254,6 +254,8 @@ The overall space requirement identified in this survey is shown in the table on
 In combination with the national design guide and consultation with local managers this report will also help to determine the design of the space and will help ensure consistency across the estate.
 
 Where local managers do not agree with the report they should, in the first instance, discuss their concerns with their Estates Delivery Lead.  Any outstanding concerns can be raised at the programme estates board if required.
+
+#### column break
 
 
 ``` {r total_space, echo=FALSE, results='asis'}
