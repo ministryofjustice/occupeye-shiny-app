@@ -225,14 +225,20 @@ ui <- fluidPage(
                  
                  fluidPage(
                    fluidRow(
-                     numericInput(inputId = "fte",
-                                  label = "Input FTE",
-                                  value = 50,
-                                  min = 1),
-                     numericInput(inputId = "space_per_fte",
-                                  label = HTML("Input space required per FTE (m<sup>2</sup>)"),
-                                  value = 8),
                      column(4,
+                            numericInput(inputId = "fte",
+                                         label = "Input FTE",
+                                         value = 50,
+                                         min = 1),
+                            numericInput(inputId = "space_per_fte",
+                                         label = HTML("Input space required per FTE (m<sup>2</sup>)"),
+                                         value = 8),
+                            numericInput(inputId = "circulation_factor",
+                                         label = "Input circulation percentage",
+                                         value = 0.15,
+                                         max = 1,
+                                         min = 0),
+                            
                             h4("Update/add to resource requirement ratios here:"),
                             rHandsontableOutput("resource_hot"),
                             h4("Update area requirements for rooms here:"),
@@ -1025,8 +1031,6 @@ server <- function(input, output, session) {
   caption.placement = "top")
   
   
-  
-  
   output$fte_resource_breakdown_table <- renderTable({
     if(is.null(input$resource_hot)) {
       return(NULL)
@@ -1034,11 +1038,13 @@ server <- function(input, output, session) {
     else{
       get_staff_accommodation_requirements(hot_to_r(input$resource_hot),
                                            input$fte) %>%
-        convert_fields_to_sentence_case()
+        convert_fields_to_sentence_case() %>%
+        mutate_all(as.character)
     }
   },
   caption = "Within which we propose to provide",
-  caption.placement = "top")
+  caption.placement = "top",
+  align = "lrr")
   
   output$current_resource_levels <- renderTable({
     filtered_room_df() %>%
@@ -1060,23 +1066,33 @@ server <- function(input, output, session) {
                                      input$group_room_target,
                                      input$interview_room_target,
                                      hot_to_r(input$room_footage_hot)) %>%
-        convert_fields_to_sentence_case()
+        mutate(occupancy = scales::percent(occupancy, accuracy = 1),
+               target = scales::percent(target, accuracy = 1)) %>%
+        convert_fields_to_sentence_case() %>%
+        mutate_all(as.character)
     }
   },
   caption = "Service user space",
-  caption.placement = "top")
+  caption.placement = "top",
+  align = "lrrrrrr")
   
   
   output$ancillary_space_requirements <- renderTable({
     if(is.null(input$ancillary_space_hot)) {
       return(NULL)
     } else {
-      hot_to_r(input$ancillary_space_hot) %>%
-        mutate(total_space = make_numeric(qty) * make_numeric(space_required)) %>%
-        convert_fields_to_sentence_case()
+      room_resource_requirements <- get_room_resource_requirements(filtered_room_df(),
+                                                                   input$group_room_target,
+                                                                   input$interview_room_target,
+                                                                   hot_to_r(input$room_footage_hot))
+      get_ancillary_resource_requirements(hot_to_r(input$ancillary_space_hot),
+                                          room_resource_requirements,
+                                          input$circulation_factor) %>%
+        convert_fields_to_sentence_case() %>%
+        mutate_all(as.character)
     }
   },
-  caption = "ancillary space requirements",
+  caption = "Ancillary space requirements",
   caption.placement = "top")
   
   
@@ -1087,16 +1103,22 @@ server <- function(input, output, session) {
                input$room_footage_hot,
                input$ancillary_space_hot)
     
+    
     get_total_space_table(filtered_room_df = filtered_room_df(),
                           group_room_target = input$group_room_target,
                           interview_room_target = input$interview_room_target,
                           room_footage_hot = hot_to_r(input$room_footage_hot),
                           fte = input$fte,
                           space_per_fte = input$space_per_fte,
-                          ancillary_space_hot = hot_to_r(input$ancillary_space_hot))
+                          ancillary_space_hot = hot_to_r(input$ancillary_space_hot),
+                          circulation_factor = input$circulation_factor) %>%
+      mutate_all(as.character)
     
     
-  })
+  },
+  caption = "Total space requirements", 
+  caption.placement = "top",
+  align = "lrrr")
   
   # Download handler --------------------------------------------------------
   
@@ -1182,7 +1204,8 @@ server <- function(input, output, session) {
                                                fte = input$fte,
                                                space_per_fte = input$space_per_fte,
                                                resource_hot = hot_to_r(input$resource_hot),
-                                               ancillary_space_hot = hot_to_r(input$ancillary_space_hot)
+                                               ancillary_space_hot = hot_to_r(input$ancillary_space_hot),
+                                               circulation_factor = input$circulation_factor
                                  )
         )
         file.rename(out, file)

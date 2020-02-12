@@ -19,7 +19,7 @@ params:
   space_per_fte: NULL
   resource_hot: NULL
   ancillary_space_hot: NULL
-  
+  circulation_factor: NULL
   
   
 title: "`r paste0('Occupancy Survey, ', params$survey_name)`"
@@ -30,7 +30,7 @@ title: "`r paste0('Occupancy Survey, ', params$survey_name)`"
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
 ```
 
-##### line break
+##### page break
 
 # Background
 
@@ -40,7 +40,7 @@ We need to ensure that best use is made of the funding that has been made availa
 
 On the following pages each space type is explained and the results of the survey shown.  At the end of the report is an estimate of the total amount of space required.
 
-##### line break
+##### page break
 
 # Service user space – Interview rooms
 
@@ -78,7 +78,7 @@ knitr::include_graphics(interview_room_image)
 
 ```
 
-\newline
+#### column break
 
 ## Survey results
 
@@ -105,7 +105,7 @@ if(nrow(params$interview_room_df) > 0) {
 
 ```
 
-##### line break
+##### page break
 
 # Service user space – Group Rooms
 
@@ -123,11 +123,11 @@ The design guide contains the full specification, however, briefly, the rooms wi
 group_room_image <- download_file_from_s3("alpha-app-occupeye-automation/group room image.PNG",
                       "group room image.PNG",
                       overwrite = TRUE)
-knitr::include_graphics(group_room_image, dpi = 600)
+knitr::include_graphics(group_room_image)
 
 ```
 
-\newline
+#### column break
 
 ## Survey Results
 
@@ -155,7 +155,7 @@ if(nrow(params$group_room_df) > 0) {
 
 ```
 
-#####
+##### page break
 
 # Service user space – Ancillary accommodation and total space
 
@@ -175,15 +175,17 @@ knitr::include_graphics(ancillary_room_image)
 
 ```
 
-\newline
-\newline
+#### column break
+
 
 ```{r service_user_space, echo=FALSE, results='asis'}
 
-get_room_resource_requirements(params$raw_data,
+room_resource_requirements <- get_room_resource_requirements(params$raw_data,
                                params$group_room_target,
                                params$interview_room_target,
-                               params$room_footage_hot) %>%
+                               params$room_footage_hot)
+  
+  room_resource_requirements %>%
   mutate(occupancy = scales::percent(occupancy, accuracy = 1),
          target = scales::percent(target, accuracy = 1)) %>%
   rename(room = devicetype) %>%
@@ -191,16 +193,20 @@ get_room_resource_requirements(params$raw_data,
   flextable::flextable()  %>%
   fontsize(size = 9, part = "all") %>%
   autofit() %>%
-  set_header_labels(names(.)) %>%
+  height_all(0.4) %>%
+  width(j = c(1,3,6), width = 0.78) %>%
+  width(j = c(2,4,7), width = 0.51) %>%
+  width(j = 5, width = 1) %>%
   set_caption("Room resource requirements")
 
-params$ancillary_space_hot %>%
-  mutate(total_space = make_numeric(qty) * make_numeric(space_required)) %>%
+get_ancillary_resource_requirements(params$ancillary_space_hot,
+                                    room_resource_requirements,
+                                    params$circulation_factor) %>%
   convert_fields_to_sentence_case() %>%
   flextable::flextable() %>%
   fontsize(size = 9, part = "all") %>%
   autofit() %>%
-  set_caption("ancillary resource requirements")
+  set_caption("Ancillary resource requirements")
 
 ```
 
@@ -213,7 +219,7 @@ With the increasing adoption of mobile technology, and different ways of working
 
 The staff accommodation will initially be based upon 8m^2^ per FTE.  As smarter working is adopted the aim will be to accommodate any expansion probation officer numbers will be accommodated by more effective use of the space.  Specifically, at the outset the property will be designed to offer 8 traditional desks for 10 staff. This ratio will reduce to 6 desks for 10 staff.
 
-\newline
+#### column break
 
 ```{r staff_side_accommodation, results='asis'}
 
@@ -234,7 +240,7 @@ get_staff_accommodation_requirements(params$resource_hot,
   flextable::flextable() %>%
   fontsize(size = 9, part = "all") %>%
   autofit() %>%
-  set_caption("Of which we propose to provide:")
+  set_caption("Within which we propose to provide:")
 
 ```
 
@@ -258,7 +264,8 @@ get_total_space_table(filtered_room_df = params$raw_data,
                       room_footage_hot = params$room_footage_hot,
                       fte = params$fte,
                       space_per_fte = params$space_per_fte,
-                      ancillary_space_hot = params$ancillary_space_hot) %>%
+                      ancillary_space_hot = params$ancillary_space_hot,
+                      circulation_factor = params$circulation_factor) %>%
   flextable::flextable() %>%
   fontsize(size = 9, part = "all") %>%
   autofit()
