@@ -1,5 +1,10 @@
 ## Changelog
 
+### v0.18 - 2020-02-13
+
+- Add circulation calculation
+- Tidy up tables and charts
+
 ### v0.17 - 2020-02-11
 
 - Match report to NPS template
