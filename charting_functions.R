@@ -508,111 +508,8 @@ make_gauge_data <- function(room_df,target) {
   )
 }
 
+
 vertical_gauge_chart <- function(room_df,
-                                 target,
-                                 scaling_factor = 1) {
-  # code adapted from https://pomvlad.blog/2018/05/03/gauges-ggplot2/
-  # so some details are a bit redundant
-  
-  df <- make_gauge_data(room_df, target)
-  
-  
-  ggplot(df) +
-    geom_rect(aes(ymax=1,
-                  ymin=0,
-                  xmax=2,
-                  xmin=1),
-              fill ="#f0f0f0",
-              colour = "#000000") +
-    geom_rect(aes(ymax = occupancy,
-                  ymin = 0,
-                  xmax = 2,
-                  xmin = 1.5),
-              colour = "#000000",
-              fill = "coral2") +
-    geom_rect(aes(ymax = target,
-                  ymin = 0,
-                  xmax = 1.5,
-                  xmin = 1),
-              colour = "#000000",
-              fill = "sandybrown") +
-    geom_text(aes(x = 1.75, y = 0.1,
-                  label = label),
-              colour = "black",
-              size = 4.5 * scaling_factor,
-              family = "Poppins SemiBold") +
-    geom_text(aes(x = 1.25, y = 0.1,
-                  label = scales::percent(target,
-                                          accuracy = 1)),
-              colour = "black",
-              size = 4.5 * scaling_factor,
-              family = "Poppins SemiBold") +
-    geom_text(aes(x = 2.5,
-                  y = occupancy,
-                  label = title),
-              size = 4.2 * scaling_factor) +
-    geom_text(aes(x = 0.5,
-                  y = target),
-              label = "Target",
-              size = 4.2 * scaling_factor) +
-    theme_void() +
-    scale_x_continuous(limits = c(0,4)) +
-    theme(strip.background = element_blank(),
-          strip.text.x = element_blank()) +
-    guides(fill = FALSE) +
-    guides(colour=FALSE)
-}
-
-vertical_gauge_chart2 <- function(room_df,
-                                 target,
-                                 scaling_factor = 1) {
-  # code adapted from https://pomvlad.blog/2018/05/03/gauges-ggplot2/
-  # so some details are a bit redundant
-  
-  df <- make_gauge_data(room_df, target)
-  
-  
-  ggplot(df) +
-    geom_rect(aes(ymax=1,
-                  ymin=0,
-                  xmax=2,
-                  xmin=1),
-              fill ="#f0f0f0",
-              colour = "#000000") +
-    geom_rect(aes(ymax = occupancy,
-                  ymin = 0,
-                  xmax = 2,
-                  xmin = 1),
-              colour = "#000000",
-              fill = "coral2") +
-    geom_rect(aes(ymax = target,
-                  ymin = 0,
-                  xmax = 2,
-                  xmin = 1),
-              colour = "#000000",
-              alpha = 0) +
-    geom_text(aes(x = 1.5, y = 0.1,
-                  label = label),
-              colour = "black",
-              size = 4.5 * scaling_factor,
-              family = "Poppins SemiBold") +
-    geom_text(aes(x = 0.7,
-                  y = target),
-              label = "Target -----",
-              size = 4.2 * scaling_factor) +
-    geom_text(aes(x = 1.5,
-                  y = -0.1),
-              label = "Average \n Occupancy",
-              size = 4.2 * scaling_factor) +
-    theme_void() +
-    scale_x_continuous(limits = c(0,4)) +
-    theme(strip.background = element_blank(),
-          strip.text.x = element_blank()) +
-    guides(fill = FALSE) +
-    guides(colour=FALSE)
-}
-
-vertical_gauge_chart3 <- function(room_df,
                                   target,
                                   scaling_factor = 1) {
   # code adapted from https://pomvlad.blog/2018/05/03/gauges-ggplot2/
@@ -620,6 +517,14 @@ vertical_gauge_chart3 <- function(room_df,
   
   df <- make_gauge_data(room_df, target)
   
+  # Flip the colours
+  if(df$occupancy < target) {
+    actual_colour <- "coral2"
+    target_colour <- "sandybrown"
+  } else {
+    actual_colour <- "sandybrown"
+    target_colour <- "coral2"
+  }
   
   ggplot(df) +
     geom_rect(aes(ymax=1,
@@ -633,14 +538,13 @@ vertical_gauge_chart3 <- function(room_df,
                   xmax = 2,
                   xmin = 1),
               colour = "#000000",
-              fill = "coral2") +
+              fill = actual_colour) +
     geom_rect(aes(ymax = max(target, occupancy),
                   ymin = min(target, occupancy),
                   xmax = 2,
                   xmin = 1),
               colour = "#000000",
-              fill = "sandybrown",
-              alpha = .5) +
+              fill = target_colour) +
     geom_text(aes(x = 1.5, y = 0.1,
                   label = label),
               colour = "black",
