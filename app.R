@@ -18,7 +18,7 @@ library(shinycssloaders)# Loaders for charts
 library(gridExtra)      # Arrange charts
 library(flextable)      # Flextable
 library(stringr)        # For string_detect
-
+library(forcats)
 
 # import other source code ------------------------------------------------
 
@@ -237,7 +237,8 @@ ui <- fluidPage(
                                          label = "Input circulation percentage",
                                          value = 0.15,
                                          max = 1,
-                                         min = 0),
+                                         min = 0,
+                                         step = 0.01),
                             
                             h4("Update/add to resource requirement ratios here:"),
                             rHandsontableOutput("resource_hot"),

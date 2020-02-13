@@ -500,71 +500,54 @@ time_of_day_bar <- function(room_df) {
 make_gauge_data <- function(room_df,target) {
   mean_occupancy <- mean(room_df$sensor_value)
   
-  total_rooms <- n_distinct(room_df$survey_device_id)
+  if(mean_occupancy < target) {
+    position_order <- c("Total", "Target", "Actual")
+  } else {
+    position_order <- c("Total", "Actual", "Target")
+  }
   
-  tribble(
-    ~variable, ~occupancy, ~label, ~title,
-   "Actual occupancy", mean_occupancy, scales::percent(mean_occupancy, accuracy = 1), "Actual"
-  )
+  data.frame(variable = factor(c("Total", "Target", "Actual"),
+                               levels = position_order),
+             occupancy = c(1,target,mean_occupancy))
+
 }
 
 
 vertical_gauge_chart <- function(room_df,
                                   target,
                                   scaling_factor = 1) {
-  # code adapted from https://pomvlad.blog/2018/05/03/gauges-ggplot2/
-  # so some details are a bit redundant
+
   
-  df <- make_gauge_data(room_df, target)
-  
-  # Flip the colours
-  if(df$occupancy < target) {
-    actual_colour <- "coral2"
-    target_colour <- "sandybrown"
-  } else {
-    actual_colour <- "sandybrown"
-    target_colour <- "coral2"
-  }
+  df <- make_gauge_data(room_df, target) %>%
+    arrange(variable)
   
   ggplot(df) +
-    geom_rect(aes(ymax=1,
-                  ymin=0,
-                  xmax=2,
-                  xmin=1),
-              fill ="#f0f0f0",
-              colour = "#000000") +
-    geom_rect(aes(ymax = occupancy,
-                  ymin = 0,
-                  xmax = 2,
-                  xmin = 1),
-              colour = "#000000",
-              fill = actual_colour) +
-    geom_rect(aes(ymax = max(target, occupancy),
-                  ymin = min(target, occupancy),
-                  xmax = 2,
-                  xmin = 1),
-              colour = "#000000",
-              fill = target_colour) +
-    geom_text(aes(x = 1.5, y = 0.1,
-                  label = label),
-              colour = "black",
-              size = 4.5 * scaling_factor,
-              family = "Poppins SemiBold") +
-    geom_text(aes(x = 1,
-                  y = target),
-              label = "Target ",
-              size = 4.2 * scaling_factor,
-              hjust = 1) +
-    geom_text(aes(x = 1.5,
-                  y = -0.1),
-              label = "Average \n Occupancy",
-              size = 4.2 * scaling_factor) +
-    theme_void() +
-    scale_x_continuous(limits = c(0,4)) +
-    theme(strip.background = element_blank(),
-          strip.text.x = element_blank()) +
-    guides(fill = FALSE) +
-    guides(colour=FALSE)
+    geom_bar(aes(x = 1,
+                 y = occupancy,
+                 fill = variable),
+             stat = "identity",
+             position = "identity",
+             colour = "black") +
+    scale_fill_manual(values = c("Total" = "#f0f0f0",
+                                 "Actual" = "coral2",
+                                 "Target" = "sandybrown"),
+                      breaks = c("Actual", "Target")) +
+    theme_minimal() +
+    ylab(NULL) +
+    xlab(NULL) +
+    ggtitle("Average Occupancy") +
+    scale_y_continuous(breaks = df$occupancy,
+                       labels = scales::percent(df$occupancy,
+                                                accuracy = 1)) +
+    theme(axis.ticks = element_blank(),
+          axis.text.x = element_blank(),
+          title = element_text(size = 12 * scaling_factor),
+          panel.grid = element_blank(),
+          legend.title = element_blank(),
+          legend.text = element_text(size = 10 * scaling_factor)) +
+    guides(fill = guide_legend(reverse = TRUE,
+                               override.aes = list(size = 2 * scaling_factor,
+                                                   colour = 0)))
 }
 
 
