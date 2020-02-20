@@ -838,6 +838,7 @@ server <- function(input, output, session) {
   
   filtered_room_df <- reactive({
     print("Filtering filtered_room_df")
+    
     df <- RV$data %>%
       dplyr::filter(!is.na(sensor_value),
                     devicetype %in% input$desk_type,
@@ -1008,9 +1009,12 @@ server <- function(input, output, session) {
   })
   
   output$ancillary_space_hot <- renderRHandsontable({
-    df <- data.frame(resource_name = c("Reception", "Waiting room"),
-                     qty = c(1, 1),
-                     space_required = c(10, 15))
+    df <- data.frame(resource_name = c("Reception",
+                                       "Waiting room",
+                                       "WC",
+                                       "Tea point"),
+                     qty = c(1, 1, 1, 1),
+                     space_required = c(10, 15, 8, 5))
     
     rhandsontable(df %>% mutate_all(as.character)) %>%
       hot_cols(format = "0")

@@ -1,5 +1,9 @@
 ## Changelog
 
+### v0.19 - 2020-02-13
+
+- Rewrite gauge chart to add legend
+
 ### v0.18 - 2020-02-13
 
 - Add circulation calculation

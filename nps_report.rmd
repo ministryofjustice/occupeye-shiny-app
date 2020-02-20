@@ -40,6 +40,17 @@ We need to ensure that best use is made of the funding that has been made availa
 
 On the following pages each space type is explained and the results of the survey shown.  At the end of the report is an estimate of the total amount of space required.
 
+## Headcount data source
+
+This report uses the following FTE data:
+
+| Property | FTE | Source |
+|----------|-----|--------|
+|          |     |        |
+|          |     |        |
+|          |     |        |
+
+
 ##### page break
 
 # Service user space – Interview rooms
@@ -215,9 +226,9 @@ get_ancillary_resource_requirements(params$ancillary_space_hot,
 # Staff side accommodation
 
 ## Definition
-With the increasing adoption of mobile technology, and different ways of working, the way we use our offices is changing.  Our buildings will be designed to ensure that probation work can be undertaken effectively and would aim to provide a variety of different settings from which to work.  For example, confidential conversations can take place either in the interview rooms or 1:1 rooms in the staff accommodation. All staff will be able to use a variety of different settings rather than specific types of space being reserved to certain grades. For example, we would not propose to provide dedicated offices for senior staff.
+With the increasing adoption of mobile technology, and different ways of working, the way we use our offices is changing.  Our buildings will be designed to ensure that probation work can be undertaken effectively and would aim to provide a variety of different settings from which to work.  For example, confidential conversations can take place either in the interview rooms or 1:1 rooms in the staff accommodation. All staff will be able to use a variety of different settings rather than specific types of space being reserved to certain grades. 
 
-The staff accommodation will initially be based upon 8m^2^ per FTE.  As smarter working is adopted the aim will be to accommodate any expansion probation officer numbers will be accommodated by more effective use of the space.  Specifically, at the outset the property will be designed to offer 8 traditional desks for 10 staff. This ratio will reduce to 6 desks for 10 staff.
+The staff accommodation will initially be based upon 8m^2^ per FTE. As smarter working is adopted the aim will be to accommodate any expansion probation officer numbers will be accommodated by more effective use of the space. Specifically, at the outset the property will be designed to offer 8 traditional desks for 10 staff. This ratio will reduce to 6 desks for 10 staff if the increase in probation staffing requires this.
 
 #### column break
 
