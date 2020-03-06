@@ -1,5 +1,48 @@
 ## Changelog
 
+### v0.19 - 2020-02-13
+
+- Rewrite gauge chart to add legend
+
+### v0.18 - 2020-02-13
+
+- Add circulation calculation
+- Tidy up tables and charts
+
+### v0.17 - 2020-02-11
+
+- Match report to NPS template
+- Select meeting rooms by default if NPS, Desk Settings otherwise
+- Better error handling
+
+### v0.16 - 2020-02-05
+
+- Fix bottleneck due to na.rm = TRUE
+- Add first downloadable report draft
+- minor chart tweaks
+
+### v0.15 - 2020-02-04
+
+- Revised the tables to use the correct calculations of space
+- All three charting tabs now update with the filters as per request
+- Now the filter defaults to selecting the meeting rooms, rather than desk settings, when downloading the app
+- Combined the actual/target occupancy gauges into a single gauge
+- The app once again loads with a dummy dataset on load, as my previous method caused some issues.
+- Made the charts a bit more colourful
+
+
+### v0.14 - 2020-01-27
+
+- Revised room charts
+- Added room filter
+- Added lots of tables
+
+### v0.13 - 2020-01-15
+
+- Allow selection of multiple surveys
+- Error message if there are bad surveys in survey list
+- First draft of NPS charts
+
 ### v0.12 - 2019-11-28
 
 - Filter initial data load by the selected time range
