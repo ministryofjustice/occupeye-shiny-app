@@ -1,5 +1,6 @@
 library(dplyr)
 library(lubridate)
+library(snakecase)
 
 dt_to_numeric <- function(dt) {
   3600 * hour(dt) + 60 * minute(dt) + second(dt)
@@ -27,7 +28,7 @@ filter_time_range <- function(df, start_time, end_time) {
 fix_bad_sensor_observations <- function(df) {
   # Set any observation which is not 1 or 0 to null
   bad_rows <- !(df$sensor_value %in% c(1, 0))
-  df[bad_rows, "obs_datetime"] <- NA
+  df[bad_rows, "sensor_value"] <- NA
   df
 }
 
@@ -68,36 +69,21 @@ clean_and_mutate_raw_data <- function(df) {
 get_summarised_data <- function(df) {
   
   df %>%
+    dplyr::filter(!is.na(sensor_value)) %>%
     group_by(date = date(obs_datetime),
-             surveydeviceid, 
-             roomtype, 
-             devicetype,
-             building,
-             category_1, 
-             category_2,
-             category_3, 
-             floor,
-             roomname,
-             location) %>%
-    summarise(utilisation = mean(sensor_value, rm.na = TRUE),
-              count_na = sum(is.na(sensor_value))) %>%  
+             survey_device_id) %>%
+    summarise(utilisation = mean(sensor_value)) %>%  
     ungroup(date,
-            surveydeviceid, 
-            roomtype, 
-            devicetype,
-            building,
-            category_1, 
-            category_2, 
-            category_3, 
-            floor,
-            roomname,
-            location) %>%
+            survey_device_id) %>%
     add_is_used() %>%
-    add_util_category
+    add_util_category()
   
 }
 
-get_df_sum <- function(df, start_time = "09:00", end_time = "17:00") {
+get_df_sum <- function(df,
+                       sensors,
+                       start_time = "09:00",
+                       end_time = "17:00") {
   
   
   df2 <- df %>% 
@@ -106,14 +92,31 @@ get_df_sum <- function(df, start_time = "09:00", end_time = "17:00") {
     remove_non_business_days()
   
   
-  df_sum <- get_summarised_data(df2)
+  get_summarised_data(df2) %>%
+    get_full_df(sensors)
 }
 
 get_full_df <- function(df, sensors) {
-  left_join(df, sensors, by = c("survey_device_id" = "surveydeviceid")) %>% rename(surveydeviceid = survey_device_id)
+  left_join(df, sensors, by = c("survey_device_id"))
 }
 
-get_df_sql <- function(survey_id,
+get_bad_observations <- function(df) {
+  df %>%
+    dplyr::filter(!sensor_value %in% c(1, 0)) %>%
+    mutate(obs_date = date(obs_datetime)) %>%
+    group_by(obs_date,
+             sensor_value,
+             survey_device_id,
+             hardwareid,
+             sensorid,
+             location) %>% 
+    summarise(count = n())
+  
+}
+
+
+
+get_df_sql <- function(survey_ids,
                        category_1=NULL,
                        category_2=NULL,
                        category_3=NULL,
@@ -145,14 +148,33 @@ get_df_sql <- function(survey_id,
     from occupeye_app_db.sensor_observations as so
     left join occupeye_app_db.sensors as se
     on so.survey_device_id = se.surveydeviceid
-    where so.survey_id = {survey_id}
+    where so.survey_id in ({paste0(survey_ids, collapse = ',')})
     {category_filter}
     and so.obs_datetime >= timestamp '{start_date} 00:00'
     and so.obs_datetime <= timestamp '{end_date} 23:50'
-    and CAST(so.obs_datetime AS TIME) between time '{start_time}' and time '{end_time}'
+    and CAST(so.obs_datetime AS TIME) >= time '{start_time}' 
+    and CAST(so.obs_datetime AS TIME) < time '{end_time}'
     
     "
   
   glue(sql)
   
+}
+
+make_numeric <- function(x) {
+  as.numeric(gsub("[^0-9.-]", "", x))
+}
+
+convert_fields_to_sentence_case <- function(df) {
+  names(df) <- snakecase::to_sentence_case(names(df))
+  df
+}
+
+get_time_list <- function() {
+  # Makes sequence of times for date picker input
+  
+  seq(from = ISOdatetime(2019, 1, 1, 0, 0, 0),
+      to = ISOdatetime(2019, 1, 1, 23, 50, 0),
+      by = "10 mins") %>%
+    strftime("%H:%M")
 }

@@ -5,20 +5,26 @@ library(ggplot2)        # For plotting
 library(dplyr)          # For pipes data wrangling
 library(htmlwidgets)    # rpivotTable depends on it
 library(shinyWidgets)   # For pickerInput
-library(plotly)         # Makes ggplot interactive
+# library(plotly)         # Makes ggplot interactive
 library(shinyTree)      # for the category tree.
 library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
 library(glue)           # Interpreted string literals
 library(s3tools)        # S3tools for getting stuff from S3
-library(reticulate)
-library(dbtools)
-
+library(reticulate)     # For dbtools
+library(dbtools)        # For getting data
+library(rhandsontable)  # For NPS resource tables
+library(shinycssloaders)# Loaders for charts
+library(gridExtra)      # Arrange charts
+library(flextable)      # Flextable
+library(stringr)        # For string_detect
+library(forcats)
 
 # import other source code ------------------------------------------------
 
-
+print("source charting_functions")
 source("charting_functions.R")
+print("source data cleaning functions")
 source("data_cleaning_functions.R")
 
 
@@ -29,6 +35,10 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       tabsetPanel(
+        
+        # Report Config -----------------------------------------------------------
+        
+        
         tabPanel("Report config",
                  uiOutput("survey_name"),
                  uiOutput("download_date_range"),
@@ -50,15 +60,15 @@ ui <- fluidPage(
                                   uiOutput("zones"),
                                   uiOutput("desk_type"),
                                   uiOutput("desks"),
-                                  
-                                  
-                                  
                                   helpText("Select Department(s) and team(s)"),
                                   shinyTree("tree", checkbox = TRUE, search = TRUE)
                  )
                  
                  
         ),
+        
+        # Download Report menu ----------------------------------------------------
+        
         
         tabPanel("Download Report",
                  radioButtons(inputId = "format",
@@ -68,11 +78,15 @@ ui <- fluidPage(
                                           "By floor and team",
                                           "By building"),
                               inline = FALSE),
-                 downloadButton("download_button", "Generate report")
+                 downloadButton("download_button", "Generate report"),
+                 downloadButton("nps_download_button", "Generate NPS report")
         )
         
       )
     ),
+    
+    # MainPanel ---------------------------------------------------------------
+    
     
     mainPanel(
       tabsetPanel(
@@ -153,9 +167,98 @@ ui <- fluidPage(
                             actionButton("update_survey_names","Confirm list update")),
                      column(4,uiOutput('survey_name_admin'))
                    )
-                 ))
+                 )),
+        
+        
+        # NPS UI ------------------------------------------------------------------
+        
+        
+        tabPanel("NPS rooms",
+                 tabsetPanel(
+                   tabPanel("Selected rooms",
+                            fluidPage(
+                              fluidRow(
+                                h1("Filtered rooms"),
+                                p("This view shows analysis for the data with the filters applied"),
+                                numericInput("filtered_room_target",
+                                             "Set target occupancy",
+                                             min = 0,
+                                             max = 1,
+                                             step = 0.1,
+                                             value = 0.5),
+                                htmlOutput(outputId = "filtered_donut_narrative"),
+                                column(4,
+                                       plotOutput(outputId = "filtered_gauge", height = "300px") %>% withSpinner()
+                                ),
+                                column(6,
+                                       plotOutput(outputId = "filtered_waffle", height = "300px") %>% withSpinner()
+                                )),
+                              fluidRow(
+                                plotOutput(outputId = "filtered_weekly_plot"),
+                                plotOutput(outputId = "filtered_room_distribution")
+                              )
+                            )
+                   ),
+                   tabPanel("Group Rooms",
+                            numericInput("group_room_target",
+                                         "Set target occupancy",
+                                         min = 0,
+                                         max = 1,
+                                         step = 0.1,
+                                         value = 0.6),
+                            uiOutput("group_room_ui")
+                   ),
+                   tabPanel("Interview Rooms",
+                            numericInput("interview_room_target",
+                                         "Set target occupancy",
+                                         min = 0,
+                                         max = 1,
+                                         step = 0.1,
+                                         value = 0.5),
+                            uiOutput("interview_room_ui")
+                   )
+                 )
+                 
+                 
+        ),
+        tabPanel("NPS Resource needs",
+                 
+                 fluidPage(
+                   fluidRow(
+                     column(4,
+                            numericInput(inputId = "fte",
+                                         label = "Input FTE",
+                                         value = 50,
+                                         min = 1),
+                            numericInput(inputId = "space_per_fte",
+                                         label = HTML("Input space required per FTE (m<sup>2</sup>)"),
+                                         value = 8),
+                            numericInput(inputId = "circulation_factor",
+                                         label = "Input circulation percentage",
+                                         value = 0.15,
+                                         max = 1,
+                                         min = 0,
+                                         step = 0.01),
+                            
+                            h4("Update/add to resource requirement ratios here:"),
+                            rHandsontableOutput("resource_hot"),
+                            h4("Update area requirements for rooms here:"),
+                            rHandsontableOutput("room_footage_hot"),
+                            h4("Update/add to ancillary spaces here:"),
+                            rHandsontableOutput("ancillary_space_hot")),
+                     column(4,
+                            tableOutput("room_resource_requirements"),
+                            tableOutput("ancillary_space_requirements"),
+                            tableOutput("fte_resource_table"),
+                            tableOutput("fte_resource_breakdown_table"),
+                            tableOutput("total_resource_table"),
+                            tableOutput("current_resource_levels")
+                     )
+                   )
+                 )
+        )
+        
       )
-      
     )
   )
 )
@@ -169,11 +272,11 @@ server <- function(input, output, session) {
   # Initialise functions ------------------------------------------
   
   
-  
+  print("Getting active surveys list")
   # Get the list of active survey
   active_surveys_list <- s3tools::read_using(FUN = feather::read_feather, 
                                              s3_path = "alpha-app-occupeye-automation/active surveys.feather") %>% 
-    .$surveyname %>% as.character()
+    pull(surveyname) %>% as.character()
   
   # Get the surveys table, and make a dictionary of survey names to their IDs. 
   # So calling surveys_hash["survey_name"] returns its corresponding survey_id
@@ -181,6 +284,13 @@ server <- function(input, output, session) {
   active_surveys <- surveys %>% dplyr::filter(name %in% active_surveys_list)
   surveys_hash <- with(active_surveys[c("name", "survey_id")], setNames(survey_id, name))
   initial_survey_id <- surveys_hash[[1]]
+  
+  
+  invalid_surveys <- setdiff(active_surveys_list, surveys$name)
+  if(length(invalid_surveys) > 0) {
+    showModal(modalDialog(HTML(glue("The following surveys in the list active surveys appear to have been removed from the list of surveys.
+                               Consider reviewing the active surveys list in the Admin tab: <br> {paste(invalid_surveys, collapse = '<br>')}"))))
+  }
   
   
   RV <- reactiveValues(surveys = surveys,
@@ -199,26 +309,38 @@ server <- function(input, output, session) {
   # 
   # temp_df <- get_full_df(df_min, sensors)
   
-  temp_df <- temp_df <- s3tools::read_using(FUN = readr::read_csv, s3_path = "alpha-app-occupeye-automation/surveys/336/Unallocated.csv")
+  temp_df <- s3tools::read_using(FUN = feather::read_feather,
+                                 s3_path = "alpha-app-occupeye-automation/temp_df.feather")
+  temp_df_sensors <- s3tools::read_using(FUN = feather::read_feather,
+                                         s3_path = "alpha-app-occupeye-automation/temp_df_sensors.feather")
+  
   
   #temp_df <- s3tools::read_using(FUN = readr::read_csv, s3_path = "alpha-app-occupeye-automation/surveys/336/Unallocated.csv")
-  temp_df_sum <- get_df_sum(temp_df, "09:00", "17:00")
-  time_list <- unique(strftime(temp_df$obs_datetime, format = "%H:%M"))
-  date_list <- unique(lubridate::date(temp_df$obs_datetime))
-  buildings <- unique(temp_df$building)
-  room_types <- unique(temp_df$roomtype)
-  device_types <- unique(temp_df$devicetype)
-  floors <- unique(temp_df$floor)
-  zones <- unique(temp_df$roomname)
-  desks <- unique(temp_df$location)
   
+  print("Do all the temp_df_bits")
+  temp_df_sum <- get_df_sum(temp_df,
+                            temp_df_sensors,
+                            "09:00",
+                            "17:00")
+  time_list <- get_time_list()
+  date_list <- unique(lubridate::date(temp_df$obs_datetime))
+  buildings <- unique(temp_df_sensors$building)
+  room_types <- unique(temp_df_sensors$roomtype)
+  device_types <- unique(temp_df_sensors$devicetype)
+  floors <- unique(temp_df_sensors$floor)
+  zones <- unique(temp_df_sensors$roomname)
+  desks <- unique(temp_df_sensors$location)
+  
+  
+  print("Make RV initial values")
   # Create and initialise RV, which is a collection of the reactive values
-  RV$data = temp_df
+  RV$data = get_full_df(temp_df, temp_df_sensors)
   RV$df_sum = temp_df_sum
   RV$filtered = temp_df_sum
-  
+  RV$bad_sensors = get_bad_observations(get_full_df(temp_df, temp_df_sensors))
   
   output$download_date_range <- renderUI({
+    print("rendering download_date_range")
     dateRangeInput(inputId = "download_date_range",
                    label = "Select date range to download",
                    start = min(date_list),
@@ -228,6 +350,7 @@ server <- function(input, output, session) {
   })
   
   output$start_time <- renderUI({
+    print("render start time")
     selectInput(inputId = "start_time",
                 label = "Start time:",
                 choices = time_list,
@@ -235,6 +358,7 @@ server <- function(input, output, session) {
   })
   
   output$end_time <- renderUI({
+    print("render end time")
     selectInput(inputId = "end_time",
                 label = "End time:",
                 choices = time_list,
@@ -242,13 +366,16 @@ server <- function(input, output, session) {
   })
   
   output$survey_name <- renderUI({
-    selectInput(inputId = "survey_name",
+    print("render survey_name pickerinput")
+    pickerInput(inputId = "survey_name",
                 label = "Select OccupEye survey",
                 choices = RV$active_surveys_list,
-                selected = RV$active_surveys_list[1])
+                selected = RV$active_surveys_list[1],
+                multiple = TRUE)
   })
   
   output$all_survey_names <- renderUI({
+    print("render all_survey_names")
     selectInput(inputId = "all_survey_names",
                 label = "All surveys",
                 choices = surveys$name,
@@ -336,8 +463,9 @@ server <- function(input, output, session) {
     l2Names <- NULL
     l3Names <- NULL
     if (is.null(input$tree)){
-      "None"
+      tree_initialised <-FALSE
     } else{
+      tree_initialised <- TRUE
       selected <- get_selected(input$tree, "slice")
       
       
@@ -367,11 +495,17 @@ server <- function(input, output, session) {
                     devicetype %in% input$desk_type,
                     building %in% input$buildings,
                     floor %in% input$floors,
-                    trimws(category_1) %in% l1Names,
-                    trimws(category_2) %in% l2Names,
-                    trimws(category_3) %in% l3Names,
                     roomname %in% input$zones,
                     location %in% input$desks)
+    
+    if(tree_initialised) {
+      
+      RV$filtered <- RV$filtered %>%
+        dplyr::filter(trimws(category_1) %in% l1Names,
+                      trimws(category_2) %in% l2Names,
+                      trimws(category_3) %in% l3Names)
+    }
+    
   }
   
   
@@ -396,23 +530,15 @@ server <- function(input, output, session) {
     RV$team_tree <- lapply(cat3split, lapply, lapply, function(x) x <- structure(names(x), stselected = TRUE))
   }
   
-  get_bad_observations <- function(df) {
-    df %>%
-      dplyr::filter(!sensor_value %in% c(1, 0)) %>%
-      mutate(obs_date = date(obs_datetime)) %>%
-      group_by(obs_date, sensor_value, surveydeviceid, hardwareid, sensorid, location) %>% 
-      summarise(count = n())
-    
-  }
   
   # event observers -----------------------------------------------------
   
   observeEvent(input$survey_name, {
     
-    selected_survey_id <- RV$surveys_hash[input$survey_name]
-    print(glue("selected survey id: {selected_survey_id})"))
-    start_date <- RV$active_surveys %>% dplyr::filter(survey_id == selected_survey_id) %>% pull(startdate)
-    end_date <- RV$active_surveys %>% dplyr::filter(survey_id == selected_survey_id) %>% pull(enddate)
+    selected_survey_ids <- RV$surveys_hash[input$survey_name]
+    print(glue("selected survey ids: {paste(selected_survey_ids, collapse = ', ')}"))
+    start_date <- RV$active_surveys %>% dplyr::filter(survey_id %in% selected_survey_ids) %>% pull(startdate) %>% min
+    end_date <- RV$active_surveys %>% dplyr::filter(survey_id %in% selected_survey_ids) %>% pull(enddate) %>% max
     
     print(start_date)
     print(end_date)
@@ -426,58 +552,82 @@ server <- function(input, output, session) {
   
   # When clicking the "load report" button...
   observeEvent(input$loadCSV, {
-    print(glue("Loading alpha-app-occupeye-automation/raw_data_v5/sensors/survey_id={RV$surveys_hash[input$survey_name]}/data.csv"))
-    sensors <- s3tools::read_using(readr::read_csv, glue("alpha-app-occupeye-automation/raw_data_v5/sensors/survey_id={RV$surveys_hash[input$survey_name]}/data.csv")) %>%
-      mutate(surveydeviceid = as.character(surveydeviceid)) %>% # coerce surveydeviceid to char to maintain type integrity
-      mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
-                .vars = vars(roomname, location))
-    
-    # Store the selected survey name to log what survey is currently loaded, in case the selection is changed in the dropdown later
-    RV$survey_name <- input$survey_name
-    
-    # Add a progress bar
-    
-    withProgress(message = paste0("Loading report ", input$survey_name), {
-      start.time <- Sys.time()
+    if(input$start_time == input$end_time) {
+      sendSweetAlert(session,
+                     title = "Warning!",
+                     text = "The end time is the same as the start time. Choose a different time window.",
+                     type = "warning")
+    } else {
       
-      sql <- get_df_sql(RV$surveys_hash[input$survey_name],
-                        start_date = input$download_date_range[1], 
-                        end_date = input$download_date_range[2],
-                        start_time = input$start_time,
-                        end_time = input$end_time)
+      print(glue("Loading sensors for surveys {paste0(RV$surveys_hash[input$survey_name], collapse = ', ')}"))
       
-      print(glue("executing query: {sql}"))
+      withProgress(message = "Loading sensor information for selected survey(s)...", {
+        RV$sensors <- dbtools::read_sql(glue("select * from occupeye_app_db.sensors where survey_id in ({paste0(RV$surveys_hash[input$survey_name], collapse = ', ')})")) %>%
+          rename(survey_device_id = surveydeviceid) %>%
+          mutate(survey_device_id = as.character(survey_device_id)) %>% # coerce surveydeviceid to char to maintain type integrity
+          mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
+                    .vars = vars(roomname, location))
+      })
       
+      # Store the selected survey name to log what survey is currently loaded, in case the selection is changed in the dropdown later
+      RV$survey_name <- input$survey_name
       
-      # Download the minimal table, filtered by the download_date_range
-      df_min <- dbtools::read_sql(sql)
+      # Add a progress bar
       
-      end.time <- Sys.time()
-      diff <- end.time - start.time
-      print(diff)
-      # Add the other sensor metadata, dealing with the inconsistently named survey_device_id and surveydeviceid
-      df_full <- left_join(df_min, sensors, by = c("survey_device_id" = "surveydeviceid")) %>% 
-        rename(surveydeviceid = survey_device_id)
+      withProgress(message = paste0("Loading report ", paste0(input$survey_name, collapse = ", ")), {
+        start.time <- Sys.time()
+        
+        sql <- get_df_sql(RV$surveys_hash[input$survey_name],
+                          start_date = input$download_date_range[1], 
+                          end_date = input$download_date_range[2],
+                          start_time = input$start_time,
+                          end_time = input$end_time)
+        
+        print(glue("executing query: {sql}"))
+        
+        
+        # Download the minimal table, filtered by the download_date_range
+        df_min <- dbtools::read_sql(sql)
+        
+        end.time <- Sys.time()
+        diff <- end.time - start.time
+        print(diff)
+        # Add the other sensor metadata, dealing with the inconsistently named survey_device_id and surveydeviceid
+        df_full <- get_full_df(df_min, RV$sensors)
+        
+        # add the raw data for displaying on the raw data tab
+        RV$data <- df_full %>%
+          clean_and_mutate_raw_data() %>%
+          remove_non_business_days()
+        
+        # feather::write_feather(df_min, "temp_df.feather")
+        # 
+        # s3tools::write_file_to_s3("temp_df.feather",s3_path = "alpha-app-occupeye-automation/temp_df.feather", overwrite = T)
+        # 
+        # feather::write_feather(RV$sensors, "temp_df_sensors.feather")
+        # s3tools::write_file_to_s3("temp_df_sensors.feather", "alpha-app-occupeye-automation/temp_df_sensors.feather", overwrite = T)
+        
+        
+        # make the bad sensors analysis
+        RV$bad_sensors <- get_bad_observations(RV$data)
+      })
       
-      # add the raw data for displaying on the raw data tab
-      RV$data <- df_full
-      
-      # make the bad sensors analysis
-      RV$bad_sensors <- get_bad_observations(RV$data)
-    })
-    
-    # Then summarise the dataset
-    withProgress(message = "summarising the dataset", {
-      RV$df_sum <- get_df_sum(RV$data, input$start_time, input$end_time)
-      
-      # show dialog to show it's finished loading
-      showModal(modalDialog(glue("{input$survey_name} successfully loaded into the dashboard."), easyClose = TRUE))
-    })
+      # Then summarise the dataset
+      withProgress(message = "summarising the dataset", {
+        RV$df_sum <- get_df_sum(RV$data,
+                                RV$sensors,
+                                input$start_time,
+                                input$end_time)
+        
+        # show dialog to show it's finished loading
+        showModal(modalDialog(glue("{paste0(input$survey_name, collapse = ', ')} successfully loaded into the dashboard."), easyClose = TRUE))
+      })
+    }
   })
   
   # Once it sees that RV$df_sum has updated, update the filter UI with metadata from new dataset
   observeEvent(RV$df_sum, {
-    
+    print("Updating RV$df_sum")
     # Get the list of buildings
     building_list <- unique(RV$df_sum$building) %>% sort()
     
@@ -500,6 +650,13 @@ server <- function(input, output, session) {
     # get new list of dates
     date_list <- unique(RV$df_sum$date)
     
+    selected_desk_types <- if(sum(str_detect(input$survey_name,
+                                             "NPS")) > 0) {
+      desk_type_list$`Meeting Room`
+    } else{desk_type_list$`Desk Setting`}
+    
+    
+    
     # Update the UI
     updatePickerInput(session, inputId = "buildings",
                       choices = building_list,
@@ -509,7 +666,7 @@ server <- function(input, output, session) {
                       selected = floor_list)
     updatePickerInput(session, inputId = "desk_type",
                       choices = desk_type_list,
-                      selected = desk_type_list$`Desk Setting`)
+                      selected = selected_desk_types)
     
     updatePickerInput(session, inputId = "zones",
                       choices = zone_list,
@@ -525,6 +682,8 @@ server <- function(input, output, session) {
                          max = max(date_list, na.rm = TRUE),
                          start = min(date_list, na.rm = TRUE),
                          end = max(date_list, na.rm = TRUE))
+    
+    print("Updating Tree")
     
     updateTree(session, "tree", data = get_team_tree())
     
@@ -591,8 +750,8 @@ server <- function(input, output, session) {
   
   # These functions generate the charts and tables in the report, only when the filter gets updated
   observeEvent(RV$filtered, {
+    print("Observing RV$filtered")
     
-
     output$myPivot <- renderRpivotTable({
       rpivotTable(data = RV$filtered)
     })
@@ -660,7 +819,7 @@ server <- function(input, output, session) {
     })
     
     output$filtered <- renderDataTable({
-      RV$filtered
+      filtered_room_df()
     })
     
     output$raw_data <- renderDataTable({
@@ -672,7 +831,300 @@ server <- function(input, output, session) {
     })
     
     
+    
   })
+  
+  # NPS render functions ----------------------------------------------------
+  
+  filtered_room_df <- reactive({
+    print("Filtering filtered_room_df")
+    
+    df <- RV$data %>%
+      dplyr::filter(!is.na(sensor_value),
+                    devicetype %in% input$desk_type,
+                    building %in% input$buildings,
+                    floor %in% input$floors,
+                    roomname %in% input$zones,
+                    location %in% input$desks,
+                    category_1 %in% RV$l1Names,
+                    category_2 %in% RV$l2Names,
+                    category_3 %in% RV$l3Names)
+    df
+  })
+  
+  group_room_df <- reactive({
+    filtered_room_df() %>%
+      dplyr::filter(devicetype == "Group Room")
+  })
+  
+  interview_room_df <- reactive({
+    filtered_room_df() %>%
+      dplyr::filter(devicetype == "Interview Room")
+  })
+  
+  output$filtered_gauge <- renderPlot({
+    vertical_gauge_chart(filtered_room_df(), input$filtered_room_target)
+    
+    
+  })
+  
+  output$filtered_waffle <- renderPlot({
+    room_waffle_chart(filtered_room_df(), input$filtered_room_target)
+  })
+  
+  output$filtered_donut_narrative <- renderText({
+    nps_donut_narrative(filtered_room_df(), input$filtered_room_target)
+    
+  })
+  
+  output$filtered_weekly_plot <- renderPlot({
+    
+    weekday_usage_chart(filtered_room_df())
+    
+  })
+  
+  output$filtered_room_distribution <- renderPlot({
+    concurrent_room_usage_chart(filtered_room_df())
+  })
+  
+  
+  
+  output$group_room_ui <- renderUI({
+    fluidPage(
+      
+      fluidRow(
+        h1("Group Rooms"),
+        column(4,
+               plotOutput(outputId = "group_gauge", height = "300px") %>% withSpinner()
+        ),
+        column(6,
+               plotOutput(outputId = "group_waffle", height = "300px") %>% withSpinner()
+        )),
+      fluidRow(
+        plotOutput(outputId = "group_weekly_plot"),
+        plotOutput(outputId = "group_room_distribution")
+      )
+    )
+    
+  })
+  
+  output$group_gauge <- renderPlot({
+    if(nrow(group_room_df()) > 0){vertical_gauge_chart(group_room_df(),
+                                                       input$group_room_target)
+    } else {
+      error_chart(" ")
+    }
+    
+    
+  })
+  
+  output$group_waffle <- renderPlot({
+    if(nrow(group_room_df()) > 0) {room_waffle_chart(group_room_df(),
+                                                     input$group_room_target)
+    } else {error_chart("There are no Group Rooms in this survey.")}
+  })
+  
+  output$group_donut_narrative <- renderText({
+    nps_donut_narrative(group_room_df(), input$group_room_target)
+    
+  })
+  
+  output$group_weekly_plot <- renderPlot({
+    if(nrow(group_room_df()) > 0) {
+      weekday_usage_chart(group_room_df())
+    } else(error_chart(" "))
+  })
+  
+  output$group_room_distribution <- renderPlot({
+    if(nrow(group_room_df()) > 0) {
+      concurrent_room_usage_chart(group_room_df())
+    } else(error_chart(" "))
+  })
+  
+  output$interview_room_ui <- renderUI({
+    fluidPage(
+      fluidRow(
+        h1("Interview Rooms"),
+        column(4,
+               plotOutput(outputId = "interview_gauge", height = "300px") %>% withSpinner()
+        ),
+        column(6,
+               plotOutput(outputId = "interview_waffle", height = "300px") %>% withSpinner()
+        )),
+      fluidRow(
+        plotOutput(outputId = "interview_weekly_plot"),
+        plotOutput(outputId = "interview_room_distribution")
+      )
+    )
+  })
+  
+  output$interview_gauge <- renderPlot({
+    if(nrow(interview_room_df() > 0)) {
+      vertical_gauge_chart(interview_room_df(), input$interview_room_target)
+    } else(error_chart(" "))
+    
+  })
+  
+  output$interview_waffle <- renderPlot({
+    if(nrow(interview_room_df()) > 0) {
+      room_waffle_chart(interview_room_df(),
+                        input$interview_room_target)
+    } else(error_chart("There are no interview rooms in this selection"))
+  })
+  
+  output$interview_donut_narrative <- renderText({
+    nps_donut_narrative(interview_room_df(), input$interview_room_target)
+    
+  })
+  
+  output$interview_weekly_plot <- renderPlot({
+    if(nrow(interview_room_df()) > 0) {
+      
+      weekday_usage_chart(interview_room_df())
+    } else(error_chart(" "))
+  })
+  
+  output$interview_room_distribution <- renderPlot({
+    if(nrow(interview_room_df()) > 0) {
+      concurrent_room_usage_chart(interview_room_df())
+    } else(error_chart(" "))
+  })
+  
+  
+  output$resource_hot <- renderRHandsontable({
+    resource_df <- get_resource_df() %>%
+      mutate_all(as.character)
+    rhandsontable(resource_df,
+                  colHeaders = snakecase::to_sentence_case(names(resource_df))) %>%
+      hot_cols(format = "0")
+    
+  })
+  
+  output$room_footage_hot <- renderRHandsontable({
+    room_footage_hot <- data.frame(resource_name = c("Group Room", "Interview Room"),
+                                   space_required = c(22,9))
+    rhandsontable(room_footage_hot %>% mutate_all(as.character)) %>%
+      hot_cols(format = "0")
+    
+  })
+  
+  output$ancillary_space_hot <- renderRHandsontable({
+    df <- data.frame(resource_name = c("Reception",
+                                       "Waiting room",
+                                       "WC",
+                                       "Tea point"),
+                     qty = c(1, 1, 1, 1),
+                     space_required = c(10, 15, 8, 5))
+    
+    rhandsontable(df %>% mutate_all(as.character)) %>%
+      hot_cols(format = "0")
+  })
+  
+  output$fte_resource_table <- renderTable({
+    
+    if(is.null(input$resource_hot)) {
+      return(NULL)
+    }
+    else{
+      get_fte_resource_requirements(input$fte,
+                                    input$space_per_fte) %>%
+        convert_fields_to_sentence_case() %>%
+        rename(FTE = Fte)
+    }
+  },
+  caption = "Staff side total space",
+  caption.placement = "top")
+  
+  
+  output$fte_resource_breakdown_table <- renderTable({
+    if(is.null(input$resource_hot)) {
+      return(NULL)
+    }
+    else{
+      get_staff_accommodation_requirements(hot_to_r(input$resource_hot),
+                                           input$fte) %>%
+        convert_fields_to_sentence_case() %>%
+        mutate_all(as.character)
+    }
+  },
+  caption = "Within which we propose to provide",
+  caption.placement = "top",
+  align = "lrr")
+  
+  output$current_resource_levels <- renderTable({
+    filtered_room_df() %>%
+      dplyr::filter(!is.na(sensor_value)) %>%
+      group_by(devicetype) %>%
+      summarise("count" = n_distinct(survey_device_id),
+                "occupancy" = scales::percent(mean(sensor_value))) %>%
+      convert_fields_to_sentence_case()
+  },
+  caption = "Current resource usage",
+  caption.placement = "top")
+  
+  output$room_resource_requirements <- renderTable({
+    
+    if(is.null(input$room_footage_hot)) {
+      return(NULL)
+    } else{
+      get_room_resource_requirements(filtered_room_df(),
+                                     input$group_room_target,
+                                     input$interview_room_target,
+                                     hot_to_r(input$room_footage_hot)) %>%
+        mutate(occupancy = scales::percent(occupancy, accuracy = 1),
+               target = scales::percent(target, accuracy = 1)) %>%
+        convert_fields_to_sentence_case() %>%
+        mutate_all(as.character)
+    }
+  },
+  caption = "Service user space",
+  caption.placement = "top",
+  align = "lrrrrrr")
+  
+  
+  output$ancillary_space_requirements <- renderTable({
+    if(is.null(input$ancillary_space_hot)) {
+      return(NULL)
+    } else {
+      room_resource_requirements <- get_room_resource_requirements(filtered_room_df(),
+                                                                   input$group_room_target,
+                                                                   input$interview_room_target,
+                                                                   hot_to_r(input$room_footage_hot))
+      get_ancillary_resource_requirements(hot_to_r(input$ancillary_space_hot),
+                                          room_resource_requirements,
+                                          input$circulation_factor) %>%
+        convert_fields_to_sentence_case() %>%
+        mutate_all(as.character)
+    }
+  },
+  caption = "Ancillary space requirements",
+  caption.placement = "top")
+  
+  
+  output$total_resource_table <- renderTable({
+    shiny::req(filtered_room_df(),
+               input$group_room_target,
+               input$interview_room_target,
+               input$room_footage_hot,
+               input$ancillary_space_hot)
+    
+    
+    get_total_space_table(filtered_room_df = filtered_room_df(),
+                          group_room_target = input$group_room_target,
+                          interview_room_target = input$interview_room_target,
+                          room_footage_hot = hot_to_r(input$room_footage_hot),
+                          fte = input$fte,
+                          space_per_fte = input$space_per_fte,
+                          ancillary_space_hot = hot_to_r(input$ancillary_space_hot),
+                          circulation_factor = input$circulation_factor) %>%
+      mutate_all(as.character)
+    
+    
+  },
+  caption = "Total space requirements", 
+  caption.placement = "top",
+  align = "lrrr")
+  
   # Download handler --------------------------------------------------------
   
   # Functions for handling the report download  
@@ -715,6 +1167,54 @@ server <- function(input, output, session) {
         file.rename(out, file)
       })
       
+    }
+    
+  )
+  
+  output$nps_download_button <- downloadHandler(
+    
+    filename = "nps report.docx",
+    
+    content <- function(file) {
+      out_report <- "nps_report.rmd"
+      
+      src <- normalizePath(out_report)
+      
+      # temporarily switch to the temp dir, in case you do not have write
+      # permission to the current working directory
+      owd <- setwd(tempdir())
+      on.exit(setwd(owd))
+      file.copy(src, out_report, overwrite = TRUE)
+      
+      
+      # Downlaods a template for the word report.
+      # Note - this has a specially modified style, in which Heading 5 has been adapted into a line break.
+      # See here: https://scriptsandstatistics.wordpress.com/2015/12/18/rmarkdown-how-to-inserts-page-breaks-in-a-ms-word-document/
+      word_report_reference <- s3tools::download_file_from_s3("alpha-app-occupeye-automation/Probation occupancy report template.dotx",
+                                                              "Probation occupancy report template.dotx",
+                                                              overwrite = TRUE)
+      # Generate report, with progress bar
+      withProgress(message = "Generating report...", {
+        
+        out <- rmarkdown::render(out_report, 
+                                 params = list(start_date = input$date_range[1],
+                                               end_date = input$date_range[2],
+                                               survey_name = input$survey_name,
+                                               raw_data = filtered_room_df(),
+                                               group_room_df = group_room_df(),
+                                               group_room_target = input$group_room_target,
+                                               interview_room_df = interview_room_df(),
+                                               interview_room_target = input$interview_room_target,
+                                               room_footage_hot = hot_to_r(input$room_footage_hot),
+                                               fte = input$fte,
+                                               space_per_fte = input$space_per_fte,
+                                               resource_hot = hot_to_r(input$resource_hot),
+                                               ancillary_space_hot = hot_to_r(input$ancillary_space_hot),
+                                               circulation_factor = input$circulation_factor
+                                 )
+        )
+        file.rename(out, file)
+      })
     }
     
   )

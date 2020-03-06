@@ -12,16 +12,10 @@ WORKDIR /srv/shiny-server
 # can be cached as an image layer separate from application code
 ADD environment.yml environment.yml
 
-# Install packrat itself then packages from packrat.lock
 RUN conda env update --file environment.yml -n base
 RUN npm i -g ministryofjustice/analytics-platform-shiny-server#v0.0.3
 
-## -----------------------------------------------------
-## Uncomment if still using packrat alongside conda
-## Install packrat itself then packages from packrat.lock
-# ADD packrat packrat
-# RUN R -e "install.packages('packrat'); packrat::restore()"
-## ------------------------------------------------------
+ RUN R -e "install.packages('waffle', repos = 'https://cinc.rud.is')"
 
 # Add shiny app code
 ADD . .

@@ -34,13 +34,17 @@ df_sum <- params$df_sum
 longstay_desks <- df_sum %>% dplyr::filter(devicetype == "Longstay Desk")
 non_longstay_desks <- df_sum %>% dplyr::filter(devicetype != "Longstay Desk")
 
-cat("### Recommendation table for longstay desks:")
+if(nrow(longstay_desks) > 0) {
+  cat("### Recommendation table for longstay desks:")
+  
+  knitr::kable(allocation_strategy_table(longstay_desks),align=c('l','r','r'))
+}
 
-knitr::kable(allocation_strategy_table(longstay_desks),align=c('l','r','r'))
-
-cat("### Recommendation table for non-longstay desks: ")
-
-knitr::kable(allocation_strategy_table(non_longstay_desks),align=c('l','r','r'))
+if(nrow(non_longstay_desks) > 0) {
+  cat("### Recommendation table for non-longstay desks: ")
+  
+  knitr::kable(allocation_strategy_table(non_longstay_desks),align=c('l','r','r'))
+}
 
 cat('## Top 10 busiest days in survey')
 knitr::kable(get_peak_occupancy(df_sum))
@@ -59,7 +63,7 @@ floor_list <- unique(df_sum$floor)
 if(length(floor_list) > 1) {
   for(my_floor in floor_list) {
     floor_df_sum <- df_sum %>% dplyr::filter(floor == my_floor)
-    cat('\n\n## Desk utilisation for floor ',my_floor,' (',n_distinct(floor_df_sum$surveydeviceid),' sensors) \n\n',sep="")
+    cat('\n\n## Desk utilisation for floor ',my_floor,' (',n_distinct(floor_df_sum$survey_device_id),' sensors) \n\n',sep="")
     print(prop_daily_usage_chart(floor_df_sum))
     cat(paste0("\n\n ",daily_usage_chart_narrative(floor_df_sum)))
     

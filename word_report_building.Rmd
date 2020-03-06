@@ -34,13 +34,17 @@ df_sum <- params$df_sum
 longstay_desks <- df_sum %>% dplyr::filter(devicetype == "Longstay Desk")
 non_longstay_desks <- df_sum %>% dplyr::filter(devicetype != "Longstay Desk")
 
-cat("### Recommendation table for longstay desks:")
+if(nrow(longstay_desks) > 0) {
+  cat("### Recommendation table for longstay desks:")
+  
+  knitr::kable(allocation_strategy_table(longstay_desks),align=c('l','r','r'))
+}
 
-knitr::kable(allocation_strategy_table(longstay_desks),align=c('l','r','r'))
-
-cat("### Recommendation table for non-longstay desks: ")
-
-knitr::kable(allocation_strategy_table(non_longstay_desks),align=c('l','r','r'))
+if(nrow(non_longstay_desks) > 0) {
+  cat("### Recommendation table for non-longstay desks: ")
+  
+  knitr::kable(allocation_strategy_table(non_longstay_desks),align=c('l','r','r'))
+}
 
 cat('## Top 10 busiest days in survey')
 knitr::kable(get_peak_occupancy(df_sum))
@@ -62,7 +66,7 @@ if(length(building_list) > 1) {
     cat('\n\n# Desk utilisation for building ',
         my_building,
         ' (',
-        n_distinct(building_df_sum$surveydeviceid),
+        n_distinct(building_df_sum$survey_device_id),
         ' sensors) \n\n',
         sep = "")
     print(prop_daily_usage_chart(building_df_sum))
@@ -77,7 +81,7 @@ if(length(building_list) > 1) {
         cat('\n\n## Desk utilisation for floor ',
             my_floor,
             ' (',
-            n_distinct(floor_df_sum$surveydeviceid),
+            n_distinct(floor_df_sum$survey_device_id),
             ' sensors) \n\n',
             sep = "")
         print(prop_daily_usage_chart(floor_df_sum))
@@ -97,7 +101,7 @@ if(length(building_list) > 1) {
           cat('\n\n## Desk utilisation for ',
               team,
               ' (',
-              n_distinct(cat1_df_sum$surveydeviceid),
+              n_distinct(cat1_df_sum$survey_device_id),
               ' sensors) \n\n',
               sep = "")
           print(prop_daily_usage_chart(cat1_df_sum))
@@ -114,7 +118,7 @@ if(length(building_list) > 1) {
                 " - ",
                 cat2,
                 ' (',
-                n_distinct(cat2_df_sum$surveydeviceid),
+                n_distinct(cat2_df_sum$survey_device_id),
                 ' sensors) \n\n',
                 sep = "")
             print(prop_daily_usage_chart(cat2_df_sum))
@@ -130,7 +134,7 @@ if(length(building_list) > 1) {
                   cat2,' - ',
                   cat3,
                   ' (',
-                  n_distinct(cat3_df_sum$surveydeviceid),
+                  n_distinct(cat3_df_sum$survey_device_id),
                   ' sensors) \n\n',
                   sep = "")
               print(prop_daily_usage_chart(cat3_df_sum))

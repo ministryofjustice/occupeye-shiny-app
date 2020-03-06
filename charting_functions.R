@@ -5,7 +5,8 @@ library(scales)
 library(dplyr)
 library(reshape2)
 library(glue)
-
+library(tidyr)
+library(waffle)
 
 get_prop_usage <- function(df_sum) {
   
@@ -290,7 +291,7 @@ smoothing_chart <- function(df_sum, smoothing_factor) {
 
 allocation_strategy_table <- function(df_sum) {
   
-  current_allocation <- n_distinct(df_sum$surveydeviceid)
+  current_allocation <- n_distinct(df_sum$survey_device_id)
   
   prop_usage <- prop.table(table(df_sum$date, df_sum$util_cat), 1)
   prop_usage_day <- prop.table(table(weekdays(df_sum$date), df_sum$util_cat), 1)
@@ -349,7 +350,7 @@ allocation_strategy_table <- function(df_sum) {
 desks_by_desk_type <- function(df_sum) {
   df_sum %>%
     group_by(devicetype) %>%
-    summarise(sensors = n_distinct(surveydeviceid)) %>%
+    summarise(sensors = n_distinct(survey_device_id)) %>%
     rename("Desk Type" = devicetype)
   
 }
@@ -357,14 +358,14 @@ desks_by_desk_type <- function(df_sum) {
 desks_by_team <- function(df_sum) {
   df_sum %>%
     group_by(category_1, category_2, category_3) %>%
-    summarise(sensors = n_distinct(surveydeviceid)) %>%
+    summarise(sensors = n_distinct(survey_device_id)) %>%
     rename("Directorate" = category_1, "Department" = category_2, "Team" = category_3)
 }
 
 desks_by_desk_type_and_team <- function(df_sum) {
   df_sum %>%
     group_by(category_3, devicetype) %>%
-    summarise(sensors = n_distinct(surveydeviceid)) %>%
+    summarise(sensors = n_distinct(survey_device_id)) %>%
     rename("Desk Type" = devicetype, "team" = category_3)
 }
 
@@ -391,3 +392,344 @@ ranked_desk_chart <- function(df_sum) {
     geom_bar(position = "fill", stat = "identity")
   
 }
+
+
+# NPS charts --------------------------------------------------------------
+
+weekday_usage_chart <- function(df) {
+  # Just shows average utilisation per weekday
+  weekday <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+  
+  weekday_average <- df %>%
+    mutate(day = weekdays(obs_datetime)) %>%
+    group_by(day) %>%
+    summarise(average_utilisation = mean(sensor_value, na.rm = T))
+  
+  ggplot(weekday_average,
+         aes(x = day, y = average_utilisation)) +
+    geom_bar(stat = "identity", fill = "coral2") +
+    scale_y_continuous(labels = scales::percent,
+                       limits = c(0,1)) +
+    scale_x_discrete(limits = weekday) +
+    ylab("Average Occupancy") +
+    xlab("Day") +
+    theme_minimal() +
+    ggtitle("Average occupancy by weekday")
+  
+}
+
+
+nps_donut_narrative <- function(room_df, target_occupancy) {
+  concurrent_rooms <- concurrent_room_table(room_df)
+  
+  top_usage <- concurrent_rooms %>%
+    dplyr::filter(rooms_occupied == max(rooms_occupied))
+  
+  weekday_average <- room_df %>%
+    mutate(day = weekdays(obs_datetime)) %>%
+    group_by(day) %>%
+    summarise(average_utilisation = mean(sensor_value))
+  
+  mean_rooms <- room_df %>% 
+    group_by(obs_datetime) %>%
+    summarise(rooms_occupied = sum(sensor_value)) %>%
+    pull(rooms_occupied) %>%
+    mean() %>%
+    ceiling()
+  
+  top_weekday <- weekday_average %>%
+    dplyr::filter(average_utilisation == max(average_utilisation))
+  
+  glue("<li>At peak {top_usage$rooms_occupied} rooms were in use for a combined period of {top_usage$n * 10} minutes</li>
+       <li>{top_weekday$day} is the busiest day for selected room types ({paste(unique(room_df$devicetype), collapse = 's; ')})</li>
+       <li>On average {mean_rooms} rooms are in use at any one time")
+}
+
+concurrent_room_table <- function(room_df) {
+  room_df %>% 
+    group_by(obs_datetime) %>%
+    summarise(rooms_occupied = sum(sensor_value)) %>%
+    count(rooms_occupied) %>%
+    mutate(prop = prop.table(n))
+}
+
+concurrent_room_usage_chart <- function(room_df) {
+  room_count <- concurrent_room_table(room_df)
+  
+  ggplot(room_count, aes(x = rooms_occupied, y = prop)) +
+    geom_bar(stat = "identity", fill = "coral2") +
+    scale_x_continuous(breaks = room_count$rooms_occupied) +
+    xlab("Number of rooms occupied concurrently") +
+    ylab("proportion of time in sample") +
+    scale_y_continuous(labels = scales::percent, limits = c(0,1)) +
+    theme_minimal() +
+    ggtitle("Concurrent use distribution")
+  
+}
+
+time_of_day_bar <- function(room_df) {
+  weekdays <- c("Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday")
+  
+  data <- room_df %>%
+    mutate(time_of_day = strftime(obs_datetime, format="%H:%M"),
+           weekday = weekdays(obs_datetime)) %>%
+    group_by(weekday, time_of_day) %>%
+    summarise(occupied = mean(sensor_value))
+  
+  ggplot(data,
+         aes(x = hm(time_of_day),
+             y = occupied)) +
+    geom_step(stat = "identity",
+              position = "identity", alpha = 0.5) +
+    facet_wrap(~factor(weekday, levels = weekdays), nrow = 5) +
+    geom_hline(aes(yintercept = mean(occupied))) +
+    geom_hline(aes(yintercept = max(occupied))) +
+    scale_x_time() +
+    labs(title = "Occupancy by weekday and time",
+         x = "Time of Day") +
+    theme_minimal() +
+    theme(axis.title.y = element_blank(),
+          legend.title = element_blank())
+  
+}
+
+make_gauge_data <- function(room_df,target) {
+  mean_occupancy <- mean(room_df$sensor_value)
+  
+  if(mean_occupancy < target) {
+    position_order <- c("Total", "Target", "Actual")
+  } else {
+    position_order <- c("Total", "Actual", "Target")
+  }
+  
+  data.frame(variable = factor(c("Total", "Target", "Actual"),
+                               levels = position_order),
+             occupancy = c(1,target,mean_occupancy))
+
+}
+
+
+vertical_gauge_chart <- function(room_df,
+                                  target,
+                                  scaling_factor = 1) {
+
+  
+  df <- make_gauge_data(room_df, target) %>%
+    arrange(variable)
+  
+  ggplot(df) +
+    geom_bar(aes(x = 1,
+                 y = occupancy,
+                 fill = variable),
+             stat = "identity",
+             position = "identity",
+             colour = "black") +
+    scale_fill_manual(values = c("Total" = "#f0f0f0",
+                                 "Actual" = "coral2",
+                                 "Target" = "sandybrown"),
+                      breaks = c("Actual", "Target")) +
+    theme_minimal() +
+    ylab(NULL) +
+    xlab(NULL) +
+    ggtitle("Average Occupancy") +
+    scale_y_continuous(breaks = df$occupancy,
+                       labels = scales::percent(df$occupancy,
+                                                accuracy = 1)) +
+    theme(axis.ticks = element_blank(),
+          axis.text.x = element_blank(),
+          title = element_text(size = 12 * scaling_factor),
+          panel.grid = element_blank(),
+          legend.title = element_blank(),
+          legend.text = element_text(size = 10 * scaling_factor)) +
+    guides(fill = guide_legend(reverse = TRUE,
+                               override.aes = list(size = 2 * scaling_factor,
+                                                   colour = 0)))
+}
+
+
+make_waffle_data <- function(room_df, target) {
+  total_rooms <- n_distinct(room_df$survey_device_id)
+  
+  mean_rooms <- room_df %>% 
+    group_by(obs_datetime) %>%
+    summarise(rooms_occupied = sum(sensor_value)) %>%
+    pull(rooms_occupied) %>%
+    mean() %>%
+    ceiling()
+  
+  peak_rooms <- room_df %>% 
+    group_by(obs_datetime) %>%
+    summarise(rooms_occupied = sum(sensor_value)) %>%
+    pull(rooms_occupied) %>%
+    max()
+  
+  mean_occupancy <- mean(room_df$sensor_value)
+  recommended_rooms <- ceiling(total_rooms * (mean_occupancy/target))
+  
+  background_dummy <- max(total_rooms, recommended_rooms)
+  
+  tribble(
+    ~label, ~figure, ~dummy,
+    "Total number of rooms", total_rooms, background_dummy - total_rooms,
+    "Peak occupancy", peak_rooms, background_dummy - peak_rooms,
+    "Average occupancy", mean_rooms, background_dummy - mean_rooms,
+    "Recommended number of rooms", recommended_rooms, background_dummy - recommended_rooms
+  ) %>%
+    mutate(label = factor(label,
+                          levels = label)) %>%
+    gather(key = variable,
+           value = value,
+           -label)
+  
+  
+}
+
+room_waffle_chart <- function(room_df, target, scaling_factor = 1) {
+  df <- make_waffle_data(room_df, target)
+  
+  total_rooms <- n_distinct(room_df$survey_device_id)
+  
+  ggplot(df,
+         aes(fill = variable,
+             values = value)) +
+    geom_waffle(color = "white", flip = T, n_rows = 5, size = 1) +
+    geom_text(aes(label = case_when(variable == "figure" ~as.character(value),
+                                    T ~""),
+                  x = min(3, ceiling(total_rooms / 2)),
+                  y = -0.1),
+              vjust = "inward",
+              size = 5 * scaling_factor) +
+    facet_wrap(~label,
+               strip.position = "top",
+               labeller = label_wrap_gen(width = 12),
+               nrow = 1) +
+    theme_minimal() +
+    theme_enhance_waffle() +
+    labs(x = NULL,
+         y = NULL) +
+    scale_fill_manual(values = c("#f0f0f0", "coral2")) +
+    coord_equal() +
+    theme(panel.grid = element_blank(),
+          legend.position = "none",
+          strip.text = element_text(size = 11 * scaling_factor))
+  
+}
+
+
+get_room_resource_requirements <- function(df,
+                                           group_room_target,
+                                           interview_room_target,
+                                           room_footage_hot) {
+  df %>%
+    group_by(devicetype) %>%
+    summarise("count" = n_distinct(survey_device_id),
+              "occupancy" = mean(sensor_value, na.rm = T)) %>%
+    dplyr::filter(devicetype %in% c("Group Room",
+                                    "Interview Room")) %>%
+    mutate(target = case_when(devicetype == "Group Room" ~group_room_target,
+                                        devicetype == "Interview Room" ~interview_room_target),
+           recommended_rooms = ceiling(count * (occupancy / target))) %>%
+    left_join(room_footage_hot, by = c("devicetype" = "resource_name")) %>%
+    mutate(space_required = make_numeric(space_required),
+           total_space = space_required * recommended_rooms)
+  
+}
+
+get_fte_resource_requirements <- function(fte, space_per_fte) {
+  data.frame(resource_name = "Staff total space",
+             FTE = fte,
+             space_required = space_per_fte,
+             total_space = space_per_fte * fte)
+}
+
+get_ancillary_resource_requirements <- function(ancillary_space_hot,
+                                                room_resource_table,
+                                                circulation_target) {
+  
+  ancillary_space_table <- ancillary_space_hot %>%
+    mutate(total_space = make_numeric(qty) * make_numeric(space_required)) %>%
+    mutate_all(as.character)
+  
+  total_circulation_space <- sum(as.numeric(ancillary_space_table$total_space),
+                                 as.numeric(room_resource_table$total_space)) * circulation_target
+  
+  circulation_row <- data.frame(resource_name = glue("Circulation ({scales::percent(circulation_target,accuracy = 1)})"),
+                                qty = 1,
+                                space_required = total_circulation_space,
+                                total_space = total_circulation_space) %>%
+    mutate_all(as.character)
+  
+  bind_rows(ancillary_space_table, circulation_row)
+}
+
+get_staff_accommodation_requirements <- function(resource_hot, fte) {
+  resource_hot %>%
+    mutate(resource_per_fte_ratio = paste(resource, per_fte, sep = ":"),
+           qty = ceiling(fte * make_numeric(resource) / make_numeric(per_fte))) %>%
+    select(-resource, -per_fte)
+}
+
+get_total_space_table <- function(filtered_room_df,
+                                  group_room_target,
+                                  interview_room_target,
+                                  room_footage_hot,
+                                  fte,
+                                  space_per_fte,
+                                  ancillary_space_hot,
+                                  circulation_factor) {
+  
+  room_resources <- get_room_resource_requirements(filtered_room_df,
+                                                   group_room_target,
+                                                   interview_room_target,
+                                                   room_footage_hot) %>%
+    select(resource_name = devicetype,
+           qty = recommended_rooms,
+           space_required,
+           total_space) %>%
+    mutate_all(as.character)
+  
+  fte_resources <- get_fte_resource_requirements(fte,
+                                                 space_per_fte) %>%
+    mutate_all(as.character) %>%
+    rename(qty = FTE)
+  
+  
+  
+  ancillary_resources <- get_ancillary_resource_requirements(ancillary_space_hot,
+                                                             room_resources,
+                                                             circulation_factor) %>%
+    mutate_all(as.character)
+  
+  bind_rows(room_resources, fte_resources, ancillary_resources) %>%
+    mutate(total_space = as.numeric(total_space)) %>%
+    janitor::adorn_totals() %>%
+    convert_fields_to_sentence_case()
+}
+
+error_chart <- function(message) {
+  
+  ggplot() + 
+    annotate("text", x = 4, y = 25, size=8, label = message) +
+    theme_void()
+}
+
+# probably should shift this to an s3 file rather than hard-coding.
+get_resource_df <- function() {
+  tribble(
+    ~resource_name, ~resource, ~per_fte,
+    "Long Stay Desks", 8, 10,
+    "Touchdown", 1, 20,
+    "Quiet/phone room", 1, 20,
+    "Open Meeting", 1, 30,
+    "Breakout", 1, 40,
+    "Tea point", 1, 50,
+    "Print & copy", 1, 100,
+    "Lockers", 1, 1,
+    "File Storage", 0.5, 1
+  )
+}
+  

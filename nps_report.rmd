@@ -1,0 +1,286 @@
+---
+date:  "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  word_document:
+    toc: false
+    reference_docx: Probation occupancy report template.dotx
+
+params:
+  start_date: NULL
+  end_date: NULL
+  survey_name: NULL
+  raw_data: NULL
+  group_room_df: NULL
+  group_room_target: NULL
+  interview_room_df: NULL
+  interview_room_target: NULL
+  room_footage_hot: NULL
+  fte: NULL
+  space_per_fte: NULL
+  resource_hot: NULL
+  ancillary_space_hot: NULL
+  circulation_factor: NULL
+  
+  
+title: "`r paste0('Occupancy Survey, ', params$survey_name)`"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
+```
+
+##### page break
+
+# Background
+
+The probation programme is engaged on an ambitious programme of works to improve the quality of the estate.  As part of this we will be acquiring new properties and the ambition is to do this in a way which is data driven and ensures that there is equality of provision across all regions.
+
+We need to ensure that best use is made of the funding that has been made available to us and that all regions operate to a set of common standards.  This report helps to define the requirements and uses the results of the occupancy survey, the number of full time equivalent (FTE) staff and space size definitions to determine the amount of space that is required.
+
+On the following pages each space type is explained and the results of the survey shown.  At the end of the report is an estimate of the total amount of space required.
+
+## Headcount data source
+
+This report uses the following FTE data:
+
+| Property | FTE | Source |
+|----------|-----|--------|
+|          |     |        |
+|          |     |        |
+|          |     |        |
+
+
+##### page break
+
+# Service user space – Interview rooms
+
+```{r interview_room_calculations, echo=FALSE}
+
+
+room_resource_requirements <- get_room_resource_requirements(params$raw_data,
+                                                             params$group_room_target,
+                                                             params$interview_room_target,
+                                                             params$room_footage_hot)
+
+interview_room_recommendation <- room_resource_requirements %>%
+  dplyr::filter(devicetype == "Interview Room") %>%
+  pull(recommended_rooms)
+
+```
+
+## Definition
+
+These are enclosed rooms for interviewing service users, with the appropriate acoustic protection to support privacy and confidentiality.
+
+These should be located within the service user area and the quantity is derived from an occupancy survey of the existing properties.
+
+The rooms should be largely neutral with the addition of some vibrant accents to add character and will be 9m^2^ in size.
+
+Additional precautions are required in secure interview rooms including fixed table and secondary exit.  The number of secure interview rooms will be subject to local agreement but there should always be at least 1 secure interview room.
+
+The design guide contains the full specification, however, briefly, the rooms will have the following features:
+
+```{r interview room image, echo=FALSE}
+interview_room_image <- download_file_from_s3("alpha-app-occupeye-automation/interview room image.PNG",
+                      "interview room image.PNG",
+                      overwrite = TRUE)
+knitr::include_graphics(interview_room_image)
+
+```
+
+#### column break
+
+## Survey results
+
+In determining the number of rooms, we have assumed a target of 50% utilisation between Monday and Friday. This provides capacity for unscheduled attendance by service users, however it is likely that the Matrix room booking system would assist in scheduling the majority of the interview rooms.  The proposed number of interview rooms is `r interview_room_recommendation`.
+
+```{r interview_room_charts, echo=FALSE, results='asis', dpi = 150, fig.width=5, fig.height=4}
+if(nrow(params$interview_room_df) > 0) {
+  
+  chart_1 <- vertical_gauge_chart(params$interview_room_df,
+                                  params$interview_room_target,
+                                  0.5)
+  chart_2 <- room_waffle_chart(params$interview_room_df,
+                               params$interview_room_target,
+                               0.5)
+  chart_3 <- weekday_usage_chart(params$interview_room_df)
+  
+  grid.arrange(chart_1,
+               chart_2,
+               chart_3,
+               layout_matrix = rbind(c(1,2,2),
+                                     c(3,3,3)))
+  
+}
+
+```
+
+##### page break
+
+# Service user space – Group Rooms
+
+## Definition
+
+These are enclosed rooms for delivering accredited programmes, with the appropriate acoustic protection to support privacy and confidentiality.
+
+These should be located within the service user area and can be made more adaptable through the use of bi-folding walls. The quantity is derived via and occupancy survey of the existing properties.
+
+The rooms should be largely neutral with the addition of some vibrant accents to add character and will be 22m^2^ in size which able to support a cohort of 12 service users. Note that the rooms can also be used for meetings. 
+
+The design guide contains the full specification, however, briefly, the rooms will have the following features:
+
+```{r group room image, echo=FALSE}
+group_room_image <- download_file_from_s3("alpha-app-occupeye-automation/group room image.PNG",
+                      "group room image.PNG",
+                      overwrite = TRUE)
+knitr::include_graphics(group_room_image)
+
+```
+
+#### column break
+
+## Survey Results
+
+In determining the number of rooms, we have assumed a target of 60% utilisation between Monday and Friday. It is recommended that the Matrix room booking system should be used to schedule the use of these rooms.
+
+
+```{r group_room_charts, echo=FALSE, results='asis', dpi = 150, fig.width=5, fig.height=4}
+if(nrow(params$group_room_df) > 0) {
+  
+  chart_1 <- vertical_gauge_chart(params$group_room_df,
+                                  params$group_room_target,
+                                  0.6)
+  chart_2 <- room_waffle_chart(params$group_room_df,
+                               params$group_room_target,
+                               0.6)
+  chart_3 <- weekday_usage_chart(params$group_room_df)
+  
+  grid.arrange(chart_1,
+               chart_2,
+               chart_3,
+               layout_matrix = rbind(c(1,2,2),
+                                     c(3,3,3)))
+  
+}
+
+```
+
+##### page break
+
+# Service user space – Ancillary accommodation and total space
+
+## Definition
+
+Within the service user accommodation there is also a variety of other space requirements.  This includes a reception desk, waiting area, kitchenette, circulation space and WC.
+
+The exact size and number of these facilities will vary due to the design and size of the building.  However, for the purposes of identifying if a property is likely to be of a suitable size this section of the report brings together the space requirement from the previous sections and adds assumptions around ancillary space.
+
+Within the reception and waiting areas it’s envisaged that the following would be provided:
+
+```{r ancillary room image, echo=FALSE}
+ancillary_room_image <- download_file_from_s3("alpha-app-occupeye-automation/interview room image.PNG",
+                      "ancillary room image.PNG",
+                      overwrite = TRUE)
+knitr::include_graphics(ancillary_room_image)
+
+```
+
+#### column break
+
+
+```{r service_user_space, echo=FALSE, results='asis'}
+
+room_resource_requirements <- get_room_resource_requirements(params$raw_data,
+                               params$group_room_target,
+                               params$interview_room_target,
+                               params$room_footage_hot)
+  
+  room_resource_requirements %>%
+  mutate(occupancy = scales::percent(occupancy, accuracy = 1),
+         target = scales::percent(target, accuracy = 1)) %>%
+  rename(room = devicetype) %>%
+  convert_fields_to_sentence_case() %>%
+  flextable::flextable()  %>%
+  fontsize(size = 9, part = "all") %>%
+  autofit() %>%
+  height_all(0.4) %>%
+  width(j = c(1,3,6), width = 0.78) %>%
+  width(j = c(2,4,7), width = 0.51) %>%
+  width(j = 5, width = 1) %>%
+  set_caption("Room resource requirements")
+  
+get_ancillary_resource_requirements(params$ancillary_space_hot,
+                                    room_resource_requirements,
+                                    params$circulation_factor) %>%
+  convert_fields_to_sentence_case() %>%
+  flextable::flextable() %>%
+  fontsize(size = 9, part = "all") %>%
+  autofit() %>%
+  set_caption("Ancillary resource requirements")
+
+```
+
+##### line break
+
+# Staff side accommodation
+
+## Definition
+With the increasing adoption of mobile technology, and different ways of working, the way we use our offices is changing.  Our buildings will be designed to ensure that probation work can be undertaken effectively and would aim to provide a variety of different settings from which to work.  For example, confidential conversations can take place either in the interview rooms or 1:1 rooms in the staff accommodation. All staff will be able to use a variety of different settings rather than specific types of space being reserved to certain grades. 
+
+The staff accommodation will initially be based upon 8m^2^ per FTE. As smarter working is adopted the aim will be to accommodate any expansion probation officer numbers will be accommodated by more effective use of the space. Specifically, at the outset the property will be designed to offer 8 traditional desks for 10 staff. This ratio will reduce to 6 desks for 10 staff if the increase in probation staffing requires this.
+
+#### column break
+
+```{r staff_side_accommodation, results='asis'}
+
+get_fte_resource_requirements(params$fte,
+                              params$space_per_fte) %>%
+  convert_fields_to_sentence_case() %>%
+  flextable::flextable() %>%
+  fontsize(size = 9, part = "all") %>%
+  autofit() %>%
+  set_caption("Staff side total space")
+
+
+
+get_staff_accommodation_requirements(params$resource_hot,
+                                     params$fte) %>%
+  convert_fields_to_sentence_case() %>%
+  mutate_all(as.character) %>%
+  flextable::flextable() %>%
+  fontsize(size = 9, part = "all") %>%
+  autofit() %>%
+  set_caption("Within which we propose to provide:")
+
+```
+
+
+##### line break
+
+# Conclusion
+
+The overall space requirement identified in this survey is shown in the table on the right.  Where we will be obtaining a new property, this will assist our agents in identifying the most suitable options.  Where we are considering a consolidation, it will act as an indicator of the ability of the proposed building to absorb the demand.
+
+In combination with the national design guide and consultation with local managers this report will also help to determine the design of the space and will help ensure consistency across the estate.
+
+Where local managers do not agree with the report they should, in the first instance, discuss their concerns with their Estates Delivery Lead.  Any outstanding concerns can be raised at the programme estates board if required.
+
+#### column break
+
+
+``` {r total_space, echo=FALSE, results='asis'}
+
+get_total_space_table(filtered_room_df = params$raw_data,
+                      group_room_target = params$group_room_target,
+                      interview_room_target = params$interview_room_target,
+                      room_footage_hot = params$room_footage_hot,
+                      fte = params$fte,
+                      space_per_fte = params$space_per_fte,
+                      ancillary_space_hot = params$ancillary_space_hot,
+                      circulation_factor = params$circulation_factor) %>%
+  flextable::flextable() %>%
+  fontsize(size = 9, part = "all") %>%
+  autofit()
+
+```
