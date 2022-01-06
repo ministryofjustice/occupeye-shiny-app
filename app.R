@@ -274,8 +274,8 @@ server <- function(input, output, session) {
   
   print("Getting active surveys list")
   # Get the list of active survey
-  active_surveys_list <- s3tools::read_using(FUN = feather::read_feather, 
-                                             s3_path = "alpha-app-occupeye-automation/active surveys.feather") %>% 
+  active_surveys_list <- s3tools::read_using(FUN = readr::read_csv, 
+                                             s3_path = "alpha-app-occupeye-automation/active surveys.csv") %>% 
     pull(surveyname) %>% as.character()
   
   # Get the surveys table, and make a dictionary of survey names to their IDs. 
@@ -290,6 +290,8 @@ server <- function(input, output, session) {
   if(length(invalid_surveys) > 0) {
     showModal(modalDialog(HTML(glue("The following surveys in the list active surveys appear to have been removed from the list of surveys.
                                Consider reviewing the active surveys list in the Admin tab: <br> {paste(invalid_surveys, collapse = '<br>')}"))))
+    active_surveys <- active_surveys %>% dplyr::filter(!name %in% invalid_surveys)
+    active_surveys_list <- active_surveys$name
   }
   
   
@@ -718,8 +720,8 @@ server <- function(input, output, session) {
     updateSelectInput(session, inputId = "survey_name", choices = RV$active_surveys_list)
     
     my_df <- data.frame(surveyname = RV$active_surveys_list)
-    feather::write_feather(my_df, "active surveys.feather")
-    s3tools::write_file_to_s3("active surveys.feather", "alpha-app-occupeye-automation/active surveys.feather", overwrite = TRUE)
+    readr::write_csv(my_df, "active surveys.csv")
+    s3tools::write_file_to_s3("active surveys.csv", "alpha-app-occupeye-automation/active surveys.csv", overwrite = TRUE)
     
     showModal(modalDialog(HTML(glue("Survey list saved. Current list of active surveys: <br> {paste(RV$active_surveys_list, collapse = '<br>')}"))))
     
