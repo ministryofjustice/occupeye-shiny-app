@@ -22,7 +22,7 @@ get_max_capacity_days <- function(df_sum) {
   get_prop_usage(df_sum) %>% 
     dplyr::filter(util_cat != "Unused") %>% 
     group_by(date) %>% 
-    summarise(prop = sum(prop)) %>% 
+    dplyr::summarise(prop = sum(prop)) %>% 
     dplyr::filter(prop == 1) %>%
     .$date
 }
@@ -88,8 +88,8 @@ get_prop_usage_day <- function(df_sum) {
   df_sum %>%
     mutate(day = weekdays(date)) %>%
     group_by(day, util_cat) %>%
-    summarise(n = n()) %>%
-    tidyr::complete(day, util_cat, fill = list(n = 0)) %>%
+    dplyr::summarise(n = n()) %>%
+    tidyr::complete(util_cat, fill = list(n = 0)) %>%
     mutate(prop = n / sum(n)) %>%
     ungroup(day)
   
@@ -101,7 +101,7 @@ weekday_usage_narrative <- function(df_sum) {
   daily_util <- prop_usage_day %>%
     dplyr::filter(util_cat %in% c("Effective utilisation", "Under utilised")) %>%
     group_by(day) %>%
-    summarise(prop = sum(prop))
+    dplyr::summarise(prop = sum(prop))
   
   top_day <- daily_util %>% dplyr::filter(prop == max(prop)) %>% .$day
   
@@ -350,7 +350,7 @@ allocation_strategy_table <- function(df_sum) {
 desks_by_desk_type <- function(df_sum) {
   df_sum %>%
     group_by(devicetype) %>%
-    summarise(sensors = n_distinct(survey_device_id)) %>%
+    dplyr::summarise(sensors = n_distinct(survey_device_id)) %>%
     rename("Desk Type" = devicetype)
   
 }
@@ -358,14 +358,14 @@ desks_by_desk_type <- function(df_sum) {
 desks_by_team <- function(df_sum) {
   df_sum %>%
     group_by(category_1, category_2, category_3) %>%
-    summarise(sensors = n_distinct(survey_device_id)) %>%
+    dplyr::summarise(sensors = n_distinct(survey_device_id)) %>%
     rename("Directorate" = category_1, "Department" = category_2, "Team" = category_3)
 }
 
 desks_by_desk_type_and_team <- function(df_sum) {
   df_sum %>%
     group_by(category_3, devicetype) %>%
-    summarise(sensors = n_distinct(survey_device_id)) %>%
+    dplyr::summarise(sensors = n_distinct(survey_device_id)) %>%
     rename("Desk Type" = devicetype, "team" = category_3)
 }
 
@@ -375,7 +375,7 @@ get_peak_occupancy <- function(df_sum) {
   prop_usage %>% 
     dplyr::filter(util_cat != "Unused") %>%
     group_by(date) %>%
-    summarise(prop = sum(prop)) %>%
+    dplyr::summarise(prop = sum(prop)) %>%
     mutate(date = as.character(date), utilisation = percent(prop, accuracy = 1)) %>% 
     arrange(desc(prop)) %>%
     select(date, utilisation) %>%
@@ -403,7 +403,7 @@ weekday_usage_chart <- function(df) {
   weekday_average <- df %>%
     mutate(day = weekdays(obs_datetime)) %>%
     group_by(day) %>%
-    summarise(average_utilisation = mean(sensor_value, na.rm = T))
+    dplyr::summarise(average_utilisation = mean(sensor_value, na.rm = T))
   
   ggplot(weekday_average,
          aes(x = day, y = average_utilisation)) +
@@ -428,11 +428,11 @@ nps_donut_narrative <- function(room_df, target_occupancy) {
   weekday_average <- room_df %>%
     mutate(day = weekdays(obs_datetime)) %>%
     group_by(day) %>%
-    summarise(average_utilisation = mean(sensor_value))
+    dplyr::summarise(average_utilisation = mean(sensor_value))
   
   mean_rooms <- room_df %>% 
     group_by(obs_datetime) %>%
-    summarise(rooms_occupied = sum(sensor_value)) %>%
+    dplyr::summarise(rooms_occupied = sum(sensor_value)) %>%
     pull(rooms_occupied) %>%
     mean() %>%
     ceiling()
@@ -448,7 +448,7 @@ nps_donut_narrative <- function(room_df, target_occupancy) {
 concurrent_room_table <- function(room_df) {
   room_df %>% 
     group_by(obs_datetime) %>%
-    summarise(rooms_occupied = sum(sensor_value)) %>%
+    dplyr::summarise(rooms_occupied = sum(sensor_value)) %>%
     count(rooms_occupied) %>%
     mutate(prop = prop.table(n))
 }
@@ -478,7 +478,7 @@ time_of_day_bar <- function(room_df) {
     mutate(time_of_day = strftime(obs_datetime, format="%H:%M"),
            weekday = weekdays(obs_datetime)) %>%
     group_by(weekday, time_of_day) %>%
-    summarise(occupied = mean(sensor_value))
+    dplyr::summarise(occupied = mean(sensor_value))
   
   ggplot(data,
          aes(x = hm(time_of_day),
@@ -556,14 +556,14 @@ make_waffle_data <- function(room_df, target) {
   
   mean_rooms <- room_df %>% 
     group_by(obs_datetime) %>%
-    summarise(rooms_occupied = sum(sensor_value)) %>%
+    dplyr::summarise(rooms_occupied = sum(sensor_value)) %>%
     pull(rooms_occupied) %>%
     mean() %>%
     ceiling()
   
   peak_rooms <- room_df %>% 
     group_by(obs_datetime) %>%
-    summarise(rooms_occupied = sum(sensor_value)) %>%
+    dplyr::summarise(rooms_occupied = sum(sensor_value)) %>%
     pull(rooms_occupied) %>%
     max()
   
@@ -626,7 +626,7 @@ get_room_resource_requirements <- function(df,
                                            room_footage_hot) {
   df %>%
     group_by(devicetype) %>%
-    summarise("count" = n_distinct(survey_device_id),
+    dplyr::summarise("count" = n_distinct(survey_device_id),
               "occupancy" = mean(sensor_value, na.rm = T)) %>%
     dplyr::filter(devicetype %in% c("Group Room",
                                     "Interview Room")) %>%
