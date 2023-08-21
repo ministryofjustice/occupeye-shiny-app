@@ -1,4 +1,4 @@
-FROM quay.io/mojanalytics/rshiny:3.5.1
+FROM quay.io/mojanalytics/rshiny:v3.5.2
 
 ENV PATH="/opt/shiny-server/bin:/opt/shiny-server/ext/node/bin:${PATH}"
 ENV SHINY_APP=/srv/shiny-server
