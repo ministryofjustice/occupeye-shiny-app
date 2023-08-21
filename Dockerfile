@@ -13,13 +13,12 @@ WORKDIR /srv/shiny-server
 ADD environment.yml environment.yml
 
 RUN conda env update --file environment.yml -n base
-RUN npm i -g ministryofjustice/analytics-platform-shiny-server#v0.0.3
 
  RUN R -e "install.packages('waffle', repos = 'https://cinc.rud.is')"
 
 # Add shiny app code
 ADD . .
 
-USER shiny
+USER 998
 CMD analytics-platform-shiny-server
 EXPOSE 9999
