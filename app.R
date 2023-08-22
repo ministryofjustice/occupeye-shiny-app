@@ -10,9 +10,9 @@ library(shinyTree)      # for the category tree.
 library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
 library(glue)           # Interpreted string literals
-# library(Rs3tools)        # S3tools for getting stuff from S3
+library(Rs3tools)        # S3tools for getting stuff from S3
 library(reticulate)     # For dbtools
-library(dbtools)        # For getting data
+library(Rdbtools)        # For getting data
 library(rhandsontable)  # For NPS resource tables
 library(shinycssloaders)# Loaders for charts
 library(gridExtra)      # Arrange charts
