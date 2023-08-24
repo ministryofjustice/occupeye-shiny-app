@@ -11,7 +11,6 @@ library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
 library(glue)           # Interpreted string literals
 library(reticulate)     # For dbtools
-library(Rdbtools)        # For getting data
 library(rhandsontable)  # For NPS resource tables
 library(shinycssloaders)# Loaders for charts
 library(gridExtra)      # Arrange charts
