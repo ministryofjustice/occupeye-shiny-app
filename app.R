@@ -10,7 +10,6 @@ library(shinyTree)      # for the category tree.
 library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
 library(glue)           # Interpreted string literals
-library(Rs3tools)        # S3tools for getting stuff from S3
 library(reticulate)     # For dbtools
 library(Rdbtools)        # For getting data
 library(rhandsontable)  # For NPS resource tables
@@ -603,10 +602,10 @@ server <- function(input, output, session) {
         
         # feather::write_feather(df_min, "temp_df.feather")
         # 
-        # s3tools::write_file_to_s3("temp_df.feather",s3_path = "alpha-app-occupeye-automation/temp_df.feather", overwrite = T)
+        # write_file_to_s3("temp_df.feather",s3_path = "alpha-app-occupeye-automation/temp_df.feather", overwrite = T)
         # 
         # feather::write_feather(RV$sensors, "temp_df_sensors.feather")
-        # s3tools::write_file_to_s3("temp_df_sensors.feather", "alpha-app-occupeye-automation/temp_df_sensors.feather", overwrite = T)
+        # write_file_to_s3("temp_df_sensors.feather", "alpha-app-occupeye-automation/temp_df_sensors.feather", overwrite = T)
         
         
         # make the bad sensors analysis
