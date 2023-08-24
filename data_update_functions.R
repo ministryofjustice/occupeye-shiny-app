@@ -21,7 +21,7 @@ update_selected_survey_list <- function(survey_list) {
   
   my_df <- data.frame(surveyname = survey_list)
   feather::write_feather(my_df, "active surveys.feather")
-  s3tools::write_file_to_s3("active surveys.feather", "alpha-app-occupeye-automation/active surveys.feather", overwrite = TRUE)
+  write_file_to_s3("active surveys.feather", "alpha-app-occupeye-automation/active surveys.feather", overwrite = TRUE)
 }
 
 update_selected_survey_list(survey_list)
