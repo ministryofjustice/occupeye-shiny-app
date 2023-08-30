@@ -74,7 +74,7 @@
     },
     "Rcpp": {
       "Package": "Rcpp",
-      "Version": "1.0.7",
+      "Version": "1.0.1",
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "d5ae8445d4972caed1c5517ffae908d7",
@@ -268,7 +268,7 @@
       "Repository": "CRAN",
       "Hash": "76de23891bdba419517e855ed611ad29",
       "Requirements": [
-        "",
+        "Rcpp",
         "hms",
         "tibble"
       ]
@@ -311,7 +311,7 @@
       "Repository": "CRAN",
       "Hash": "a7abe42f6a720eec4609387bb3471a4d",
       "Requirements": [
-        "",
+        "Rcpp",
         "withr"
       ]
     },
@@ -388,7 +388,7 @@
       "Repository": "CRAN",
       "Hash": "74aa264d2e3b6214529cd33a5850a07f",
       "Requirements": [
-        "",
+        "Rcpp",
         "digest"
       ]
     },
@@ -413,7 +413,7 @@
       "Requirements": [
         "BH",
         "R6",
-        "",
+        "Rcpp",
         "later",
         "promises"
       ]
@@ -486,7 +486,7 @@
       "Hash": "4d673d34896f781e1557fcee73e542ed",
       "Requirements": [
         "BH",
-        "",
+        "Rcpp",
         "rlang"
       ]
     },
@@ -513,7 +513,7 @@
       "Repository": "CRAN",
       "Hash": "796afeea047cda6bdb308d374a33eeb6",
       "Requirements": [
-        "",
+        "Rcpp",
         "stringr"
       ]
     },
@@ -582,7 +582,7 @@
       "Hash": "01bd2aedc16e618fce8eb8cd2301223f",
       "Requirements": [
         "R6",
-        "",
+        "Rcpp",
         "base64enc",
         "digest",
         "htmltools",
@@ -641,7 +641,7 @@
       "Repository": "CRAN",
       "Hash": "23026346e3e0f023f326919320627a01",
       "Requirements": [
-        ""
+        "Rcpp"
       ]
     },
     "praise": {
@@ -660,7 +660,7 @@
       "Hash": "e1983a27d5a79e89fe302623a758d88e",
       "Requirements": [
         "R6",
-        "",
+        "Rcpp",
         "later",
         "magrittr",
         "rlang"
@@ -686,7 +686,7 @@
       "Requirements": [
         "BH",
         "R6",
-        "",
+        "Rcpp",
         "clipr",
         "crayon",
         "hms",
@@ -708,7 +708,7 @@
       "Repository": "CRAN",
       "Hash": "15a23ad30f51789188e439599559815c",
       "Requirements": [
-        "",
+        "Rcpp",
         "plyr",
         "stringr"
       ]
@@ -721,7 +721,7 @@
       "Hash": "4255deadd91c2c39e858ba2ef6dca2eb",
       "Requirements": [
         "Matrix",
-        "",
+        "Rcpp",
         "jsonlite"
       ]
     },
@@ -782,7 +782,7 @@
       "Requirements": [
         "R6",
         "RColorBrewer",
-        "",
+        "Rcpp",
         "labeling",
         "munsell",
         "viridisLite"
@@ -934,7 +934,7 @@
       "Repository": "CRAN",
       "Hash": "1ee2ae693b6a7e5a05208d04bddfaad5",
       "Requirements": [
-        "",
+        "Rcpp",
         "dplyr",
         "glue",
         "magrittr",
@@ -952,7 +952,7 @@
       "Repository": "CRAN",
       "Hash": "971842fead8ee9e150495a0ede343a98",
       "Requirements": [
-        "",
+        "Rcpp",
         "glue",
         "purrr",
         "rlang"
@@ -1047,7 +1047,7 @@
       "Repository": "CRAN",
       "Hash": "300860f90d5798249a0a8ad9271d4c18",
       "Requirements": [
-        ""
+        "Rcpp"
       ]
     },
     "xtable": {
