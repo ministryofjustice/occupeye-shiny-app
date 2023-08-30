@@ -10,9 +10,7 @@ library(shinyTree)      # for the category tree.
 library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
 library(glue)           # Interpreted string literals
-library(Rs3tools)        # S3tools for getting stuff from S3
 library(reticulate)     # For dbtools
-library(dbtools)        # For getting data
 library(rhandsontable)  # For NPS resource tables
 library(shinycssloaders)# Loaders for charts
 library(gridExtra)      # Arrange charts
@@ -26,6 +24,7 @@ print("source charting_functions")
 source("charting_functions.R")
 print("source data cleaning functions")
 source("data_cleaning_functions.R")
+source("s3_tools_conversion_functions.R")
 
 
 # UI function -------------------------------------------------------------
@@ -274,13 +273,13 @@ server <- function(input, output, session) {
   
   print("Getting active surveys list")
   # Get the list of active survey
-  active_surveys_list <- Rs3tools::read_using(FUN = feather::read_feather, 
+  active_surveys_list <- read_using(FUN = feather::read_feather, 
                                              s3_path = "alpha-app-occupeye-automation/active surveys.feather") %>% 
     pull(surveyname) %>% as.character()
   
   # Get the surveys table, and make a dictionary of survey names to their IDs. 
   # So calling surveys_hash["survey_name"] returns its corresponding survey_id
-  surveys <- Rs3tools::read_using(readr::read_csv, "alpha-app-occupeye-automation/raw_data_v5/surveys/data.csv")
+  surveys <- read_using(readr::read_csv, "alpha-app-occupeye-automation/raw_data_v5/surveys/data.csv")
   active_surveys <- surveys %>% dplyr::filter(name %in% active_surveys_list)
   surveys_hash <- with(active_surveys[c("name", "survey_id")], setNames(survey_id, name))
   initial_survey_id <- surveys_hash[[1]]
@@ -309,9 +308,9 @@ server <- function(input, output, session) {
   # 
   # temp_df <- get_full_df(df_min, sensors)
   
-  temp_df <- Rs3tools::read_using(FUN = feather::read_feather,
+  temp_df <- read_using(FUN = feather::read_feather,
                                  s3_path = "alpha-app-occupeye-automation/temp_df.feather")
-  temp_df_sensors <- Rs3tools::read_using(FUN = feather::read_feather,
+  temp_df_sensors <- read_using(FUN = feather::read_feather,
                                          s3_path = "alpha-app-occupeye-automation/temp_df_sensors.feather")
   
   
@@ -602,10 +601,10 @@ server <- function(input, output, session) {
         
         # feather::write_feather(df_min, "temp_df.feather")
         # 
-        # s3tools::write_file_to_s3("temp_df.feather",s3_path = "alpha-app-occupeye-automation/temp_df.feather", overwrite = T)
+        # write_file_to_s3("temp_df.feather",s3_path = "alpha-app-occupeye-automation/temp_df.feather", overwrite = T)
         # 
         # feather::write_feather(RV$sensors, "temp_df_sensors.feather")
-        # s3tools::write_file_to_s3("temp_df_sensors.feather", "alpha-app-occupeye-automation/temp_df_sensors.feather", overwrite = T)
+        # write_file_to_s3("temp_df_sensors.feather", "alpha-app-occupeye-automation/temp_df_sensors.feather", overwrite = T)
         
         
         # make the bad sensors analysis
@@ -719,7 +718,7 @@ server <- function(input, output, session) {
     
     my_df <- data.frame(surveyname = RV$active_surveys_list)
     feather::write_feather(my_df, "active surveys.feather")
-    Rs3tools::write_file_to_s3("active surveys.feather", "alpha-app-occupeye-automation/active surveys.feather", overwrite = TRUE)
+    write_file_to_s3("active surveys.feather", "alpha-app-occupeye-automation/active surveys.feather", overwrite = TRUE)
     
     showModal(modalDialog(HTML(glue("Survey list saved. Current list of active surveys: <br> {paste(RV$active_surveys_list, collapse = '<br>')}"))))
     
@@ -1153,7 +1152,7 @@ server <- function(input, output, session) {
       # Downlaods a template for the word report.
       # Note - this has a specially modified style, in which Heading 5 has been adapted into a line break.
       # See here: https://scriptsandstatistics.wordpress.com/2015/12/18/rmarkdown-how-to-inserts-page-breaks-in-a-ms-word-document/
-      word_report_reference <- Rs3tools::download_file_from_s3("alpha-app-occupeye-automation/occupeye-report-reference.dotx",
+      word_report_reference <- download_file_from_s3("alpha-app-occupeye-automation/occupeye-report-reference.dotx",
                                                               "occupeye-report-reference.dotx",
                                                               overwrite = TRUE)
       
@@ -1190,7 +1189,7 @@ server <- function(input, output, session) {
       # Downlaods a template for the word report.
       # Note - this has a specially modified style, in which Heading 5 has been adapted into a line break.
       # See here: https://scriptsandstatistics.wordpress.com/2015/12/18/rmarkdown-how-to-inserts-page-breaks-in-a-ms-word-document/
-      word_report_reference <- Rs3tools::download_file_from_s3("alpha-app-occupeye-automation/Probation occupancy report template.dotx",
+      word_report_reference <- download_file_from_s3("alpha-app-occupeye-automation/Probation occupancy report template.dotx",
                                                               "Probation occupancy report template.dotx",
                                                               overwrite = TRUE)
       # Generate report, with progress bar
