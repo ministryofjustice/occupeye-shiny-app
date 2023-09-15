@@ -56,7 +56,7 @@ remove_non_business_days <- function(df) {
   bank_holidays <- bank_holidays$`england-and-wales`$events
   
   df %>%
-    dplyr::filter(!(date(obs_datetime) %in% as.Date(bank_holidays$date))) %>% 
+    dplyr::filter(!(as.Date(df$obs_datetime) %in% as.Date(bank_holidays$date))) %>% 
     dplyr::filter(!(weekdays(date(obs_datetime)) %in% c("Saturday", "Sunday")))
 }
 
