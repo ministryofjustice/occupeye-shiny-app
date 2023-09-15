@@ -10,7 +10,7 @@ library(shinyTree)      # for the category tree.
 library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
 library(glue)           # Interpreted string literals
-library(reticulate)     # For dbtools
+library(Rdbtools)
 library(rhandsontable)  # For NPS resource tables
 library(shinycssloaders)# Loaders for charts
 library(gridExtra)      # Arrange charts
@@ -561,11 +561,13 @@ server <- function(input, output, session) {
       print(glue("Loading sensors for surveys {paste0(RV$surveys_hash[input$survey_name], collapse = ', ')}"))
       
       withProgress(message = "Loading sensor information for selected survey(s)...", {
-        RV$sensors <- dbtools::read_sql(glue("select * from occupeye_app_db.sensors where survey_id in ({paste0(RV$surveys_hash[input$survey_name], collapse = ', ')})")) %>%
+        con <- connect_athena() # creates a connection with sensible defaults
+        RV$sensors <- dbGetQuery(con, glue("select * from occupeye_app_db.sensors where survey_id in ({paste0(RV$surveys_hash[input$survey_name], collapse = ', ')})")) %>%
           rename(survey_device_id = surveydeviceid) %>%
           mutate(survey_device_id = as.character(survey_device_id)) %>% # coerce surveydeviceid to char to maintain type integrity
           mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
                     .vars = vars(roomname, location))
+        dbDisconnect(con) # disconnects the connection
       })
       
       # Store the selected survey name to log what survey is currently loaded, in case the selection is changed in the dropdown later
@@ -586,7 +588,9 @@ server <- function(input, output, session) {
         
         
         # Download the minimal table, filtered by the download_date_range
-        df_min <- dbtools::read_sql(sql)
+        con <- connect_athena() # creates a connection with sensible defaults
+        df_min <- dbGetQuery(con,sql)
+        dbDisconnect(con) # disconnects the connection
         
         end.time <- Sys.time()
         diff <- end.time - start.time
