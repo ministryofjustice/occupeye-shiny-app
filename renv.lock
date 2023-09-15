@@ -134,16 +134,6 @@
       ],
       "Hash": "e8a22846fff485f0be3770c2da758713"
     },
-    "assertthat": {
-      "Package": "assertthat",
-      "Version": "0.2.1",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "tools"
-      ],
-      "Hash": "50c838a310445e954bc13f26f26a6ecf"
-    },
     "backports": {
       "Package": "backports",
       "Version": "1.1.4",
@@ -329,26 +319,26 @@
     },
     "dplyr": {
       "Package": "dplyr",
-      "Version": "0.8.2",
+      "Version": "1.1.3",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
-        "BH",
         "R",
         "R6",
-        "Rcpp",
-        "assertthat",
+        "cli",
+        "generics",
         "glue",
+        "lifecycle",
         "magrittr",
         "methods",
-        "pkgconfig",
-        "plogr",
+        "pillar",
         "rlang",
         "tibble",
         "tidyselect",
-        "utils"
+        "utils",
+        "vctrs"
       ],
-      "Hash": "39ff315165cb80dd59d76e67f993d8e6"
+      "Hash": "e85ffbebaad5f70e1a2e2ef4302b4949"
     },
     "ellipsis": {
       "Package": "ellipsis",
@@ -405,6 +395,13 @@
         "R"
       ],
       "Hash": "b31d9e5d051553d1177083aeba04b5b9"
+    },
+    "farver": {
+      "Package": "farver",
+      "Version": "2.1.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "8106d78941f34855c440ddb946b8f7a5"
     },
     "feather": {
       "Package": "feather",
@@ -465,40 +462,52 @@
       ],
       "Hash": "a7abe42f6a720eec4609387bb3471a4d"
     },
-    "ggplot2": {
-      "Package": "ggplot2",
-      "Version": "3.1.0",
+    "generics": {
+      "Package": "generics",
+      "Version": "0.1.3",
       "Source": "Repository",
       "Repository": "CRAN",
       "Requirements": [
+        "R",
+        "methods"
+      ],
+      "Hash": "15e9634c0fcd294799e9b2e929ed1b86"
+    },
+    "ggplot2": {
+      "Package": "ggplot2",
+      "Version": "3.4.3",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
         "MASS",
         "R",
-        "digest",
+        "cli",
+        "glue",
+        "grDevices",
         "grid",
         "gtable",
-        "lazyeval",
+        "isoband",
+        "lifecycle",
         "mgcv",
-        "plyr",
-        "reshape2",
         "rlang",
         "scales",
         "stats",
         "tibble",
-        "viridisLite",
+        "vctrs",
         "withr"
       ],
-      "Hash": "7e735b21c31bd5b10b009e3eba4e7965"
+      "Hash": "85846544c596e71f8f46483ab165da33"
     },
     "glue": {
       "Package": "glue",
-      "Version": "1.3.1",
+      "Version": "1.6.2",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
         "R",
         "methods"
       ],
-      "Hash": "d4e25697c450c01b202c79ef35694a83"
+      "Hash": "4f2596dfb05dac67b9dc558e5c6fba2e"
     },
     "gridExtra": {
       "Package": "gridExtra",
@@ -625,6 +634,17 @@
       ],
       "Hash": "194b9f75755db776bc5a34ee8b95fe7e"
     },
+    "isoband": {
+      "Package": "isoband",
+      "Version": "0.2.7",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "grid",
+        "utils"
+      ],
+      "Hash": "0080607b4a1a7b28979aecef976d8bc2"
+    },
     "janitor": {
       "Package": "janitor",
       "Version": "1.2.0",
@@ -730,16 +750,6 @@
         "utils"
       ],
       "Hash": "848f8c593fd1050371042d18d152e3d7"
-    },
-    "lazyeval": {
-      "Package": "lazyeval",
-      "Version": "0.2.1",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "R"
-      ],
-      "Hash": "ea5964121f493fb3057e9887d424f634"
     },
     "lifecycle": {
       "Package": "lifecycle",
@@ -1067,18 +1077,20 @@
     },
     "pillar": {
       "Package": "pillar",
-      "Version": "1.4.2",
+      "Version": "1.9.0",
       "Source": "Repository",
-      "Repository": "CRAN",
+      "Repository": "RSPM",
       "Requirements": [
         "cli",
-        "crayon",
         "fansi",
+        "glue",
+        "lifecycle",
         "rlang",
         "utf8",
+        "utils",
         "vctrs"
       ],
-      "Hash": "9f20924c27aee3d09296c22fb84bc9de"
+      "Hash": "15da5a8412f317beeee6175fbc76f4bb"
     },
     "pkgconfig": {
       "Package": "pkgconfig",
@@ -1089,13 +1101,6 @@
         "utils"
       ],
       "Hash": "f5940986fb19bcef52284068baeb3f29"
-    },
-    "plogr": {
-      "Package": "plogr",
-      "Version": "0.2.0",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "09eb987710984fc2905c7129c7d85e65"
     },
     "plyr": {
       "Package": "plyr",
@@ -1350,19 +1355,21 @@
     },
     "scales": {
       "Package": "scales",
-      "Version": "1.0.0",
+      "Version": "1.2.1",
       "Source": "Repository",
-      "Repository": "RSPM",
+      "Repository": "CRAN",
       "Requirements": [
         "R",
         "R6",
         "RColorBrewer",
-        "Rcpp",
+        "farver",
         "labeling",
+        "lifecycle",
         "munsell",
+        "rlang",
         "viridisLite"
       ],
-      "Hash": "2e46c8ab2c109085d5b3a775ea2df19c"
+      "Hash": "906cb23d2f1c5680b8ce439b44c6fa63"
     },
     "selectr": {
       "Package": "selectr",
@@ -1547,21 +1554,22 @@
     },
     "tibble": {
       "Package": "tibble",
-      "Version": "2.1.3",
+      "Version": "3.2.1",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
         "R",
-        "cli",
-        "crayon",
         "fansi",
+        "lifecycle",
+        "magrittr",
         "methods",
         "pillar",
         "pkgconfig",
         "rlang",
-        "utils"
+        "utils",
+        "vctrs"
       ],
-      "Hash": "8248ee35d1e15d1e506f05f5a5d46a75"
+      "Hash": "a84e2cc86d07289b3b6f5069df7a004c"
     },
     "tidyr": {
       "Package": "tidyr",
@@ -1584,17 +1592,19 @@
     },
     "tidyselect": {
       "Package": "tidyselect",
-      "Version": "0.2.5",
+      "Version": "1.2.0",
       "Source": "Repository",
       "Repository": "CRAN",
       "Requirements": [
         "R",
-        "Rcpp",
+        "cli",
         "glue",
-        "purrr",
-        "rlang"
+        "lifecycle",
+        "rlang",
+        "vctrs",
+        "withr"
       ],
-      "Hash": "971842fead8ee9e150495a0ede343a98"
+      "Hash": "79540e5fcd9e0435af547d885f184fd5"
     },
     "tinytex": {
       "Package": "tinytex",
@@ -1718,16 +1728,16 @@
     },
     "withr": {
       "Package": "withr",
-      "Version": "2.1.2",
+      "Version": "2.5.0",
       "Source": "Repository",
-      "Repository": "CRAN",
+      "Repository": "RSPM",
       "Requirements": [
         "R",
         "grDevices",
         "graphics",
         "stats"
       ],
-      "Hash": "aa57ed55ff2df4bea697a07df528993d"
+      "Hash": "c0e49a9760983e81e55cdd9be92e7182"
     },
     "xfun": {
       "Package": "xfun",

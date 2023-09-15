@@ -2,6 +2,7 @@
 
 library(shiny)          # For the shiny!
 library(ggplot2)        # For plotting
+library(scales)
 library(dplyr)          # For pipes data wrangling
 library(htmlwidgets)    # rpivotTable depends on it
 library(shinyWidgets)   # For pickerInput
