@@ -2,6 +2,7 @@
 
 library(shiny)          # For the shiny!
 library(ggplot2)        # For plotting
+library(scales)
 library(dplyr)          # For pipes data wrangling
 library(htmlwidgets)    # rpivotTable depends on it
 library(shinyWidgets)   # For pickerInput
@@ -10,13 +11,14 @@ library(shinyTree)      # for the category tree.
 library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
 library(glue)           # Interpreted string literals
-library(reticulate)     # For dbtools
+library(Rdbtools)
 library(rhandsontable)  # For NPS resource tables
 library(shinycssloaders)# Loaders for charts
 library(gridExtra)      # Arrange charts
 library(flextable)      # Flextable
 library(stringr)        # For string_detect
 library(forcats)
+library(tidyr)
 
 # import other source code ------------------------------------------------
 
@@ -484,25 +486,28 @@ server <- function(input, output, session) {
     l2Names <- replace(l2Names, l2Names %in% c("N/A", ""), NA)
     l3Names <- replace(l3Names, l3Names %in% c("N/A", ""), NA)
     
+    
     RV$l1Names <- l1Names
     RV$l2Names <- l2Names
     RV$l3Names <- l3Names
     
     # apply the filters
     RV$filtered <- RV$df_sum %>%
-      dplyr::filter(date >= input$date_range[1] & date <= input$date_range[2],
+      dplyr::filter(date >= input$date_range[1] && date <= input$date_range[2],
                     devicetype %in% input$desk_type,
                     building %in% input$buildings,
                     floor %in% input$floors,
                     roomname %in% input$zones,
-                    location %in% input$desks)
+                    #location %in% input$desks
+                    )
     
     if(tree_initialised) {
       
       RV$filtered <- RV$filtered %>%
         dplyr::filter(trimws(category_1) %in% l1Names,
                       trimws(category_2) %in% l2Names,
-                      trimws(category_3) %in% l3Names)
+                      trimws(category_3) %in% l3Names
+                      )
     }
     
   }
@@ -517,7 +522,7 @@ server <- function(input, output, session) {
     category_list <- RV$df_sum %>%
       select(category_1, category_2, category_3) %>%
       unique %>%
-      mutate_all(funs(ifelse(is.na(.) | . == "", "N/A", .))) # replaces nulls/empty string with "N/A" so that ShinyTree works properly
+      mutate_all(list(~ifelse(is.na(.) | . == "", "N/A", .))) # replaces nulls/empty string with "N/A" so that ShinyTree works properly
     
     # split the data.frame of categories into a nested list of lists
     cat1split <- with(category_list, split(category_list, category_1))
@@ -561,11 +566,13 @@ server <- function(input, output, session) {
       print(glue("Loading sensors for surveys {paste0(RV$surveys_hash[input$survey_name], collapse = ', ')}"))
       
       withProgress(message = "Loading sensor information for selected survey(s)...", {
-        RV$sensors <- dbtools::read_sql(glue("select * from occupeye_app_db.sensors where survey_id in ({paste0(RV$surveys_hash[input$survey_name], collapse = ', ')})")) %>%
+        con <- connect_athena() # creates a connection with sensible defaults
+        RV$sensors <- dbGetQuery(con, glue("select * from occupeye_app_db.sensors where survey_id in ({paste0(RV$surveys_hash[input$survey_name], collapse = ', ')})")) %>%
           rename(survey_device_id = surveydeviceid) %>%
           mutate(survey_device_id = as.character(survey_device_id)) %>% # coerce surveydeviceid to char to maintain type integrity
-          mutate_at(.funs = funs(ifelse(is.na(.), "N/A",.)),
+          mutate_at(.funs = list(~ifelse(is.na(.), "N/A",.)),
                     .vars = vars(roomname, location))
+        dbDisconnect(con) # disconnects the connection
       })
       
       # Store the selected survey name to log what survey is currently loaded, in case the selection is changed in the dropdown later
@@ -586,18 +593,22 @@ server <- function(input, output, session) {
         
         
         # Download the minimal table, filtered by the download_date_range
-        df_min <- dbtools::read_sql(sql)
+        con <- connect_athena() # creates a connection with sensible defaults
+        df_min <- dbGetQuery(con,sql)
+        dbDisconnect(con) # disconnects the connection
         
         end.time <- Sys.time()
         diff <- end.time - start.time
         print(diff)
         # Add the other sensor metadata, dealing with the inconsistently named survey_device_id and surveydeviceid
         df_full <- get_full_df(df_min, RV$sensors)
+        df_full <- df_full %>% replace_na(list(category_1 = 'N/A', category_2 = 'N/A', category_3 = 'N/A'))
         
         # add the raw data for displaying on the raw data tab
         RV$data <- df_full %>%
           clean_and_mutate_raw_data() %>%
           remove_non_business_days()
+          
         
         # feather::write_feather(df_min, "temp_df.feather")
         # 
@@ -645,6 +656,7 @@ server <- function(input, output, session) {
     
     # Get list of desks
     desks_list <- unique(RV$df_sum$location) %>% sort()
+
     
     # get new list of dates
     date_list <- unique(RV$df_sum$date)
@@ -844,10 +856,11 @@ server <- function(input, output, session) {
                     building %in% input$buildings,
                     floor %in% input$floors,
                     roomname %in% input$zones,
-                    location %in% input$desks,
-                    category_1 %in% RV$l1Names,
-                    category_2 %in% RV$l2Names,
-                    category_3 %in% RV$l3Names)
+                    #location %in% input$desks,
+                    #category_1 %in% RV$l1Names,
+                    #category_2 %in% RV$l2Names,
+                    #category_3 %in% RV$l3Names
+                    )
     df
   })
   
