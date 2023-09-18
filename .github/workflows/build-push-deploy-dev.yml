@@ -156,7 +156,7 @@ jobs:
             fi
           done
 
-          helm upgrade --install --wait --timeout 10m0s --namespace $KUBE_NAMESPACE $RELEASE_NAME mojanalytics/webapp-cp \
+          helm upgrade --install --wait --timeout 45m0s --namespace $KUBE_NAMESPACE $RELEASE_NAME mojanalytics/webapp-cp \
           --set AuthProxy.Env.Auth0Domain=$AUTH0_DOMAIN \
           --set AuthProxy.Env.Auth0Passwordless=$AUTH0_PASSWORDLESS \
           --set AuthProxy.Env.Auth0TokenAlg=$AUTH0_TOKEN_ALG \
