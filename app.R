@@ -498,7 +498,8 @@ server <- function(input, output, session) {
                     building %in% input$buildings,
                     floor %in% input$floors,
                     roomname %in% input$zones,
-                    location %in% input$desks)
+                    #location %in% input$desks
+                    )
     
     if(tree_initialised) {
       
@@ -855,9 +856,9 @@ server <- function(input, output, session) {
                     building %in% input$buildings,
                     floor %in% input$floors,
                     roomname %in% input$zones,
-                    location %in% input$desks,
-                    category_1 %in% RV$l1Names,
-                    category_2 %in% RV$l2Names,
+                    #location %in% input$desks,
+                    #category_1 %in% RV$l1Names,
+                    #category_2 %in% RV$l2Names,
                     #category_3 %in% RV$l3Names
                     )
     df
