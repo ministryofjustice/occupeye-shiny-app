@@ -103,7 +103,7 @@ weekday_usage_narrative <- function(df_sum) {
     group_by(day) %>%
     dplyr::summarise(prop = sum(prop))
   
-  top_day <- daily_util %>% dplyr::filter(prop == max(prop, na.rm = TRUE)) %>% .$day
+  top_day <- daily_util %>% dplyr::filter(prop == max(prop)) %>% .$day
   
   friday_util <- daily_util %>% dplyr::filter(day == "Friday") %>% .$prop
   
