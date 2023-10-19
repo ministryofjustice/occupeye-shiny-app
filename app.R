@@ -504,8 +504,8 @@ server <- function(input, output, session) {
       
       RV$filtered <- RV$filtered %>%
         dplyr::filter(trimws(category_1) %in% l1Names,
-                      trimws(category_2) %in% l2Names,
-                      trimws(category_3) %in% l3Names
+                      trimws(category_2) %in% l2Names
+                      #trimws(category_3) %in% l3Names
                       )
     }
     

@@ -11,11 +11,13 @@ RUN apt-get update \
     python3 \
     python3-pip \
     python3-venv \
-    python3-dev
+    python3-dev \
+    pandoc
 
 # Add R package requirements and install
 ADD renv.lock renv.lock
 RUN R --vanilla -s -e 'renv::restore()'
+RUN R -e 'renv::install("pandoc")'
 
 # Add Python package requirements and install
 COPY requirements.txt .
