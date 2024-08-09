@@ -2,6 +2,6 @@ boto3==1.28.29
 botocore==1.31.29
 jmespath==1.0.1
 python-dateutil==2.8.2
-s3transfer==0.6.2
+s3transfer==0.10.2
 six==1.16.0
 urllib3==1.26.16
