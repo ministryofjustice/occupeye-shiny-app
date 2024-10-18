@@ -1,4 +1,4 @@
-FROM 593291632749.dkr.ecr.eu-west-1.amazonaws.com/rshiny:r4.1.3-shiny0.0.6
+FROM ghcr.io/ministryofjustice/analytical-platform-rshiny-open-source-base:1.3.0
 
 # Make sure reticulate uses the system Python
 ENV RETICULATE_PYTHON="/usr/bin/python3"
