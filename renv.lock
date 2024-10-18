@@ -101,14 +101,11 @@
     },
     "Rdbtools": {
       "Package": "Rdbtools",
-      "Version": "0.4.2",
-      "Source": "GitHub",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteUsername": "moj-analytical-services",
-      "RemoteRepo": "Rdbtools",
-      "RemoteRef": "main",
-      "RemoteSha": "62c042c8fafad8f17da327caa69fc2f459f824b9",
+      "Version": "0.5.2",
+      "Source": "git",
+      "RemoteType": "git",
+      "RemoteUrl": "git@github.com:moj-analytical-services/Rdbtools.git",
+      "RemoteRef": "",
       "Requirements": [
         "DBI",
         "httr",
@@ -122,7 +119,7 @@
         "stringr",
         "vroom"
       ],
-      "Hash": "cce67eef4fce16fdec477ca0006aa908"
+      "Hash": "373354dbddb4410c25714126021c6907"
     },
     "Rttf2pt1": {
       "Package": "Rttf2pt1",
@@ -968,11 +965,6 @@
       ],
       "Hash": "7ce2733a9826b3aeb1775d56fd305472"
     },
-    "markdown": {
-      "Package": "markdown",
-      "Version": "1.13",
-      "Source": "Repository"
-    },
     "memoise": {
       "Package": "memoise",
       "Version": "2.0.1",
@@ -1085,12 +1077,13 @@
     },
     "paws": {
       "Package": "paws",
-      "Version": "0.3.0",
+      "Version": "0.7.0",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
         "paws.analytics",
         "paws.application.integration",
+        "paws.common",
         "paws.compute",
         "paws.cost.management",
         "paws.customer.engagement",
@@ -1103,31 +1096,31 @@
         "paws.security.identity",
         "paws.storage"
       ],
-      "Hash": "8c3650837ceb3b7879d0accfe5eaac09"
+      "Hash": "e86280169e0edf73aeb255dc3291a78c"
     },
     "paws.analytics": {
       "Package": "paws.analytics",
-      "Version": "0.4.0",
+      "Version": "0.7.0",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
         "paws.common"
       ],
-      "Hash": "0690ad4abdce9d81f1df66a4dcc98d6e"
+      "Hash": "0b550ad3a3196182b3972d87f67ee52f"
     },
     "paws.application.integration": {
       "Package": "paws.application.integration",
-      "Version": "0.4.0",
+      "Version": "0.7.0",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
         "paws.common"
       ],
-      "Hash": "31228082fcbb37d21007efa46f890d63"
+      "Hash": "56caa9cc142939976c23d618de875fad"
     },
     "paws.common": {
       "Package": "paws.common",
-      "Version": "0.6.0",
+      "Version": "0.7.7",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
@@ -1142,117 +1135,117 @@
         "utils",
         "xml2"
       ],
-      "Hash": "715ecb4846910ac27076d3d6e89a676d"
+      "Hash": "d184fea5f7f48426720b84f5b488380d"
     },
     "paws.compute": {
       "Package": "paws.compute",
-      "Version": "0.4.0",
+      "Version": "0.7.0",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
         "paws.common"
       ],
-      "Hash": "05b885b89a051daa20c75ebf934eda4e"
+      "Hash": "ff7b5df4fe6a395bc007bee9fe66e35b"
     },
     "paws.cost.management": {
       "Package": "paws.cost.management",
-      "Version": "0.4.0",
+      "Version": "0.7.0",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
         "paws.common"
       ],
-      "Hash": "465082c83a2c1927e5ce5c53d99e408d"
+      "Hash": "ec6dc962be2e52a3bc80705453f36498"
     },
     "paws.customer.engagement": {
       "Package": "paws.customer.engagement",
-      "Version": "0.4.0",
+      "Version": "0.7.0",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
         "paws.common"
       ],
-      "Hash": "186c116aefb1b04f9b07ce0dccc688d1"
+      "Hash": "c54f1f22133b1c871bdf55eff0696cd4"
     },
     "paws.database": {
       "Package": "paws.database",
-      "Version": "0.4.0",
+      "Version": "0.7.0",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
         "paws.common"
       ],
-      "Hash": "cc0f5bacc5323b61f5d42ac5993dd72a"
+      "Hash": "60369b1a0313bb8f851fce55cf2628f7"
     },
     "paws.developer.tools": {
       "Package": "paws.developer.tools",
-      "Version": "0.4.0",
+      "Version": "0.7.0",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
         "paws.common"
       ],
-      "Hash": "ffe0220f68dc235ce7f12db17c351d9b"
+      "Hash": "1ce7155cae73833be217e21521c32e3e"
     },
     "paws.end.user.computing": {
       "Package": "paws.end.user.computing",
-      "Version": "0.4.0",
+      "Version": "0.7.0",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
         "paws.common"
       ],
-      "Hash": "59f85e6c341d5c27cad57d2ee9c3ff6c"
+      "Hash": "186cf97ccd324024f711198947276e7a"
     },
     "paws.machine.learning": {
       "Package": "paws.machine.learning",
-      "Version": "0.4.0",
+      "Version": "0.7.0",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
         "paws.common"
       ],
-      "Hash": "ace6e9b7b1b2986df0f8bca09cb6441b"
+      "Hash": "c7f9d15e133abc4a5110a06f9b278bbd"
     },
     "paws.management": {
       "Package": "paws.management",
-      "Version": "0.4.0",
+      "Version": "0.7.0",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
         "paws.common"
       ],
-      "Hash": "2c4fa08a9dd0e4043bd889d4152409b3"
+      "Hash": "825160604065040b1927448b4ff74ee5"
     },
     "paws.networking": {
       "Package": "paws.networking",
-      "Version": "0.4.0",
+      "Version": "0.7.0",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
         "paws.common"
       ],
-      "Hash": "376b867bc6dbe27fbc70b1fe32f7255d"
+      "Hash": "9f797402420b714f197129ab3ebc0623"
     },
     "paws.security.identity": {
       "Package": "paws.security.identity",
-      "Version": "0.4.0",
+      "Version": "0.7.0",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
         "paws.common"
       ],
-      "Hash": "eb66fc03cf25caa55c0d3a3f90a92296"
+      "Hash": "dabf1af10c69094cac1a431f3dc2eb1c"
     },
     "paws.storage": {
       "Package": "paws.storage",
-      "Version": "0.4.0",
+      "Version": "0.7.0",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
         "paws.common"
       ],
-      "Hash": "8aea3bee1ea38991f23aea27583b93ef"
+      "Hash": "867ac96c9b97e47c23efbf97e809aed4"
     },
     "pillar": {
       "Package": "pillar",
