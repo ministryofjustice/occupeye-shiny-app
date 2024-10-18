@@ -493,7 +493,7 @@ server <- function(input, output, session) {
     
     # apply the filters
     RV$filtered <- RV$df_sum %>%
-      dplyr::filter(date >= input$date_range[1] && date <= input$date_range[2],
+      dplyr::filter(date >= input$date_range[1] & date <= input$date_range[2],
                     devicetype %in% input$desk_type,
                     building %in% input$buildings,
                     floor %in% input$floors,
