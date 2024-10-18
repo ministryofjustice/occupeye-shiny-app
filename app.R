@@ -6,7 +6,7 @@ library(scales)
 library(dplyr)          # For pipes data wrangling
 library(htmlwidgets)    # rpivotTable depends on it
 library(shinyWidgets)   # For pickerInput
-# library(plotly)         # Makes ggplot interactive
+# library(plotly)         # Makes ggplot interactive 
 library(shinyTree)      # for the category tree.
 library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
@@ -493,7 +493,7 @@ server <- function(input, output, session) {
     
     # apply the filters
     RV$filtered <- RV$df_sum %>%
-      dplyr::filter(date >= input$date_range[1] && date <= input$date_range[2],
+      dplyr::filter(date >= input$date_range[1] & date <= input$date_range[2],
                     devicetype %in% input$desk_type,
                     building %in% input$buildings,
                     floor %in% input$floors,
