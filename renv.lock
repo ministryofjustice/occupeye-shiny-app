@@ -99,7 +99,7 @@
       ],
       "Hash": "c232938949fcd8126034419cc529333a"
     },
-     "Rdbtools": {
+    "Rdbtools": {
       "Package": "Rdbtools",
       "Version": "0.5.2",
       "Source": "GitHub",
@@ -966,6 +966,11 @@
         "R"
       ],
       "Hash": "7ce2733a9826b3aeb1775d56fd305472"
+    },
+    "markdown": {
+      "Package": "markdown",
+      "Version": "1.13",
+      "Source": "Repository"
     },
     "memoise": {
       "Package": "memoise",
