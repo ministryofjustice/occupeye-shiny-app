@@ -6,7 +6,7 @@ library(scales)
 library(dplyr)          # For pipes data wrangling
 library(htmlwidgets)    # rpivotTable depends on it
 library(shinyWidgets)   # For pickerInput
-# library(plotly)         # Makes ggplot interactive
+# library(plotly)         # Makes ggplot interactive 
 library(shinyTree)      # for the category tree.
 library(rpivotTable)    # Pivot tables
 library(feather)        # Feather data reading
