@@ -174,5 +174,7 @@ jobs:
            --set WebApp.Image.Repository=$ECR_REPO_WEBAPP \
            --set WebApp.Image.Tag=$NEW_TAG_V \
            --set WebApp.Name=$KUBE_NAMESPACE \
+           --set WebApp.resources.limits.memory=2Gi \
+           --set WebApp.resources.requests.memory=2Gi \
            $custom_variables
 
