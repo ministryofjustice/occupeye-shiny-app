@@ -99,13 +99,15 @@
       ],
       "Hash": "c232938949fcd8126034419cc529333a"
     },
-    "Rdbtools": {
+     "Rdbtools": {
       "Package": "Rdbtools",
       "Version": "0.5.2",
-      "Source": "git",
-      "RemoteType": "git",
-      "RemoteUrl": "git@github.com:moj-analytical-services/Rdbtools.git",
-      "RemoteRef": "",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "moj-analytical-services",
+      "RemoteRepo": "Rdbtools",
+      "RemoteRef": "main",
       "Requirements": [
         "DBI",
         "httr",
